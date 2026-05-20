@@ -4,6 +4,23 @@ import { prisma } from "@/lib/db";
 
 export const SESSION_COOKIE = "academy_uid";
 
+// ── Roles & plans ───────────────────────────────────────────────────────────
+// Single source of truth for the role/plan strings stored on User.role / Academy.plan.
+export const ROLE = {
+  SUPER_ADMIN: "super_admin", // platform owner — no academyId, bypasses tenant scoping
+  ACADEMY_ADMIN: "academy_admin",
+  COACH: "coach",
+  ATHLETE: "athlete",
+  RECRUITER: "recruiter",
+} as const;
+export type Role = (typeof ROLE)[keyof typeof ROLE];
+
+export const PLANS = ["BASIC", "PRO", "ELITE"] as const;
+export type Plan = (typeof PLANS)[number];
+
+export const ACADEMY_STATUSES = ["active", "inactive"] as const;
+export type AcademyStatus = (typeof ACADEMY_STATUSES)[number];
+
 export async function getCurrentUser() {
   const jar = await cookies();
   const uid = jar.get(SESSION_COOKIE)?.value;
@@ -14,11 +31,14 @@ export async function getCurrentUser() {
 export type Session = {
   userId: string;
   name: string;
-  role: string; // academy_admin | coach | ...
+  role: string; // super_admin | academy_admin | coach | ...
   academyId: string | null;
   academyName: string | null;
+  academyStatus: string | null;
+  academyPlan: string | null;
   coachId: string | null;
-  isAdmin: boolean;
+  isSuperAdmin: boolean;
+  isAdmin: boolean; // academy-level admin (academy_admin)
 };
 
 export async function getSession(): Promise<Session | null> {
@@ -30,15 +50,28 @@ export async function getSession(): Promise<Session | null> {
     role: u.role,
     academyId: u.academyId,
     academyName: u.academy?.name ?? null,
+    academyStatus: u.academy?.status ?? null,
+    academyPlan: u.academy?.plan ?? null,
     coachId: u.coachId,
-    isAdmin: u.role === "academy_admin",
+    isSuperAdmin: u.role === ROLE.SUPER_ADMIN,
+    isAdmin: u.role === ROLE.ACADEMY_ADMIN,
   };
 }
 
-// Server-side guard for admin-only pages. Coaches are sent to their own workspace.
+// Platform-level guard. Only SUPER_ADMIN may pass; everyone else goes to their workspace.
+export async function requireSuperAdmin(): Promise<Session> {
+  const s = await getSession();
+  if (!s) redirect("/login");
+  if (!s.isSuperAdmin) redirect("/");
+  return s;
+}
+
+// Server-side guard for academy admin-only pages. Coaches are sent to their own workspace,
+// super admins to the platform portal.
 export async function requireAdmin(): Promise<Session> {
   const s = await getSession();
   if (!s) redirect("/login");
+  if (s.isSuperAdmin) redirect("/super-admin");
   if (!s.isAdmin) redirect("/");
   return s;
 }
@@ -47,6 +80,7 @@ export async function requireAdmin(): Promise<Session> {
 export async function requireCoachId(): Promise<string> {
   const s = await getSession();
   if (!s) redirect("/login");
+  if (s.isSuperAdmin) redirect("/super-admin");
   if (s.isAdmin) redirect("/");
   if (!s.coachId) redirect("/");
   return s.coachId;
@@ -62,11 +96,19 @@ export async function getActiveAcademyId(): Promise<string | null> {
   return user?.academyId ?? null;
 }
 
+// Resolve the tenant id for the current request. Every academy-scoped query funnels
+// through this so a user can only ever read/write their own academy's data.
+// SUPER_ADMIN is platform-level (no tenant) and must NOT use academy-scoped queries —
+// it operates through the /super-admin portal instead, so we fail loudly here.
 export async function requireAcademyId(): Promise<string> {
-  const id = await getActiveAcademyId();
-  // Fallback to first academy keeps the prototype resilient if the cookie is stale.
-  if (id) return id;
-  const first = await prisma.academy.findFirst();
+  const user = await getCurrentUser();
+  if (user?.role === ROLE.SUPER_ADMIN) {
+    throw new Error("SUPER_ADMIN has no tenant scope — use the /super-admin portal.");
+  }
+  if (user?.academyId) return user.academyId;
+  // Fallback to first academy keeps the prototype resilient if the cookie is stale
+  // (e.g. after a reseed regenerates user ids). Real auth removes this.
+  const first = await prisma.academy.findFirst({ orderBy: { createdAt: "asc" } });
   if (!first) throw new Error("No academy found");
   return first.id;
 }

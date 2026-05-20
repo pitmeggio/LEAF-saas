@@ -8,9 +8,11 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
+// Central tenant. Every academy-owned table carries academyId and is scoped by it
+// (see src/lib/auth.ts). SUPER_ADMIN users bypass scoping via the /super-admin portal.
 model Academy {
   id           String        @id @default(cuid())
   name         String
@@ -23,6 +25,27 @@ model Academy {
   description  String?
   requirements String? // newline-separated bullet points
   logoColor    String        @default("#7CFF6B")
+  status       String        @default("active") // active | inactive  (deactivated tenants are locked out)
+  plan         String        @default("BASIC") // BASIC | PRO | ELITE  (subscription tier)
+
+  // ── Public recruiting (surfaced by the profiles.leaf.ai experience) ──
+  // Only exposed when recruitingEnabled && status == "active". Read exclusively
+  // through src/lib/profiles.ts, which never returns private/financial fields.
+  recruitingEnabled         Boolean  @default(false)
+  recruitingStatus          String   @default("CLOSED") // OPEN | LIMITED_SPOTS | WAITLIST_OPEN | CLOSED
+  publicRecruitingHeadline  String?
+  publicRecruitingDescription String?
+  applicationDeadline       DateTime?
+  availableSpots            Int?
+  acceptedCountries         String? // newline/comma-separated ISO codes or names
+  ageCategories             String? // newline-separated (e.g. "U16", "U18", "U21")
+  rankingRequirement        String?
+  programTypes              String? // comma-separated: Full Package | Training Only | Race Support | Custom
+  applicationUrl            String? // external apply URL — used instead of the internal /academy/[slug]/apply form when set
+  featuredAcademy           Boolean  @default(false)
+  contactEmail              String?
+  publicApplyEnabled        Boolean  @default(true)
+
   programs     Program[]
   packages     Package[]
   applications Application[]
@@ -43,8 +66,8 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
-  role      String   @default("coach") // academy_admin | coach | athlete | recruiter
-  academyId String?
+  role      String   @default("coach") // super_admin | academy_admin | coach | athlete | recruiter
+  academyId String? // null for super_admin (platform-level, not bound to a tenant)
   academy   Academy? @relation(fields: [academyId], references: [id])
   coachId   String? // links a coach login to their Coach record (scopes their workspace)
   coach     Coach?   @relation(fields: [coachId], references: [id])
@@ -147,13 +170,51 @@ model Athlete {
   bio             String?
   location        String?
   verified        Boolean        @default(true)
+
+  // ── Public recruiting profile (read by the profiles.leaf.ai experience) ──
+  // All public visibility is opt-in and per-field. The public read layer
+  // (src/lib/profiles.ts) is the ONLY place these are exposed, and it never
+  // returns the private columns above (notes, injuryFlag, contacts, etc.).
+  publicProfileEnabled      Boolean  @default(false)
+  publicSlug                String?  @unique
+  publicVisibility          String   @default("PRIVATE") // PUBLIC | PRIVATE | INVITE_ONLY | ACADEMY_ONLY
+  publicBio                 String?
+  publicPhotoUrl            String?
+  publicShowAcademy         Boolean  @default(true)
+  publicShowRanking         Boolean  @default(true)
+  publicShowResults         Boolean  @default(true)
+  publicShowMedia           Boolean  @default(true)
+  publicShowExternalProfiles Boolean @default(true)
+  publicContactEnabled      Boolean  @default(false)
+  publicVerified            Boolean  @default(false)
+  fisProfileUrl             String?
+  atpPlayerId               String?
+  atpProfileUrl             String?
+
   rankings        RankingPoint[]
   results         Result[]
   media           Media[]
+  publicMedia     PublicAthleteMedia[]
   applications    Application[]
   enrollments     Enrollment[]
   conversations   Conversation[]
   createdAt       DateTime       @default(now())
+}
+
+// Curated public portfolio assets, separate from internal `Media`. Only rows with
+// isApprovedPublic = true are ever surfaced on the public profile.
+model PublicAthleteMedia {
+  id            String   @id @default(cuid())
+  athleteId     String
+  athlete       Athlete  @relation(fields: [athleteId], references: [id])
+  type          String // IMAGE | VIDEO | PDF | LINK
+  title         String
+  url           String
+  thumbnailUrl  String?
+  isApprovedPublic Boolean @default(false)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 // Historical FIS points snapshots — the source of the growth trend.

@@ -13,6 +13,7 @@ import {
 } from "@/app/entity-actions";
 import { confirmAcceptance } from "@/app/ops-actions";
 import { createExpense, updateExpense } from "@/app/expense-actions";
+import type { CoachInput, GroupInput, PackageInput, ManualAthleteInput, ExpenseInput } from "@/lib/validation";
 import { COUNTRY, DISCIPLINE_LABEL, fmtMoney } from "@/lib/domain";
 import { buildPaymentSchedule, REQUIRED_DOC_TYPES, DOC_LABEL } from "@/lib/enrollmentLogic";
 
@@ -115,7 +116,7 @@ export function CoachForm({ initial }: { initial?: { id: string; name: string; e
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
   return (
-    <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updateCoach(initial.id, f) : createCoach(f)); }} className="space-y-3">
+    <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updateCoach(initial.id, f as CoachInput) : createCoach(f as CoachInput)); }} className="space-y-3">
       <Field label="Name *"><input className={inp} value={f.name} onChange={(e) => upd("name", e.target.value)} required /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Email"><input className={inp} value={f.email} onChange={(e) => upd("email", e.target.value)} /></Field>
@@ -141,7 +142,7 @@ export function GroupForm({ coaches, initial }: { coaches: Opt[]; initial?: { id
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
   return (
-    <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updateGroup(initial.id, { ...f, coachId: f.coachId || undefined }) : createGroup({ ...f, coachId: f.coachId || undefined })); }} className="space-y-3">
+    <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updateGroup(initial.id, { ...f, coachId: f.coachId || undefined } as GroupInput) : createGroup({ ...f, coachId: f.coachId || undefined } as GroupInput)); }} className="space-y-3">
       <Field label="Name *"><input className={inp} value={f.name} onChange={(e) => upd("name", e.target.value)} required /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Season"><input className={inp} value={f.season} onChange={(e) => upd("season", e.target.value)} /></Field>
@@ -170,7 +171,7 @@ export function PackageForm({ initial }: { initial?: PackageInitial }) {
   });
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
-  const payload = () => ({ ...f, price: Number(f.price) || null, maxAthletes: Number(f.maxAthletes) || null });
+  const payload = (): PackageInput => ({ ...f, price: Number(f.price) || null, maxAthletes: Number(f.maxAthletes) || null }) as PackageInput;
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updatePackage(initial.id, payload()) : createPackage(payload())); }} className="space-y-3">
       <Field label="Name *"><input className={inp} value={f.name} onChange={(e) => upd("name", e.target.value)} required /></Field>
@@ -198,7 +199,7 @@ export function AthleteForm({ groups, coaches, packages }: { groups: Opt[]; coac
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
   return (
-    <form onSubmit={(e) => { e.preventDefault(); submit(() => createAthlete({ ...f, gender: (f.gender || undefined) as "M" | "F" | undefined, level: f.level || undefined, groupId: f.groupId || undefined, coachId: f.coachId || undefined, packageId: f.packageId || undefined })); }} className="space-y-3">
+    <form onSubmit={(e) => { e.preventDefault(); submit(() => createAthlete({ ...f, gender: (f.gender || undefined) as "M" | "F" | undefined, level: f.level || undefined, groupId: f.groupId || undefined, coachId: f.coachId || undefined, packageId: f.packageId || undefined } as ManualAthleteInput)); }} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <Field label="First name *"><input className={inp} value={f.firstName} onChange={(e) => upd("firstName", e.target.value)} required /></Field>
         <Field label="Last name *"><input className={inp} value={f.lastName} onChange={(e) => upd("lastName", e.target.value)} required /></Field>
@@ -263,7 +264,7 @@ export function ExpenseForm({ groups, initial }: { groups: Opt[]; initial?: { id
   const [f, set] = useState({ title: initial?.title ?? "", amount: initial?.amount ?? 0, category: initial?.category ?? "travel", groupId: initial?.groupId ?? "", notes: initial?.notes ?? "" });
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
-  const payload = () => ({ title: f.title, amount: Number(f.amount) || 0, category: f.category as "travel" | "equipment" | "accommodation" | "other", groupId: f.groupId || undefined, notes: f.notes || undefined });
+  const payload = (): ExpenseInput => ({ title: f.title, amount: Number(f.amount) || 0, category: f.category as "travel" | "equipment" | "accommodation" | "other", groupId: f.groupId || undefined, notes: f.notes || undefined }) as ExpenseInput;
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updateExpense(initial.id, payload()) : createExpense(payload())); }} className="space-y-3">
       <Field label="Title *"><input className={inp} value={f.title} onChange={(e) => upd("title", e.target.value)} required /></Field>

@@ -14,7 +14,7 @@ export default async function AthletesPage() {
     lastName: a.lastName,
     photoColor: a.photoColor,
     nationality: a.nationality,
-    gender: a.gender,
+    gender: a.gender ?? "",
     discipline: a.discipline,
     age: age(a.dob),
     fisPoints: a.fisPoints,

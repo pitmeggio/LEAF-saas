@@ -5,13 +5,16 @@ import { usePathname } from "next/navigation";
 import { signOut } from "@/app/auth-actions";
 import { initials } from "@/lib/domain";
 
-const ADMIN_NAV = [
+type NavItem = { href: string; label: string; icon: string; soon?: boolean };
+
+const ADMIN_NAV: NavItem[] = [
   { href: "/", label: "Overview", icon: "▦" },
   { href: "/inbox", label: "Inbox", icon: "✉" },
   { href: "/applications", label: "Applications", icon: "▤" },
   { href: "/members", label: "Active Athletes", icon: "⛷" },
   { href: "/groups", label: "Groups", icon: "⬡" },
   { href: "/coaches", label: "Coaches", icon: "◎" },
+  { href: "/recruiting", label: "Recruiting", icon: "✦" },
   { href: "/packages", label: "Packages", icon: "▥" },
   { href: "/payments", label: "Payments", icon: "€" },
   { href: "/expenses", label: "Expenses", icon: "⊟" },
@@ -21,7 +24,7 @@ const ADMIN_NAV = [
   { href: "/settings", label: "Settings", icon: "⚙", soon: true },
 ];
 
-const COACH_NAV = [
+const COACH_NAV: NavItem[] = [
   { href: "/", label: "My Dashboard", icon: "▦" },
   { href: "/inbox", label: "Inbox", icon: "✉" },
   { href: "/applications", label: "Applications", icon: "▤" },
@@ -33,6 +36,7 @@ const COACH_NAV = [
 ];
 
 const ROLE_LABEL: Record<string, string> = {
+  super_admin: "Super Admin",
   academy_admin: "Admin",
   coach: "Coach",
   athlete: "Athlete",

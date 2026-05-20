@@ -42,6 +42,126 @@ export const fisImportSchema = z.object({
   fisCode: fisCodeSchema,
 });
 
+// ── Public athlete profile (recruiting portfolio) ────────────────────────────
+const publicSlugSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(3, "Slug is too short.")
+  .max(60)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers and hyphens only.");
+
+export const publicProfileSchema = z
+  .object({
+    athleteId: z.string().min(1),
+    publicProfileEnabled: z.boolean(),
+    publicSlug: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v ? v.toLowerCase() : undefined))
+      .refine((v) => v === undefined || publicSlugSchema.safeParse(v).success, {
+        message: "Use lowercase letters, numbers and hyphens only (min 3 chars).",
+      }),
+    publicVisibility: z.enum(["PUBLIC", "PRIVATE", "INVITE_ONLY", "ACADEMY_ONLY"]),
+    publicBio: optionalStr(1500),
+    publicPhotoUrl: optionalUrl,
+    publicShowAcademy: z.boolean(),
+    publicShowRanking: z.boolean(),
+    publicShowResults: z.boolean(),
+    publicShowMedia: z.boolean(),
+    publicShowExternalProfiles: z.boolean(),
+    publicContactEnabled: z.boolean(),
+    publicVerified: z.boolean(),
+    fisCode: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v ? v : undefined))
+      .refine((v) => v === undefined || /^[A-Za-z0-9-]{3,12}$/.test(v), { message: "Enter a valid FIS code (3–12 letters/digits)." }),
+    fisProfileUrl: optionalUrl,
+    atpPlayerId: optionalStr(40),
+    atpProfileUrl: optionalUrl,
+  })
+  // A live (non-private) profile must have a slug to be reachable.
+  .refine((d) => !(d.publicProfileEnabled && d.publicVisibility !== "PRIVATE") || !!d.publicSlug, {
+    message: "A public slug is required to enable the profile.",
+    path: ["publicSlug"],
+  });
+export type PublicProfileInput = z.infer<typeof publicProfileSchema>;
+
+// ── Academy recruiting settings ──────────────────────────────────────────────
+export const recruitingStatusSchema = z.enum(["OPEN", "LIMITED_SPOTS", "WAITLIST_OPEN", "CLOSED"]);
+export const PROGRAM_TYPES = ["Full Package", "Training Only", "Race Support", "Custom"] as const;
+
+export const recruitingSettingsSchema = z.object({
+  recruitingEnabled: z.boolean(),
+  recruitingStatus: recruitingStatusSchema,
+  publicRecruitingHeadline: optionalStr(160),
+  publicRecruitingDescription: optionalStr(2000),
+  season: optionalStr(20),
+  applicationDeadline: optionalStr(20), // "YYYY-MM-DD" — converted to Date in the action
+  availableSpots: z.number().int().min(0).max(100000).nullable().optional(),
+  acceptedCountries: optionalStr(500),
+  ageCategories: optionalStr(300),
+  rankingRequirement: optionalStr(300),
+  programTypes: z.array(z.enum(PROGRAM_TYPES)).max(4).optional().default([]),
+  applicationUrl: optionalUrl,
+  featuredAcademy: z.boolean(),
+  contactEmail: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .optional()
+    .transform((v) => (v ? v : undefined))
+    .refine((v) => v === undefined || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), { message: "Enter a valid contact email." }),
+  publicApplyEnabled: z.boolean(),
+});
+export type RecruitingSettingsInput = z.infer<typeof recruitingSettingsSchema>;
+
+// ── Super Admin: academy (tenant) management ─────────────────────────────────
+export const planSchema = z.enum(["BASIC", "PRO", "ELITE"]);
+export const academyStatusSchema = z.enum(["active", "inactive"]);
+
+// Slug: lowercase letters, digits and single hyphens (no leading/trailing hyphen).
+const slugSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .min(2, "Slug is too short.")
+  .max(60)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers and hyphens only.");
+
+export const academyCreateSchema = z.object({
+  name: z.string().trim().min(2, "Name is required.").max(120),
+  slug: slugSchema,
+  country: z.string().trim().min(2, "Country code is required.").max(2).toUpperCase(),
+  location: optionalStr(120),
+  plan: planSchema.default("BASIC"),
+});
+
+export const academyUpdateSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().trim().min(2, "Name is required.").max(120),
+  slug: slugSchema,
+  logoColor: z
+    .string()
+    .trim()
+    .regex(/^#[0-9a-fA-F]{6}$/, "Enter a hex colour like #7CFF6B."),
+  status: academyStatusSchema,
+  plan: planSchema,
+});
+
+export const academyStatusUpdateSchema = z.object({
+  id: z.string().min(1),
+  status: academyStatusSchema,
+});
+
+export const academyPlanUpdateSchema = z.object({
+  id: z.string().min(1),
+  plan: planSchema,
+});
+
 // Public application form
 export const applicationSchema = z
   .object({

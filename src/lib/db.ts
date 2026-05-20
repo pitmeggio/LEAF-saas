@@ -1,12 +1,15 @@
 import { PrismaClient } from "@/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const url = process.env.DATABASE_URL ?? "file:./dev.db";
+// Runtime uses the pooled DATABASE_URL (Supabase transaction pooler, serverless-safe).
+// ssl.rejectUnauthorized=false: the Supabase pooler presents a cert chain Node doesn't
+// trust by default; the connection is still TLS-encrypted. Harden later with the CA cert.
+const connectionString = process.env.DATABASE_URL;
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }) });
+  new PrismaClient({ adapter: new PrismaPg({ connectionString, ssl: { rejectUnauthorized: false } }) });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

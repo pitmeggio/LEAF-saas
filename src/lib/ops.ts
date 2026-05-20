@@ -41,13 +41,18 @@ export async function getExpenses(coachId?: string | null) {
   };
 }
 
-export type EnrichedEnrollment = Awaited<ReturnType<typeof enrichOne>>;
-
-function enrichOne(e: {
+// Generic over the enrollment shape so the caller's full type (athlete fields,
+// enrollment scalars, relations) flows through to the result unchanged — callers
+// pass differently-shaped includes and rely on those extra fields downstream.
+type EnrichInput = {
   athlete: { rankings: { date: Date; fisPoints: number }[] };
   payments: { status: string; dueDate: Date; amount: number; paidAmount: number }[];
   documents: { status: string; required: boolean }[];
-} & Record<string, unknown>) {
+};
+
+export type EnrichedEnrollment = ReturnType<typeof enrichOne>;
+
+function enrichOne<T extends EnrichInput>(e: T) {
   const trend = computeTrend(e.athlete.rankings);
   const perf: PerfStatus = perfFromTrend(trend);
   const overduePayments = e.payments.filter((p) => isOverdue(p));
@@ -87,7 +92,7 @@ export async function getActiveAthlete(id: string, coachId?: string | null) {
     },
   });
   if (!e) return null;
-  const enriched = enrichOne(e as never);
+  const enriched = enrichOne(e);
   // team benchmark: average current FIS points of the athlete's group
   let teamAvg: number | null = null;
   if (e.groupId) {

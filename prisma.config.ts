@@ -1,21 +1,25 @@
 import "dotenv/config";
 import { defineConfig } from "prisma/config";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-// LOCAL DEV uses SQLite for speed. To move to Supabase/Postgres for production:
-//   1. schema.prisma: datasource provider "sqlite" -> "postgresql"
-//   2. swap the adapter below for @prisma/adapter-pg (PrismaPg)
-//   3. set DATABASE_URL to the Supabase connection string
-//   4. run `npm run db:migrate` to apply the existing migration history
-// The schema uses no SQLite-only features, so the migrations port cleanly.
-export default defineConfig({
+// Postgres (Supabase). Two connection strings:
+//   DATABASE_URL — transaction pooler (port 6543), used by the app at runtime (serverless-safe).
+//   DIRECT_URL   — direct connection (port 5432), used here for migrations (pgBouncer can't
+//                  run migration DDL/prepared statements). Falls back to DATABASE_URL if unset.
+// Hoisted to a variable so TS skips excess-property checking on the object literal:
+// `adapter` is honoured by the Prisma config loader at runtime but isn't on the
+// exported PrismaConfig type in 7.8, which would otherwise fail `next build`.
+const migrationUrl = process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"]!;
+const config = {
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
     seed: "tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"]!,
+    url: migrationUrl,
   },
-  adapter: () => new PrismaBetterSqlite3({ url: process.env["DATABASE_URL"]! }),
-});
+  adapter: () => new PrismaPg({ connectionString: migrationUrl, ssl: { rejectUnauthorized: false } }),
+};
+
+export default defineConfig(config);

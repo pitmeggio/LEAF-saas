@@ -1,9 +1,11 @@
+import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client.js";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { REQUIRED_DOC_TYPES, buildPaymentSchedule } from "../src/lib/enrollmentLogic.js";
 
+// Seed runs through the session pooler / direct URL so it can perform writes reliably.
 const prisma = new PrismaClient({
-  adapter: new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./dev.db" }),
+  adapter: new PrismaPg({ connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }),
 });
 
 type AthleteSeed = {
@@ -75,6 +77,7 @@ async function main() {
   await prisma.group.deleteMany();
   await prisma.coach.deleteMany();
   await prisma.media.deleteMany();
+  await prisma.publicAthleteMedia.deleteMany();
   await prisma.result.deleteMany();
   await prisma.rankingPoint.deleteMany();
   await prisma.program.deleteMany();
@@ -97,8 +100,28 @@ async function main() {
       requirements:
         "Active FIS licence or national federation membership\nMinimum age 14 by start of season\nCommitment to the full 2026/27 race calendar\nBaseline fitness assessment on intake\nReferences from current coach or club",
       logoColor: "#7CFF6B",
+      status: "active",
+      plan: "PRO",
+      // Public recruiting demo
+      recruitingEnabled: true,
+      recruitingStatus: "LIMITED_SPOTS",
+      publicRecruitingHeadline: "Recruiting alpine racers for the 2026/27 season",
+      publicRecruitingDescription:
+        "We're selecting a small group of committed FIS-level athletes for full-time training at Trysil. We look for athletes with a strong work ethic, a clear development trajectory, and the ambition to race on the national and international circuit. Limited places — early applications are reviewed first.",
+      applicationDeadline: new Date("2026-08-15"),
+      availableSpots: 6,
+      acceptedCountries: "NO, SE, FI, DK, AT, IT",
+      ageCategories: "U16, U18, U21",
+      rankingRequirement: "Active FIS licence · GS/SL points under 80 preferred (development spots case-by-case)",
+      programTypes: "Full Package, Training Only, Race Support",
+      featuredAcademy: true,
+      contactEmail: "recruiting@trysilrace.no",
+      publicApplyEnabled: true,
     },
   });
+
+  // Platform owner — no academyId; reaches the /super-admin portal, not a tenant workspace.
+  await prisma.user.create({ data: { name: "Platform Owner", email: "owner@apex.io", role: "super_admin", academyId: null } });
 
   // Coaches (created before users so coach logins can link to their Coach record)
   const coaches = await Promise.all([
@@ -173,8 +196,37 @@ async function main() {
         guardianName: minor ? `${a.lastName} (guardian)` : null,
         guardianContact: minor ? `guardian.${a.lastName.toLowerCase().replace(/[^a-z]/g, "")}@example.com` : null,
         injuryFlag: enrolled && i === 3,
+        // Demo public recruiting profile on the first enrolled athlete.
+        ...(i === 0
+          ? {
+              publicProfileEnabled: true,
+              publicSlug: `${a.firstName}-${a.lastName}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+              publicVisibility: "PUBLIC",
+              publicVerified: true,
+              publicBio: `${a.bio} Open to recruiting conversations for the 2026/27 season.`,
+              publicShowAcademy: true,
+              publicShowRanking: true,
+              publicShowResults: true,
+              publicShowMedia: true,
+              publicShowExternalProfiles: true,
+              publicContactEnabled: true,
+              fisProfileUrl: `https://www.fis-ski.com/DB/general/athlete-biography.html?sectorcode=AL&competitorid=${a.fisCode}`,
+            }
+          : {}),
       },
     });
+
+    // Demo public media (only the first athlete; isApprovedPublic gates visibility).
+    if (i === 0) {
+      await prisma.publicAthleteMedia.createMany({
+        data: [
+          { athleteId: athlete.id, type: "VIDEO", title: "2026 season highlights", url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ", thumbnailUrl: null, isApprovedPublic: true, sortOrder: 0 },
+          { athleteId: athlete.id, type: "IMAGE", title: "Race day — Val Gardena", url: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256", thumbnailUrl: "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=600", isApprovedPublic: true, sortOrder: 1 },
+          { athleteId: athlete.id, type: "PDF", title: "Athlete CV (2026)", url: "https://example.com/cv.pdf", thumbnailUrl: null, isApprovedPublic: true, sortOrder: 2 },
+          { athleteId: athlete.id, type: "LINK", title: "Unapproved draft (hidden)", url: "https://example.com/draft", thumbnailUrl: null, isApprovedPublic: false, sortOrder: 3 },
+        ],
+      });
+    }
 
     // 13 monthly FIS-points snapshots interpolated start -> end
     const span = 12;

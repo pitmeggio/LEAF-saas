@@ -5,6 +5,7 @@ import { Avatar, TrendArrow, Verified } from "@/components/ui";
 import { Dot } from "@/components/StatCard";
 import { GrowthChart, type Point } from "@/components/GrowthChart";
 import { ManagePanel, NotesEditor, PaymentControl, DocumentControl } from "@/components/MemberControls";
+import { PublicProfilePanel } from "@/components/PublicProfilePanel";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { getActiveAthlete, getAssignmentOptions, getNotifications } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
@@ -195,6 +196,28 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
             groups={opts.groups}
             coaches={opts.coaches}
             packages={opts.packages}
+          />
+
+          <PublicProfilePanel
+            initial={{
+              athleteId: a.id,
+              publicProfileEnabled: a.publicProfileEnabled,
+              publicSlug: a.publicSlug,
+              publicVisibility: a.publicVisibility,
+              publicBio: a.publicBio,
+              publicPhotoUrl: a.publicPhotoUrl,
+              publicShowAcademy: a.publicShowAcademy,
+              publicShowRanking: a.publicShowRanking,
+              publicShowResults: a.publicShowResults,
+              publicShowMedia: a.publicShowMedia,
+              publicShowExternalProfiles: a.publicShowExternalProfiles,
+              publicContactEnabled: a.publicContactEnabled,
+              publicVerified: a.publicVerified,
+              fisCode: a.fisCode,
+              fisProfileUrl: a.fisProfileUrl,
+              atpPlayerId: a.atpPlayerId,
+              atpProfileUrl: a.atpProfileUrl,
+            }}
           />
 
           <Panel title="Identity">

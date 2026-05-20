@@ -34,7 +34,7 @@ export function GrowthChart({ data }: { data: Point[] }) {
             fontSize: 12,
           }}
           labelStyle={{ color: "#8a93a6" }}
-          formatter={(v: number) => [`${v} FIS pts`, "Points"]}
+          formatter={((v: number) => [`${v} FIS pts`, "Points"]) as never}
         />
         <Area type="monotone" dataKey="fisPoints" stroke="#7cff6b" strokeWidth={2.5} fill="url(#g)" />
       </AreaChart>
