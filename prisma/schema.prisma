@@ -1,0 +1,399 @@
+// Academy SaaS — Academy Operating System + Athlete Performance Platform (MVP).
+// Launch sport: alpine skiing (FIS). Schema kept generic for multi-sport + multi-tenant by academyId.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Academy {
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  country      String
+  location     String? // city / region
+  sport        String        @default("ski")
+  season       String? // e.g. 2026/27
+  tagline      String?
+  description  String?
+  requirements String? // newline-separated bullet points
+  logoColor    String        @default("#7CFF6B")
+  programs     Program[]
+  packages     Package[]
+  applications Application[]
+  groups        Group[]
+  coaches       Coach[]
+  enrollments   Enrollment[]
+  payments      Payment[]
+  documents     Document[]
+  invoices      Invoice[]
+  notifications Notification[]
+  expenses      Expense[]
+  conversations Conversation[]
+  users         User[]
+  createdAt     DateTime       @default(now())
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  role      String   @default("coach") // academy_admin | coach | athlete | recruiter
+  academyId String?
+  academy   Academy? @relation(fields: [academyId], references: [id])
+  coachId   String? // links a coach login to their Coach record (scopes their workspace)
+  coach     Coach?   @relation(fields: [coachId], references: [id])
+  notes     Note[]
+  assignedConversations Conversation[] @relation("AssignedConversations")
+  createdAt DateTime @default(now())
+}
+
+model Coach {
+  id             String       @id @default(cuid())
+  academyId      String
+  academy        Academy      @relation(fields: [academyId], references: [id])
+  name           String
+  email          String?
+  phone          String?
+  role           String       @default("coach") // head_coach | coach | physio | s_and_c
+  specialization String? // slalom, speed, fitness…
+  cost           Int? // season cost / salary (currency major units) — used for group margin
+  notes          String?
+  active         Boolean      @default(true)
+  groups         Group[]
+  enrollments    Enrollment[]
+  users          User[]
+  expenses       Expense[]
+  createdAt      DateTime     @default(now())
+}
+
+model Expense {
+  id        String   @id @default(cuid())
+  academyId String
+  academy   Academy  @relation(fields: [academyId], references: [id])
+  coachId   String
+  coach     Coach    @relation(fields: [coachId], references: [id])
+  groupId   String?
+  group     Group?   @relation(fields: [groupId], references: [id])
+  title     String
+  amount    Int
+  currency  String   @default("EUR")
+  category  String   @default("other") // travel | equipment | accommodation | other
+  status    String   @default("draft") // draft | submitted | approved | rejected | reimbursed
+  notes     String?
+  createdAt DateTime @default(now())
+}
+
+model Program {
+  id           String        @id @default(cuid())
+  academyId    String
+  academy      Academy       @relation(fields: [academyId], references: [id])
+  name         String
+  discipline   String
+  ageMin       Int
+  ageMax       Int
+  season       String
+  applications Application[]
+}
+
+model Package {
+  id            String        @id @default(cuid())
+  academyId     String
+  academy       Academy       @relation(fields: [academyId], references: [id])
+  name          String
+  description   String?
+  price         Int? // in currency major units
+  currency      String        @default("EUR")
+  period        String        @default("season") // season | camp | month
+  billingFreq   String        @default("seasonal") // one_time | monthly | seasonal
+  features      String? // newline-separated
+  accommodation Boolean       @default(false)
+  transport     Boolean       @default(false)
+  coaching      Boolean       @default(true)
+  raceSupport   Boolean       @default(false)
+  maxAthletes   Int?
+  active        Boolean       @default(true)
+  notes         String?
+  order         Int           @default(0)
+  applications  Application[]
+  enrollments   Enrollment[]
+}
+
+model Athlete {
+  id              String         @id @default(cuid())
+  firstName       String
+  lastName        String
+  dob             DateTime
+  nationality     String
+  gender          String?
+  sport           String         @default("ski")
+  discipline      String
+  email           String?
+  phone           String?
+  address         String?
+  emergencyContact String?
+  guardianName    String?
+  guardianContact String?
+  fisCode         String?        @unique
+  fisPoints       Float?
+  worldRank       Int?
+  injuryFlag      Boolean        @default(false)
+  photoColor      String         @default("#1f2937")
+  bio             String?
+  location        String?
+  verified        Boolean        @default(true)
+  rankings        RankingPoint[]
+  results         Result[]
+  media           Media[]
+  applications    Application[]
+  enrollments     Enrollment[]
+  conversations   Conversation[]
+  createdAt       DateTime       @default(now())
+}
+
+// Historical FIS points snapshots — the source of the growth trend.
+model RankingPoint {
+  id        String   @id @default(cuid())
+  athleteId String
+  athlete   Athlete  @relation(fields: [athleteId], references: [id])
+  date      DateTime
+  fisPoints Float
+  worldRank Int?
+}
+
+model Result {
+  id         String   @id @default(cuid())
+  athleteId  String
+  athlete    Athlete  @relation(fields: [athleteId], references: [id])
+  date       DateTime
+  eventName  String
+  location   String
+  discipline String
+  rank       Int
+  fisPoints  Float
+}
+
+model Media {
+  id        String  @id @default(cuid())
+  athleteId String
+  athlete   Athlete @relation(fields: [athleteId], references: [id])
+  type      String
+  title     String
+  duration  String?
+}
+
+model Application {
+  id             String        @id @default(cuid())
+  academyId      String
+  academy        Academy       @relation(fields: [academyId], references: [id])
+  athleteId      String
+  athlete        Athlete       @relation(fields: [athleteId], references: [id])
+  programId      String?
+  program        Program?      @relation(fields: [programId], references: [id])
+  packageId      String?
+  package        Package?      @relation(fields: [packageId], references: [id])
+  status         String        @default("new") // new | reviewing | shortlisted | accepted | rejected
+  score          Int?
+  source         String        @default("public_form")
+  message        String?
+  sport          String?
+  currentRanking String?
+  previousClub   String?
+  guardianName   String?
+  guardianContact String?
+  mediaLink      String?
+  submittedAt    DateTime      @default(now())
+  notes          Note[]
+  events         StatusEvent[]
+  enrollment     Enrollment?
+  conversation   Conversation?
+}
+
+// Active Athlete = an athlete enrolled at an academy. Multi-tenant by academyId.
+model Enrollment {
+  id            String            @id @default(cuid())
+  academyId     String
+  academy       Academy           @relation(fields: [academyId], references: [id])
+  athleteId     String
+  athlete       Athlete           @relation(fields: [athleteId], references: [id])
+  status        String            @default("active") // active | paused | injured | completed | inactive
+  level         String? // development | competitive | elite
+  joinDate      DateTime          @default(now())
+  coachId       String?
+  coach         Coach?            @relation(fields: [coachId], references: [id])
+  groupId       String?
+  group         Group?            @relation(fields: [groupId], references: [id])
+  packageId     String?
+  package       Package?          @relation(fields: [packageId], references: [id])
+  applicationId String?           @unique
+  application   Application?      @relation(fields: [applicationId], references: [id])
+  notes         String?
+  payments      Payment[]
+  documents     Document[]
+  invoices      Invoice[]
+  events        EnrollmentEvent[]
+  conversations Conversation[]
+  createdAt     DateTime          @default(now())
+}
+
+model EnrollmentEvent {
+  id           String     @id @default(cuid())
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  type         String // status | created | payment | document
+  from         String?
+  to           String?
+  detail       String?
+  createdAt    DateTime   @default(now())
+}
+
+model Payment {
+  id           String     @id @default(cuid())
+  academyId    String
+  academy      Academy    @relation(fields: [academyId], references: [id])
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  label        String? // e.g. "Installment 1/3"
+  amount       Int
+  paidAmount   Int        @default(0) // amount collected so far (for partial payments)
+  currency     String     @default("EUR")
+  dueDate      DateTime
+  paidDate     DateTime?
+  status       String     @default("unpaid") // unpaid | paid | partial  (overdue is derived from dueDate)
+  method       String? // bank_transfer | card | cash
+  notes        String?
+  invoice      Invoice?
+  createdAt    DateTime   @default(now())
+}
+
+model Document {
+  id           String     @id @default(cuid())
+  academyId    String
+  academy      Academy    @relation(fields: [academyId], references: [id])
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  type         String // medical_certificate | liability_waiver | academy_contract | race_license | travel | parent_approval | internal
+  name         String?
+  status       String     @default("missing") // missing | uploaded | verified | expired
+  fileUrl      String?
+  required     Boolean    @default(true)
+  expiresAt    DateTime?
+  createdAt    DateTime   @default(now())
+}
+
+model Note {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+  authorId      String?
+  author        User?       @relation(fields: [authorId], references: [id])
+  body          String
+  createdAt     DateTime    @default(now())
+}
+
+model StatusEvent {
+  id            String      @id @default(cuid())
+  applicationId String
+  application   Application @relation(fields: [applicationId], references: [id])
+  from          String?
+  to            String
+  createdAt     DateTime    @default(now())
+}
+
+model Group {
+  id          String       @id @default(cuid())
+  academyId   String
+  academy     Academy      @relation(fields: [academyId], references: [id])
+  name        String
+  sport       String       @default("ski")
+  season      String
+  coachId     String?
+  coach       Coach?       @relation(fields: [coachId], references: [id])
+  capacity    Int          @default(12)
+  budget      Int? // allocated season budget (currency major units)
+  active      Boolean      @default(true)
+  notes       String?
+  enrollments   Enrollment[]
+  expenses      Expense[]
+  conversations Conversation[]
+  createdAt     DateTime     @default(now())
+}
+
+model Invoice {
+  id           String     @id @default(cuid())
+  academyId    String
+  academy      Academy    @relation(fields: [academyId], references: [id])
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  paymentId    String?    @unique
+  payment      Payment?   @relation(fields: [paymentId], references: [id])
+  number       String
+  amount       Int
+  currency     String     @default("EUR")
+  status       String     @default("pending") // pending | sent | partial | paid | cancelled  (overdue derived from due date)
+  issuedAt     DateTime   @default(now())
+  paidAt       DateTime?
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  academyId     String
+  academy       Academy  @relation(fields: [academyId], references: [id])
+  type          String // thanks_for_applying | application_accepted | application_rejected | missing_documents | payment_reminder | payment_confirmation | invoice_available | enrollment_confirmed
+  toEmail       String?
+  toName        String?
+  subject       String
+  body          String
+  status        String   @default("sent") // queued | sent
+  applicationId String?
+  enrollmentId  String?
+  createdAt     DateTime @default(now())
+}
+
+// Internal communication layer. A thread is created with the application and follows
+// the athlete through enrollment (history preserved).
+model Conversation {
+  id                   String       @id @default(cuid())
+  academyId            String
+  academy              Academy      @relation(fields: [academyId], references: [id])
+  type                 String       @default("application") // application | athlete | group
+  applicationId        String?      @unique
+  application          Application? @relation(fields: [applicationId], references: [id])
+  enrollmentId         String?
+  enrollment           Enrollment?  @relation(fields: [enrollmentId], references: [id])
+  athleteId            String?
+  athlete              Athlete?     @relation(fields: [athleteId], references: [id])
+  groupId              String?
+  group                Group?       @relation(fields: [groupId], references: [id])
+  subject              String?
+  status               String       @default("open") // open | waiting | resolved
+  assignedToUserId     String?
+  assignedTo           User?        @relation("AssignedConversations", fields: [assignedToUserId], references: [id])
+  lastMessageAt        DateTime     @default(now())
+  lastMessagePreview   String?
+  lastReadByStaffAt    DateTime?
+  lastReadByExternalAt DateTime?
+  // AI-ready (not used yet): summary, sentiment, risk flag
+  summary              String?
+  sentiment            String?
+  riskFlag             Boolean      @default(false)
+  messages             Message[]
+  createdAt            DateTime     @default(now())
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderSide     String // external | staff | system
+  senderRole     String? // applicant | parent | athlete | coach | admin | system
+  senderName     String?
+  senderUserId   String?
+  body           String
+  createdAt      DateTime     @default(now())
+}
