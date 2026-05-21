@@ -12,6 +12,8 @@ import { deriveAthleteInsights } from "@/lib/ai/athleteInsights";
 import { AthleteInsights } from "@/components/AthleteInsights";
 import { forecastTrajectory } from "@/lib/ai/forecast";
 import { ForecastCard } from "@/components/ForecastCard";
+import { deriveRecommendations } from "@/lib/ai/recommendations";
+import { RecommendationsCard } from "@/components/RecommendationsCard";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,7 @@ export default async function PublicProfilePage({
   const country = COUNTRY[p.nationality];
   const initials = `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase();
   const sport = sportConfig(p.sport);
+  const forecast = p.pointsEvolution ? forecastTrajectory(p.pointsEvolution, p.sport) : null;
 
   return (
     <div className="min-h-screen">
@@ -119,9 +122,9 @@ export default async function PublicProfilePage({
                 <GrowthChart data={p.pointsEvolution} />
               </div>
             )}
-            {p.pointsEvolution && (
+            {forecast && (
               <div className="mt-4">
-                <ForecastCard forecast={forecastTrajectory(p.pointsEvolution, p.sport)} pointsLabel={sport.pointsLabel} />
+                <ForecastCard forecast={forecast} pointsLabel={sport.pointsLabel} />
               </div>
             )}
           </section>
@@ -161,6 +164,11 @@ export default async function PublicProfilePage({
         {/* Athlete AI — performance insights */}
         {p.performance && p.performance.totalRaces > 0 && (
           <AthleteInsights insights={deriveAthleteInsights(p.performance, { sport: p.sport, worldRank: p.worldRank })} />
+        )}
+
+        {/* Athlete AI — recommendations */}
+        {p.performance && p.performance.totalRaces > 0 && forecast && (
+          <RecommendationsCard recommendations={deriveRecommendations(p.performance, forecast, p.sport)} />
         )}
 
         {/* Premium performance analytics */}
