@@ -10,6 +10,8 @@ import { getAssignmentOptions, getGroupsForAssignment, getNotifications } from "
 import { NOTIF_LABEL } from "@/lib/notifications";
 import { suggestGroups } from "@/lib/ai/groupAssignment";
 import { GroupSuggestions } from "@/components/GroupSuggestions";
+import { reviewApplication } from "@/lib/ai/applicationReview";
+import { ApplicationReviewCard } from "@/components/ApplicationReview";
 import { DISCIPLINE_LABEL, COUNTRY, STATUS_LABEL, age, fmtDate, relativeDate, fmtPoints, type Status } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +40,24 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
     groupsForAi,
   );
   const recommendedGroupId = suggestions.find((s) => s.recommended)?.groupId ?? null;
+
+  // Application review — fit score + risk flags (Academy AI on the intake).
+  const results = a.results ?? [];
+  const yearAgo = Date.now() - 365 * 24 * 3600 * 1000;
+  const review = reviewApplication({
+    sport: a.sport,
+    age: a.dob ? age(a.dob) : null,
+    verified: a.verified,
+    hasFederationCode: !!a.fisCode,
+    resultsCount: results.length,
+    finishedCount: results.filter((r) => r.status === "finished").length,
+    dnfCount: results.filter((r) => r.status !== "finished").length,
+    podiumCount: results.filter((r) => r.status === "finished" && r.rank > 0 && r.rank <= 3).length,
+    recentRaces12m: results.filter((r) => +new Date(r.date) >= yearAgo).length,
+    trendDeltaPoints: app.trend?.deltaPoints ?? null,
+    guardianProvided: !!app.guardianContact,
+    bestGroupFit: suggestions.find((s) => s.eligible)?.fitScore ?? null,
+  });
   const chart: Point[] = a.rankings.map((r) => ({
     label: new Date(r.date).toLocaleDateString("en-GB", { month: "short" }),
     fisPoints: r.fisPoints,
@@ -163,6 +183,7 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
 
         {/* Right: status + timeline */}
         <div className="space-y-6">
+          {app.status !== "accepted" && <ApplicationReviewCard review={review} />}
           {app.status !== "accepted" && suggestions.length > 0 && (
             <GroupSuggestions suggestions={suggestions} />
           )}
