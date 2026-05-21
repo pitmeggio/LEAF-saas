@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { ImportForm } from "@/components/ImportForm";
+import { BulkImportForm } from "@/components/BulkImportForm";
 import { DEMO_FIS_CODES } from "@/lib/fis/simulatedProvider";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,10 @@ export default function ImportPage() {
             (<span className="num">lib/fis/import.ts</span>) without changing this flow.
           </div>
         </div>
+      </div>
+
+      <div className="px-8 pb-8">
+        <BulkImportForm />
       </div>
     </>
   );
