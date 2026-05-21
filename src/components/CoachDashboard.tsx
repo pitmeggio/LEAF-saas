@@ -6,8 +6,10 @@ import { getActiveAthletes, getGroupsWithStats, computeAlerts, getExpenses } fro
 import { getInboxStats } from "@/lib/chat";
 import { getSession } from "@/lib/auth";
 import { fmtMoney, DISCIPLINE_LABEL, age } from "@/lib/domain";
+import { deriveCoachSummary } from "@/lib/ai/coachSummary";
 
 const SEV_COLOR = { high: "#f87171", medium: "#f59e0b", low: "#8a93a6" } as const;
+const KIND_COLOR = { strength: "var(--color-accent)", watch: "#f59e0b", info: "var(--color-muted)" } as const;
 
 export async function CoachDashboard() {
   const s = await getSession();
@@ -26,6 +28,16 @@ export async function CoachDashboard() {
   const occupancy = totalCap ? Math.round((inGroups / totalCap) * 100) : 0;
   const remainingBudget = groups.reduce((a, g) => a + g.remainingBudget, 0);
 
+  const nameOf = (m: { athlete: { firstName: string; lastName: string } }) => `${m.athlete.firstName} ${m.athlete.lastName}`;
+  const briefing = deriveCoachSummary({
+    athleteCount: members.length,
+    improvingNames: members.filter((m) => m.perf === "improving").map(nameOf),
+    decliningNames: members.filter((m) => m.perf === "declining").map(nameOf),
+    attendanceLow: alerts.filter((a) => a.type === "attendance_low").length,
+    overdue: alerts.filter((a) => a.type === "payment_overdue").length,
+    docIssues: alerts.filter((a) => a.type === "missing_document").length,
+  });
+
   return (
     <>
       <PageHeader
@@ -34,6 +46,25 @@ export async function CoachDashboard() {
         right={<Link href="/dashboard/alerts" className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">{alerts.length} alerts →</Link>}
       />
       <div className="space-y-6 p-8">
+        {/* Academy AI — coach briefing */}
+        <div className="card p-5">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+            <h2 className="text-sm font-semibold">This week’s briefing</h2>
+          </div>
+          <p className="text-sm font-medium">{briefing.headline}</p>
+          {briefing.lines.length > 0 && (
+            <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
+              {briefing.lines.map((l, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs">
+                  <span className="mt-0.5 inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: KIND_COLOR[l.kind] }} />
+                  <span className="text-[var(--color-fg)]/85">{l.text}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <StatCard label="My athletes" value={String(members.length)} accent href="/dashboard/members" />
           <StatCard label="My groups" value={String(groups.length)} href="/dashboard/groups" />
