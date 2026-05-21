@@ -115,4 +115,31 @@ body {
     border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
     background: var(--color-surface-2);
   }
+  /* "Pop out" — element lifts toward the viewer on hover */
+  .pop {
+    transition: transform 0.22s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.22s ease, box-shadow 0.22s ease;
+    will-change: transform;
+  }
+  .pop:hover {
+    transform: translateY(-5px) scale(1.025);
+    border-color: color-mix(in srgb, var(--color-accent) 50%, var(--color-border));
+    box-shadow: 0 22px 48px -24px rgba(0, 0, 0, 0.75), 0 0 0 1px color-mix(in srgb, var(--color-accent) 18%, transparent);
+  }
+  /* 3D tilt frame — sits angled, straightens & lifts on hover */
+  .tilt {
+    transform: perspective(1400px) rotateX(7deg);
+    transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.6s ease;
+  }
+  .tilt:hover {
+    transform: perspective(1400px) rotateX(0deg) scale(1.015);
+  }
+  /* Gentle float loop for accent chips */
+  @keyframes leaf-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-7px); }
+  }
+  .float-slow { animation: leaf-float 4s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .tilt, .pop, .float-slow { transition: none; animation: none; transform: none; }
+  }
 }

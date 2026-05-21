@@ -53,7 +53,7 @@ export default function RequestAcademyPage() {
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {MODULES.map((m) => (
-            <div key={m.title} className="card p-6">
+            <div key={m.title} className="card pop p-6">
               <div className="text-[10px] uppercase tracking-wide text-[var(--color-accent)]">{m.tag}</div>
               <h3 className="mt-1.5 text-base font-semibold">{m.title}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-[var(--color-muted)]">{m.desc}</p>

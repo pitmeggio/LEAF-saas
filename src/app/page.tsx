@@ -81,7 +81,7 @@ export default function LeafLanding() {
           </p>
           <div className="mt-9 grid gap-4 sm:grid-cols-3">
             {MISSION.map((m) => (
-              <div key={m.title} className="card p-5 text-left">
+              <div key={m.title} className="card pop p-5 text-left">
                 <div className="text-sm font-semibold">{m.title}</div>
                 <div className="mt-1.5 text-sm text-[var(--color-muted)]">{m.desc}</div>
               </div>
@@ -117,7 +117,7 @@ export default function LeafLanding() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {AI.map((a) => (
-              <div key={a.title} className="card p-5">
+              <div key={a.title} className="card pop p-5">
                 <div className="flex items-center gap-2">
                   <span className="flex h-4 w-4 items-center justify-center rounded text-[8px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
                   <span className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">{a.tag}</span>
