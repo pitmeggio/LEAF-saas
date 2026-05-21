@@ -13,7 +13,18 @@ export async function getPublicAcademy(slug: string) {
     include: {
       programs: { orderBy: { name: "asc" } },
       packages: { orderBy: { order: "asc" } },
-      _count: { select: { applications: true, programs: true } },
+      coaches: {
+        where: { active: true },
+        select: { id: true, name: true, role: true, specialization: true },
+        orderBy: { name: "asc" },
+      },
+      _count: {
+        select: {
+          programs: true,
+          // public-safe headline metric: only PUBLIC, profile-enabled athletes enrolled here
+          enrollments: { where: { athlete: { publicProfileEnabled: true, publicVisibility: "PUBLIC" } } },
+        },
+      },
     },
   });
 }
