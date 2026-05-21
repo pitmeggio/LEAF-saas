@@ -6,20 +6,22 @@ import { signOut } from "@/app/auth-actions";
 import { LeafMark } from "@/components/LeafMark";
 import { initials } from "@/lib/domain";
 
-type NavItem = { href: string; label: string; icon: string; soon?: boolean };
+type FeatureKey = "featureRecruiting" | "featurePublicProfiles" | "featureFinance" | "featureChat";
+type NavItem = { href: string; label: string; icon: string; soon?: boolean; feature?: FeatureKey };
+export type SidebarFeatures = Record<FeatureKey, boolean>;
 
 const ADMIN_NAV: NavItem[] = [
   { href: "/dashboard", label: "Overview", icon: "▦" },
-  { href: "/dashboard/inbox", label: "Inbox", icon: "✉" },
-  { href: "/dashboard/applications", label: "Applications", icon: "▤" },
+  { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
+  { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
   { href: "/dashboard/members", label: "Active Athletes", icon: "⛷" },
   { href: "/dashboard/groups", label: "Groups", icon: "⬡" },
   { href: "/dashboard/coaches", label: "Coaches", icon: "◎" },
-  { href: "/dashboard/recruiting", label: "Recruiting", icon: "✦" },
+  { href: "/dashboard/recruiting", label: "Recruiting", icon: "✦", feature: "featureRecruiting" },
   { href: "/dashboard/packages", label: "Packages", icon: "▥" },
-  { href: "/dashboard/payments", label: "Payments", icon: "€" },
-  { href: "/dashboard/expenses", label: "Expenses", icon: "⊟" },
-  { href: "/dashboard/reports", label: "Reports", icon: "▧" },
+  { href: "/dashboard/payments", label: "Payments", icon: "€", feature: "featureFinance" },
+  { href: "/dashboard/expenses", label: "Expenses", icon: "⊟", feature: "featureFinance" },
+  { href: "/dashboard/reports", label: "Reports", icon: "▧", feature: "featureFinance" },
   { href: "/dashboard/documents", label: "Documents", icon: "▢" },
   { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
   { href: "/dashboard/settings", label: "Settings", icon: "⚙", soon: true },
@@ -27,13 +29,13 @@ const ADMIN_NAV: NavItem[] = [
 
 const COACH_NAV: NavItem[] = [
   { href: "/dashboard", label: "My Dashboard", icon: "▦" },
-  { href: "/dashboard/inbox", label: "Inbox", icon: "✉" },
-  { href: "/dashboard/applications", label: "Applications", icon: "▤" },
+  { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
+  { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
   { href: "/dashboard/members", label: "My Athletes", icon: "⛷" },
   { href: "/dashboard/groups", label: "My Groups", icon: "⬡" },
   { href: "/dashboard/documents", label: "Documents", icon: "▢" },
   { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
-  { href: "/dashboard/expenses", label: "My Expenses", icon: "⊟" },
+  { href: "/dashboard/expenses", label: "My Expenses", icon: "⊟", feature: "featureFinance" },
 ];
 
 const ROLE_LABEL: Record<string, string> = {
@@ -44,9 +46,11 @@ const ROLE_LABEL: Record<string, string> = {
   recruiter: "Recruiter",
 };
 
-export function Sidebar({ user }: { user: { name: string; role: string; academy: string } }) {
+export function Sidebar({ user, features }: { user: { name: string; role: string; academy: string }; features: SidebarFeatures }) {
   const pathname = usePathname();
-  const NAV = user.role === "academy_admin" ? ADMIN_NAV : COACH_NAV;
+  const base = user.role === "academy_admin" ? ADMIN_NAV : COACH_NAV;
+  // Hide modules the platform has switched off for this tenant.
+  const NAV = base.filter((item) => !item.feature || features[item.feature]);
   return (
     <aside className="fixed inset-y-0 left-0 z-20 flex w-60 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-5">
       <div className="px-2 pb-6">

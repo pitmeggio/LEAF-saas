@@ -229,6 +229,25 @@ export const userPasswordSchema = z.object({
 
 export const userDeleteSchema = z.object({ id: z.string().min(1) });
 
+// ── Per-tenant configuration (super-admin): branding + feature flags + limit ──
+export const academyConfigSchema = z.object({
+  id: z.string().min(1),
+  tagline: optionalStr(160),
+  description: optionalStr(2000),
+  contactEmail: z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) => (v ? v : undefined))
+    .refine((v) => v === undefined || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), { message: "Enter a valid email." }),
+  logoColor: z.string().trim().regex(/^#[0-9a-fA-F]{6}$/, "Enter a hex colour like #7CFF6B."),
+  featureRecruiting: z.boolean(),
+  featurePublicProfiles: z.boolean(),
+  featureFinance: z.boolean(),
+  featureChat: z.boolean(),
+  maxAthletes: z.number().int().min(0).max(100000).nullable().optional(),
+});
+
 // Public application form
 export const applicationSchema = z
   .object({

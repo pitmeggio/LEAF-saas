@@ -13,8 +13,10 @@ import {
   userUpdateSchema,
   userPasswordSchema,
   userDeleteSchema,
+  academyConfigSchema,
   firstError,
 } from "@/lib/validation";
+import { planDef } from "@/lib/plans";
 
 export type Result = { ok: boolean; error?: string; id?: string };
 
@@ -76,7 +78,39 @@ export async function setAcademyPlan(input: unknown): Promise<Result> {
   const { id, plan } = parsed.data;
   const existing = await prisma.academy.findUnique({ where: { id } });
   if (!existing) return { ok: false, error: "Academy not found." };
-  await prisma.academy.update({ where: { id }, data: { plan } });
+  // Assigning a plan provisions its default feature set + athlete limit. The
+  // super-admin can still override individual flags afterwards via Configure.
+  const def = planDef(plan);
+  await prisma.academy.update({
+    where: { id },
+    data: { plan, ...def.features, maxAthletes: def.maxAthletes },
+  });
+  revalidate();
+  return { ok: true, id };
+}
+
+// Per-tenant configuration: branding + feature flags + athlete limit.
+export async function updateAcademyConfig(input: unknown): Promise<Result> {
+  await requireSuperAdmin();
+  const parsed = academyConfigSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { id, tagline, description, contactEmail, logoColor, featureRecruiting, featurePublicProfiles, featureFinance, featureChat, maxAthletes } = parsed.data;
+  const existing = await prisma.academy.findUnique({ where: { id } });
+  if (!existing) return { ok: false, error: "Academy not found." };
+  await prisma.academy.update({
+    where: { id },
+    data: {
+      tagline: tagline ?? null,
+      description: description ?? null,
+      contactEmail: contactEmail ?? null,
+      logoColor,
+      featureRecruiting,
+      featurePublicProfiles,
+      featureFinance,
+      featureChat,
+      maxAthletes: maxAthletes ?? null,
+    },
+  });
   revalidate();
   return { ok: true, id };
 }

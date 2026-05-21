@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { getCurrentUser } from "@/lib/auth";
+import { academyFeatures } from "@/lib/plans";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -31,6 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <>
       <Sidebar
         user={{ name: user.name, role: user.role, academy: user.academy?.name ?? "—" }}
+        features={academyFeatures(user.academy)}
       />
       <main className="ml-60 min-h-screen">{children}</main>
     </>

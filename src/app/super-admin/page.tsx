@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getAcademiesWithMetrics, getPlatformTotals } from "@/lib/superadmin";
 import { COUNTRY } from "@/lib/domain";
 import {
-  CreateAcademyButton, EditAcademyButton, PlanSelect, StatusToggle, StatusBadge,
+  CreateAcademyButton, EditAcademyButton, PlanSelect, StatusToggle, StatusBadge, ConfigureAcademyButton,
 } from "@/components/SuperAdmin";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +68,7 @@ export default async function SuperAdminPage() {
                   <div className="flex items-center justify-end gap-2">
                     <Link href={`/academy/${a.slug}`} target="_blank" className="rounded-md border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--color-surface-2)]">View ↗</Link>
                     <StatusToggle id={a.id} status={a.status} />
+                    <ConfigureAcademyButton academy={{ id: a.id, name: a.name, tagline: a.tagline, description: a.description, contactEmail: a.contactEmail, logoColor: a.logoColor, maxAthletes: a.maxAthletes, featureRecruiting: a.featureRecruiting, featurePublicProfiles: a.featurePublicProfiles, featureFinance: a.featureFinance, featureChat: a.featureChat }} />
                     <EditAcademyButton academy={{ id: a.id, name: a.name, slug: a.slug, logoColor: a.logoColor, status: a.status, plan: a.plan }} />
                   </div>
                 </td>

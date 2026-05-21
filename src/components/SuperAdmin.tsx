@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useState, useTransition, type Rea
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
-  createAcademy, updateAcademy, setAcademyStatus, setAcademyPlan, type Result,
+  createAcademy, updateAcademy, setAcademyStatus, setAcademyPlan, updateAcademyConfig, type Result,
 } from "@/app/super-admin-actions";
 
 const PLANS = ["BASIC", "PRO", "ELITE"] as const;
@@ -181,6 +181,95 @@ function EditAcademyForm({ academy }: { academy: Academy }) {
           <option value="inactive">Inactive (locked out)</option>
         </select>
       </Field>
+      <Footer pending={pending} error={error} />
+    </form>
+  );
+}
+
+// ── Configure tenant (branding + feature flags + limit) ─────────────────────
+type AcademyConfig = {
+  id: string; name: string; tagline: string | null; description: string | null;
+  contactEmail: string | null; logoColor: string; maxAthletes: number | null;
+  featureRecruiting: boolean; featurePublicProfiles: boolean; featureFinance: boolean; featureChat: boolean;
+};
+
+const FEATURES: { key: keyof Pick<AcademyConfig, "featureRecruiting" | "featurePublicProfiles" | "featureFinance" | "featureChat">; label: string; desc: string }[] = [
+  { key: "featurePublicProfiles", label: "Public profiles", desc: "Athlete profiles + analytics" },
+  { key: "featureRecruiting", label: "Recruiting", desc: "Opportunities + applications" },
+  { key: "featureFinance", label: "Finance", desc: "Invoices, payments, budgets" },
+  { key: "featureChat", label: "Messaging", desc: "Conversations inbox" },
+];
+
+export function ConfigureAcademyButton({ academy }: { academy: AcademyConfig }) {
+  return (
+    <Modal label="Configure" title={`Configure — ${academy.name}`} className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
+      <ConfigureAcademyForm academy={academy} />
+    </Modal>
+  );
+}
+
+function ConfigureAcademyForm({ academy }: { academy: AcademyConfig }) {
+  const { pending, error, submit } = useSubmit();
+  const [flags, setFlags] = useState({
+    featureRecruiting: academy.featureRecruiting,
+    featurePublicProfiles: academy.featurePublicProfiles,
+    featureFinance: academy.featureFinance,
+    featureChat: academy.featureChat,
+  });
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        const maxRaw = String(fd.get("maxAthletes") ?? "").trim();
+        submit(() => updateAcademyConfig({
+          id: academy.id,
+          tagline: String(fd.get("tagline") ?? ""),
+          description: String(fd.get("description") ?? ""),
+          contactEmail: String(fd.get("contactEmail") ?? ""),
+          logoColor: String(fd.get("logoColor") ?? ""),
+          maxAthletes: maxRaw === "" ? null : Number(maxRaw),
+          ...flags,
+        }));
+      }}
+    >
+      <div className="kicker" style={{ color: "var(--color-accent)" }}>Branding</div>
+      <Field label="Tagline"><input name="tagline" className={inp} defaultValue={academy.tagline ?? ""} placeholder="Where champions are made" /></Field>
+      <Field label="Description"><textarea name="description" rows={3} className={inp} defaultValue={academy.description ?? ""} /></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Contact email"><input name="contactEmail" type="email" className={inp} defaultValue={academy.contactEmail ?? ""} /></Field>
+        <Field label="Logo colour">
+          <div className="flex items-center gap-2">
+            <input name="logoColor" className={inp} defaultValue={academy.logoColor} required />
+            <span className="h-8 w-8 shrink-0 rounded-lg border border-[var(--color-border)]" style={{ background: academy.logoColor }} />
+          </div>
+        </Field>
+      </div>
+
+      <div className="kicker pt-2" style={{ color: "var(--color-accent)" }}>Modules</div>
+      <div className="grid grid-cols-2 gap-2">
+        {FEATURES.map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            onClick={() => setFlags((s) => ({ ...s, [f.key]: !s[f.key] }))}
+            className={`rounded-lg border px-3 py-2 text-left transition-colors ${flags[f.key] ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10" : "border-[var(--color-border)]"}`}
+          >
+            <div className="flex items-center justify-between text-sm font-medium">
+              {f.label}
+              <span className={`text-xs ${flags[f.key] ? "text-[var(--color-accent)]" : "text-[var(--color-muted)]"}`}>{flags[f.key] ? "On" : "Off"}</span>
+            </div>
+            <div className="mt-0.5 text-[11px] text-[var(--color-muted)]">{f.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="kicker pt-2" style={{ color: "var(--color-accent)" }}>Limits</div>
+      <Field label="Max athletes (blank = unlimited)">
+        <input name="maxAthletes" type="number" min={0} className={inp} defaultValue={academy.maxAthletes ?? ""} placeholder="Unlimited" />
+      </Field>
+
       <Footer pending={pending} error={error} />
     </form>
   );

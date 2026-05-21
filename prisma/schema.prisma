@@ -28,6 +28,14 @@ model Academy {
   status       String        @default("active") // active | inactive  (deactivated tenants are locked out)
   plan         String        @default("BASIC") // BASIC | PRO | ELITE  (subscription tier)
 
+  // ── Platform-controlled feature flags (set by super-admin per tenant) ──
+  // Gate whole modules on/off independently of the academy's own settings.
+  featureRecruiting     Boolean @default(true)
+  featurePublicProfiles Boolean @default(true)
+  featureFinance        Boolean @default(true)
+  featureChat           Boolean @default(true)
+  maxAthletes           Int?    // null = unlimited (plan default)
+
   // ── Public recruiting (surfaced by the profiles.leaf.ai experience) ──
   // Only exposed when recruitingEnabled && status == "active". Read exclusively
   // through src/lib/profiles.ts, which never returns private/financial fields.

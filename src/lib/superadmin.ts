@@ -10,6 +10,14 @@ export type AcademyWithMetrics = {
   logoColor: string;
   status: string;
   plan: string;
+  tagline: string | null;
+  description: string | null;
+  contactEmail: string | null;
+  featureRecruiting: boolean;
+  featurePublicProfiles: boolean;
+  featureFinance: boolean;
+  featureChat: boolean;
+  maxAthletes: number | null;
   createdAt: Date;
   metrics: {
     users: number;
@@ -47,6 +55,14 @@ export async function getAcademiesWithMetrics(): Promise<AcademyWithMetrics[]> {
     logoColor: a.logoColor,
     status: a.status,
     plan: a.plan,
+    tagline: a.tagline,
+    description: a.description,
+    contactEmail: a.contactEmail,
+    featureRecruiting: a.featureRecruiting,
+    featurePublicProfiles: a.featurePublicProfiles,
+    featureFinance: a.featureFinance,
+    featureChat: a.featureChat,
+    maxAthletes: a.maxAthletes,
     createdAt: a.createdAt,
     metrics: {
       users: a._count.users,
