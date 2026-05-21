@@ -68,7 +68,37 @@ model Academy {
   expenses      Expense[]
   conversations Conversation[]
   users         User[]
+  trainingSessions TrainingSession[]
   createdAt     DateTime       @default(now())
+}
+
+// A training session for a group on a date. Attendance is recorded per athlete.
+model TrainingSession {
+  id         String       @id @default(cuid())
+  academyId  String
+  academy    Academy      @relation(fields: [academyId], references: [id])
+  groupId    String
+  group      Group        @relation(fields: [groupId], references: [id])
+  date       DateTime
+  title      String?
+  coachId    String?
+  coach      Coach?       @relation(fields: [coachId], references: [id])
+  notes      String?
+  attendance Attendance[]
+  createdAt  DateTime     @default(now())
+}
+
+model Attendance {
+  id           String          @id @default(cuid())
+  sessionId    String
+  session      TrainingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  enrollmentId String
+  enrollment   Enrollment      @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  status       String          @default("present") // present | late | absent | excused | injured
+  note         String?
+  createdAt    DateTime        @default(now())
+
+  @@unique([sessionId, enrollmentId])
 }
 
 // Inbound academy onboarding requests (apply / request a demo). Reviewed in the
@@ -122,6 +152,7 @@ model Coach {
   enrollments    Enrollment[]
   users          User[]
   expenses       Expense[]
+  sessions       TrainingSession[]
   createdAt      DateTime     @default(now())
 }
 
@@ -357,6 +388,7 @@ model Enrollment {
   invoices      Invoice[]
   events        EnrollmentEvent[]
   conversations Conversation[]
+  attendance    Attendance[]
   createdAt     DateTime          @default(now())
 }
 
@@ -449,6 +481,7 @@ model Group {
   enrollments   Enrollment[]
   expenses      Expense[]
   conversations Conversation[]
+  sessions      TrainingSession[]
   createdAt     DateTime     @default(now())
 }
 
