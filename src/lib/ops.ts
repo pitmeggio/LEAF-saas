@@ -418,35 +418,80 @@ export async function computeAlerts(coachId?: string | null): Promise<Alert[]> {
   for (const e of enrollments) {
     const name = `${e.athlete.firstName} ${e.athlete.lastName}`;
     if (e.overduePayments.length > 0) {
-      alerts.push({ id: `pay-${e.id}`, type: "payment_overdue", severity: "high", title: "Payment overdue", detail: `${name} — ${e.overduePayments.length} overdue payment(s)`, href: `/members/${e.id}` });
+      alerts.push({ id: `pay-${e.id}`, type: "payment_overdue", severity: "high", title: "Payment overdue", detail: `${name} — ${e.overduePayments.length} overdue payment(s)`, href: `/dashboard/members/${e.id}` });
     }
     if (e.missingDocs.length > 0) {
-      alerts.push({ id: `doc-${e.id}`, type: "missing_document", severity: "medium", title: "Missing / expired documents", detail: `${name} — ${e.missingDocs.length} document(s) need attention`, href: `/members/${e.id}` });
+      alerts.push({ id: `doc-${e.id}`, type: "missing_document", severity: "medium", title: "Missing / expired documents", detail: `${name} — ${e.missingDocs.length} document(s) need attention`, href: `/dashboard/members/${e.id}` });
     }
     if (e.perf === "declining") {
-      alerts.push({ id: `perf-${e.id}`, type: "declining_trend", severity: "medium", title: "Declining performance", detail: `${name} — FIS trend is declining`, href: `/members/${e.id}` });
+      alerts.push({ id: `perf-${e.id}`, type: "declining_trend", severity: "medium", title: "Declining performance", detail: `${name} — FIS trend is declining`, href: `/dashboard/members/${e.id}` });
     }
     if (e.status === "inactive") {
-      alerts.push({ id: `inact-${e.id}`, type: "inactive_athlete", severity: "low", title: "Inactive athlete", detail: `${name} is marked inactive`, href: `/members/${e.id}` });
+      alerts.push({ id: `inact-${e.id}`, type: "inactive_athlete", severity: "low", title: "Inactive athlete", detail: `${name} is marked inactive`, href: `/dashboard/members/${e.id}` });
     }
   }
 
   for (const g of groups) {
     if (g.overCapacity) {
-      alerts.push({ id: `grp-${g.id}`, type: "group_over_capacity", severity: "medium", title: "Group over capacity", detail: `${g.name} — ${g.count}/${g.capacity} athletes`, href: `/groups` });
+      alerts.push({ id: `grp-${g.id}`, type: "group_over_capacity", severity: "medium", title: "Group over capacity", detail: `${g.name} — ${g.count}/${g.capacity} athletes`, href: `/dashboard/groups` });
     }
   }
 
   for (const p of packages) {
     if (p.full) {
-      alerts.push({ id: `pkg-${p.id}`, type: "package_full", severity: "low", title: "Package full", detail: `${p.name} reached ${p.activeCount}/${p.maxAthletes}`, href: `/packages` });
+      alerts.push({ id: `pkg-${p.id}`, type: "package_full", severity: "low", title: "Package full", detail: `${p.name} reached ${p.activeCount}/${p.maxAthletes}`, href: `/dashboard/packages` });
     }
   }
 
   for (const a of applications) {
     const days = Math.round((Date.now() - new Date(a.submittedAt).getTime()) / (24 * 3600 * 1000));
     if (days >= WAITING_DAYS) {
-      alerts.push({ id: `app-${a.id}`, type: "application_waiting", severity: "medium", title: "Application waiting too long", detail: `An application has been waiting ${days} days`, href: `/applications/${a.id}` });
+      alerts.push({ id: `app-${a.id}`, type: "application_waiting", severity: "medium", title: "Application waiting too long", detail: `An application has been waiting ${days} days`, href: `/dashboard/applications/${a.id}` });
+    }
+  }
+
+  // ── Contract intelligence: expiring soon + awaiting signature ──
+  const now = Date.now();
+  const in30d = now + 30 * 24 * 3600 * 1000;
+  const contracts = await prisma.contract.findMany({
+    where: { academyId, ...(coachId ? { enrollment: { coachId } } : {}) },
+    include: { enrollment: { include: { athlete: { select: { firstName: true, lastName: true } } } } },
+  });
+  for (const c of contracts) {
+    const nm = `${c.enrollment.athlete.firstName} ${c.enrollment.athlete.lastName}`;
+    if (c.status === "signed" && c.endDate && +c.endDate >= now && +c.endDate <= in30d) {
+      const days = Math.round((+c.endDate - now) / (24 * 3600 * 1000));
+      alerts.push({ id: `ctr-exp-${c.id}`, type: "contract_expiring", severity: "medium", title: "Contract expiring", detail: `${nm} — "${c.title}" expires in ${days} day${days === 1 ? "" : "s"}`, href: `/dashboard/members/${c.enrollmentId}` });
+    } else if ((c.status === "draft" || c.status === "sent")) {
+      const ageDays = Math.round((now - +c.createdAt) / (24 * 3600 * 1000));
+      if (ageDays >= 14) {
+        alerts.push({ id: `ctr-sig-${c.id}`, type: "contract_unsigned", severity: "medium", title: "Contract awaiting signature", detail: `${nm} — "${c.title}" ${c.status} for ${ageDays} days`, href: `/dashboard/members/${c.enrollmentId}` });
+      }
+    }
+  }
+
+  // ── Attendance anomaly: low recent attendance rate ──
+  const att = await prisma.attendance.findMany({
+    where: { session: { academyId }, ...(coachId ? { enrollment: { coachId } } : {}) },
+    include: { enrollment: { include: { athlete: { select: { firstName: true, lastName: true } } } }, session: { select: { date: true } } },
+    orderBy: { session: { date: "desc" } },
+    take: 2000,
+  });
+  const byEnr = new Map<string, { present: number; total: number; name: string }>();
+  for (const a of att) {
+    const r = byEnr.get(a.enrollmentId) ?? { present: 0, total: 0, name: `${a.enrollment.athlete.firstName} ${a.enrollment.athlete.lastName}` };
+    if (r.total < 8) { // most recent 8 sessions per athlete
+      r.total += 1;
+      if (a.status === "present" || a.status === "late") r.present += 1;
+      byEnr.set(a.enrollmentId, r);
+    }
+  }
+  for (const [enrollmentId, r] of byEnr) {
+    if (r.total >= 3) {
+      const pct = Math.round((r.present / r.total) * 100);
+      if (pct < 60) {
+        alerts.push({ id: `att-${enrollmentId}`, type: "attendance_low", severity: pct < 40 ? "high" : "medium", title: "Low attendance", detail: `${r.name} — ${pct}% across the last ${r.total} sessions`, href: `/dashboard/members/${enrollmentId}` });
+      }
     }
   }
 
