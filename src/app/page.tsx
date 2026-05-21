@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PublicNav } from "@/components/PublicNav";
 import { SiteFooter } from "@/components/SiteFooter";
+import { ProductPreview } from "@/components/ProductPreview";
 
 export const metadata = {
   title: "LEAF — The verified performance intelligence layer for elite sport",
@@ -61,6 +62,11 @@ export default function LeafLanding() {
             {PILLS.map((p) => (
               <span key={p} className="rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/70 px-3.5 py-1.5 text-xs text-[var(--color-muted)]">{p}</span>
             ))}
+          </div>
+
+          {/* Product preview */}
+          <div className="mt-14">
+            <ProductPreview />
           </div>
         </div>
       </section>
