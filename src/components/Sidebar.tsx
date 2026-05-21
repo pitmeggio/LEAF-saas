@@ -8,36 +8,52 @@ import { initials } from "@/lib/domain";
 
 type FeatureKey = "featureRecruiting" | "featurePublicProfiles" | "featureFinance" | "featureChat";
 type NavItem = { href: string; label: string; icon: string; soon?: boolean; feature?: FeatureKey };
+type NavSection = { label: string; items: NavItem[] };
 export type SidebarFeatures = Record<FeatureKey, boolean>;
 
-const ADMIN_NAV: NavItem[] = [
-  { href: "/dashboard", label: "Overview", icon: "▦" },
-  { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
-  { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
-  { href: "/dashboard/members", label: "Active Athletes", icon: "⛷" },
-  { href: "/dashboard/groups", label: "Groups", icon: "⬡" },
-  { href: "/dashboard/attendance", label: "Attendance", icon: "◉" },
-  { href: "/dashboard/coaches", label: "Coaches", icon: "◎" },
-  { href: "/dashboard/recruiting", label: "Recruiting", icon: "✦", feature: "featureRecruiting" },
-  { href: "/dashboard/packages", label: "Packages", icon: "▥" },
-  { href: "/dashboard/payments", label: "Payments", icon: "€", feature: "featureFinance" },
-  { href: "/dashboard/expenses", label: "Expenses", icon: "⊟", feature: "featureFinance" },
-  { href: "/dashboard/reports", label: "Reports", icon: "▧", feature: "featureFinance" },
-  { href: "/dashboard/documents", label: "Documents", icon: "▢" },
-  { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
-  { href: "/dashboard/settings", label: "Settings", icon: "⚙", soon: true },
+// Grouped navigation — 4 labelled sections instead of one long flat list, so the
+// workspace reads as blocks. Items keep their per-tenant feature gating.
+const ADMIN_SECTIONS: NavSection[] = [
+  { label: "Workspace", items: [
+    { href: "/dashboard", label: "Overview", icon: "▦" },
+    { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
+    { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
+  ] },
+  { label: "Athletes", items: [
+    { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
+    { href: "/dashboard/members", label: "Active Athletes", icon: "⛷" },
+    { href: "/dashboard/attendance", label: "Attendance", icon: "◉" },
+    { href: "/dashboard/documents", label: "Documents", icon: "▢" },
+  ] },
+  { label: "Program", items: [
+    { href: "/dashboard/groups", label: "Groups", icon: "⬡" },
+    { href: "/dashboard/coaches", label: "Coaches", icon: "◎" },
+    { href: "/dashboard/packages", label: "Packages", icon: "▥" },
+    { href: "/dashboard/recruiting", label: "Recruiting", icon: "✦", feature: "featureRecruiting" },
+  ] },
+  { label: "Finance", items: [
+    { href: "/dashboard/payments", label: "Payments", icon: "€", feature: "featureFinance" },
+    { href: "/dashboard/expenses", label: "Expenses", icon: "⊟", feature: "featureFinance" },
+    { href: "/dashboard/reports", label: "Reports", icon: "▧", feature: "featureFinance" },
+  ] },
 ];
 
-const COACH_NAV: NavItem[] = [
-  { href: "/dashboard", label: "My Dashboard", icon: "▦" },
-  { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
-  { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
-  { href: "/dashboard/members", label: "My Athletes", icon: "⛷" },
-  { href: "/dashboard/groups", label: "My Groups", icon: "⬡" },
-  { href: "/dashboard/attendance", label: "Attendance", icon: "◉" },
-  { href: "/dashboard/documents", label: "Documents", icon: "▢" },
-  { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
-  { href: "/dashboard/expenses", label: "My Expenses", icon: "⊟", feature: "featureFinance" },
+const COACH_SECTIONS: NavSection[] = [
+  { label: "Workspace", items: [
+    { href: "/dashboard", label: "My Dashboard", icon: "▦" },
+    { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
+    { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
+  ] },
+  { label: "Athletes", items: [
+    { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
+    { href: "/dashboard/members", label: "My Athletes", icon: "⛷" },
+    { href: "/dashboard/attendance", label: "Attendance", icon: "◉" },
+    { href: "/dashboard/documents", label: "Documents", icon: "▢" },
+  ] },
+  { label: "Program", items: [
+    { href: "/dashboard/groups", label: "My Groups", icon: "⬡" },
+    { href: "/dashboard/expenses", label: "My Expenses", icon: "⊟", feature: "featureFinance" },
+  ] },
 ];
 
 const ROLE_LABEL: Record<string, string> = {
@@ -50,9 +66,32 @@ const ROLE_LABEL: Record<string, string> = {
 
 export function Sidebar({ user, features }: { user: { name: string; role: string; academy: string }; features: SidebarFeatures }) {
   const pathname = usePathname();
-  const base = user.role === "academy_admin" ? ADMIN_NAV : COACH_NAV;
-  // Hide modules the platform has switched off for this tenant.
-  const NAV = base.filter((item) => !item.feature || features[item.feature]);
+  const baseSections = user.role === "academy_admin" ? ADMIN_SECTIONS : COACH_SECTIONS;
+  // Hide modules the platform has switched off for this tenant; drop empty sections.
+  const sections = baseSections
+    .map((s) => ({ ...s, items: s.items.filter((item) => !item.feature || features[item.feature]) }))
+    .filter((s) => s.items.length > 0);
+
+  const renderItem = (item: NavItem) => {
+    const active = item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
+    return (
+      <Link
+        key={item.href}
+        href={item.soon ? "#" : item.href}
+        aria-disabled={item.soon}
+        className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+          active
+            ? "bg-[var(--color-surface-2)] text-[var(--color-fg)]"
+            : "text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+        } ${item.soon ? "cursor-not-allowed opacity-50" : ""}`}
+      >
+        <span className="w-4 text-center" style={{ color: active ? "var(--color-accent)" : undefined }}>{item.icon}</span>
+        <span className="flex-1">{item.label}</span>
+        {item.soon && <span className="text-[9px] uppercase tracking-wide">soon</span>}
+      </Link>
+    );
+  };
+
   return (
     <aside className="fixed inset-y-0 left-0 z-20 flex w-60 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-5">
       <div className="px-2 pb-6">
@@ -65,28 +104,13 @@ export function Sidebar({ user, features }: { user: { name: string; role: string
         </div>
       </div>
 
-      <nav className="flex flex-1 flex-col gap-1">
-        {NAV.map((item) => {
-          const active = item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.soon ? "#" : item.href}
-              aria-disabled={item.soon}
-              className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                active
-                  ? "bg-[var(--color-surface-2)] text-[var(--color-fg)]"
-                  : "text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
-              } ${item.soon ? "cursor-not-allowed opacity-50" : ""}`}
-            >
-              <span className="w-4 text-center" style={{ color: active ? "var(--color-accent)" : undefined }}>
-                {item.icon}
-              </span>
-              <span className="flex-1">{item.label}</span>
-              {item.soon && <span className="text-[9px] uppercase tracking-wide">soon</span>}
-            </Link>
-          );
-        })}
+      <nav className="flex flex-1 flex-col gap-5 overflow-y-auto">
+        {sections.map((section) => (
+          <div key={section.label} className="flex flex-col gap-1">
+            <div className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--color-muted)]/70">{section.label}</div>
+            {section.items.map(renderItem)}
+          </div>
+        ))}
       </nav>
 
       <div className="mt-auto border-t border-[var(--color-border)] pt-4">
