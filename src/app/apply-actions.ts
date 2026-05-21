@@ -25,6 +25,13 @@ export async function submitApplicationAction(_prev: ApplyState, formData: FormD
     validPackageId = pkg?.id ?? null;
   }
 
+  // Validate opportunity belongs to this academy and is published.
+  let validOpportunityId: string | null = null;
+  if (d.opportunityId) {
+    const opp = await prisma.opportunity.findFirst({ where: { id: d.opportunityId, academyId: academy.id, status: "published" } });
+    validOpportunityId = opp?.id ?? null;
+  }
+
   const dob = d.dob ? new Date(d.dob) : null;
   let athleteId: string;
 
@@ -80,6 +87,7 @@ export async function submitApplicationAction(_prev: ApplyState, formData: FormD
       academyId: academy.id,
       athleteId,
       packageId: validPackageId,
+      opportunityId: validOpportunityId,
       status: "new",
       source: "public_form",
       sport: d.sport,

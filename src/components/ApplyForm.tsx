@@ -20,10 +20,12 @@ export function ApplyForm({
   slug,
   packages,
   defaultPackage,
+  opportunityId,
 }: {
   slug: string;
   packages: Package[];
   defaultPackage?: string;
+  opportunityId?: string;
 }) {
   const [state, formAction, pending] = useActionState<ApplyState, FormData>(submitApplicationAction, {});
   const [hasFis, setHasFis] = useState(false);
@@ -35,6 +37,7 @@ export function ApplyForm({
   return (
     <form action={formAction} className="card space-y-5 p-5 sm:p-6">
       <input type="hidden" name="slug" value={slug} />
+      {opportunityId && <input type="hidden" name="opportunityId" value={opportunityId} />}
 
       <Section title="Athlete">
         <div className="grid gap-4 sm:grid-cols-2">

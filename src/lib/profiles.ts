@@ -306,6 +306,46 @@ export async function getRecruitingAcademies(): Promise<RecruitingAcademyCard[]>
   }));
 }
 
+export type PublicOpportunity = {
+  id: string;
+  title: string;
+  type: string;
+  season: string | null;
+  ageGroup: string | null;
+  discipline: string | null;
+  packageType: string | null;
+  price: number | null; // null when the academy chose not to show price publicly
+  currency: string;
+  applicationDeadline: Date | null;
+  spotsAvailable: number | null;
+  description: string | null;
+};
+
+// Published opportunities for an active academy (public-safe). Price hidden unless
+// the academy opted to show it. Returns [] if the academy is missing/inactive.
+export async function getPublicOpportunities(academySlug: string): Promise<PublicOpportunity[]> {
+  const academy = await prisma.academy.findUnique({ where: { slug: academySlug }, select: { id: true, status: true } });
+  if (!academy || academy.status !== "active") return [];
+  const rows = await prisma.opportunity.findMany({
+    where: { academyId: academy.id, status: "published" },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((o) => ({
+    id: o.id,
+    title: o.title,
+    type: o.type,
+    season: o.season,
+    ageGroup: o.ageGroup,
+    discipline: o.discipline,
+    packageType: o.packageType,
+    price: o.pricePublic ? o.price : null,
+    currency: o.currency,
+    applicationDeadline: o.applicationDeadline,
+    spotsAvailable: o.spotsAvailable,
+    description: o.description,
+  }));
+}
+
 export type AcademyAthleteCard = {
   slug: string;
   firstName: string;

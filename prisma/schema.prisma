@@ -49,6 +49,7 @@ model Academy {
   programs     Program[]
   packages     Package[]
   applications Application[]
+  opportunities Opportunity[]
   groups        Group[]
   coaches       Coach[]
   enrollments   Enrollment[]
@@ -258,6 +259,8 @@ model Application {
   program        Program?      @relation(fields: [programId], references: [id])
   packageId      String?
   package        Package?      @relation(fields: [packageId], references: [id])
+  opportunityId  String?
+  opportunity    Opportunity?  @relation(fields: [opportunityId], references: [id])
   status         String        @default("new") // new | reviewing | shortlisted | accepted | rejected
   score          Int?
   source         String        @default("public_form")
@@ -273,6 +276,31 @@ model Application {
   events         StatusEvent[]
   enrollment     Enrollment?
   conversation   Conversation?
+}
+
+// A publishable recruiting opening (program / team position / camp / package).
+// The dashboard creates these; the public academy site lists the published ones;
+// applications can reference the opportunity they came from.
+model Opportunity {
+  id                  String        @id @default(cuid())
+  academyId           String
+  academy             Academy       @relation(fields: [academyId], references: [id])
+  title               String
+  type                String        @default("program") // program | position | camp | package
+  season              String?
+  ageGroup            String? // e.g. "U16-U18"
+  discipline          String? // SL | GS | SG | DH | XC | ...
+  packageType         String? // free-text package/tier label
+  price               Int? // currency major units
+  currency            String        @default("EUR")
+  pricePublic         Boolean       @default(false) // show price publicly?
+  applicationDeadline DateTime?
+  spotsAvailable      Int?
+  description         String?
+  status              String        @default("draft") // draft | published | closed
+  applications        Application[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 }
 
 // Active Athlete = an athlete enrolled at an academy. Multi-tenant by academyId.

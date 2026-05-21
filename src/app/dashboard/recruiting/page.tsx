@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/PageHeader";
 import { RecruitingSettings, type RecruitingValues } from "@/components/RecruitingSettings";
+import { OpportunityManager, type OpportunityRow } from "@/components/OpportunityManager";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import type { RecruitingStatus } from "@/lib/profiles";
@@ -10,6 +11,29 @@ export default async function RecruitingPage() {
   const session = await requireAdmin();
   const academy = session.academyId ? await prisma.academy.findUnique({ where: { id: session.academyId } }) : null;
   if (!academy) return <div className="p-8 text-sm text-[var(--color-muted)]">No academy in session.</div>;
+
+  const opps = await prisma.opportunity.findMany({
+    where: { academyId: academy.id },
+    include: { _count: { select: { applications: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+  const opportunities: OpportunityRow[] = opps.map((o) => ({
+    id: o.id,
+    title: o.title,
+    type: o.type,
+    season: o.season,
+    ageGroup: o.ageGroup,
+    discipline: o.discipline,
+    packageType: o.packageType,
+    price: o.price,
+    currency: o.currency,
+    pricePublic: o.pricePublic,
+    applicationDeadline: o.applicationDeadline ? o.applicationDeadline.toISOString().slice(0, 10) : null,
+    spotsAvailable: o.spotsAvailable,
+    description: o.description,
+    status: o.status,
+    applicationsCount: o._count.applications,
+  }));
 
   const initial: RecruitingValues = {
     slug: academy.slug,
@@ -36,7 +60,8 @@ export default async function RecruitingPage() {
         title="Recruiting"
         subtitle={`${academy.name} · public recruiting on Leaf Profiles`}
       />
-      <div className="max-w-3xl p-8">
+      <div className="max-w-3xl space-y-8 p-8">
+        <OpportunityManager opportunities={opportunities} />
         <RecruitingSettings initial={initial} />
       </div>
     </>

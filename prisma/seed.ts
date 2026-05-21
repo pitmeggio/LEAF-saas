@@ -79,6 +79,7 @@ async function main() {
   await prisma.statusEvent.deleteMany();
   await prisma.note.deleteMany();
   await prisma.application.deleteMany();
+  await prisma.opportunity.deleteMany();
   await prisma.group.deleteMany();
   await prisma.coach.deleteMany();
   await prisma.media.deleteMany();
@@ -154,6 +155,15 @@ async function main() {
     prisma.package.create({ data: { academyId: academy.id, name: "Weekend Program", description: "Part-time weekend training for athletes balancing school and racing.", price: 4900, currency: "EUR", period: "season", billingFreq: "seasonal", coaching: true, maxAthletes: 25, features: "Sat & Sun training\nGroup coaching\nMonthly progress review", order: 3 } }),
     prisma.package.create({ data: { academyId: academy.id, name: "Private Coaching", description: "1:1 coaching blocks, billed monthly.", price: 600, currency: "EUR", period: "month", billingFreq: "monthly", coaching: true, maxAthletes: 10, features: "1:1 coaching\nIndividual video analysis\nFlexible scheduling", order: 4 } }),
   ]);
+
+  // Opportunities (publishable openings shown on the public academy page)
+  await prisma.opportunity.createMany({
+    data: [
+      { academyId: academy.id, title: "Full-time Race Program 2026/27", type: "program", season: "2026/27", ageGroup: "U16-U21", discipline: "GS / SL", packageType: "Full season", price: 14900, currency: "EUR", pricePublic: true, applicationDeadline: new Date("2026-08-15"), spotsAvailable: 6, description: "Daily on-snow training, S&C, video analysis and full race support for committed FIS athletes.", status: "published" },
+      { academyId: academy.id, title: "Speed Project — SG/DH spots", type: "position", season: "2026/27", ageGroup: "U18-U21", discipline: "SG / DH", spotsAvailable: 2, pricePublic: false, applicationDeadline: new Date("2026-07-31"), description: "Two team positions in the speed group for athletes with a speed-discipline background.", status: "published" },
+      { academyId: academy.id, title: "Summer Glacier Camp", type: "camp", season: "Summer 2026", ageGroup: "U14-U18", price: 3200, currency: "EUR", pricePublic: true, spotsAvailable: 15, description: "Three-week on-snow block during peak summer glacier conditions.", status: "draft" },
+    ],
+  });
 
   // Groups (one intentionally small to demo over-capacity automation)
   const groups = await Promise.all([

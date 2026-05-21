@@ -90,6 +90,27 @@ export const publicProfileSchema = z
   });
 export type PublicProfileInput = z.infer<typeof publicProfileSchema>;
 
+// ── Opportunities (publishable recruiting openings) ──────────────────────────
+export const OPPORTUNITY_TYPES = ["program", "position", "camp", "package"] as const;
+export const opportunityStatusSchema = z.enum(["draft", "published", "closed"]);
+
+export const opportunityInputSchema = z.object({
+  title: z.string().trim().min(2, "Title is required.").max(120),
+  type: z.enum(OPPORTUNITY_TYPES).default("program"),
+  season: optionalStr(20),
+  ageGroup: optionalStr(40),
+  discipline: optionalStr(40),
+  packageType: optionalStr(60),
+  price: z.number().int().min(0).max(10_000_000).nullable().optional(),
+  currency: z.string().trim().max(8).optional().transform((v) => (v ? v : "EUR")),
+  pricePublic: z.boolean(),
+  applicationDeadline: optionalStr(20), // YYYY-MM-DD → Date in the action
+  spotsAvailable: z.number().int().min(0).max(100000).nullable().optional(),
+  description: optionalStr(2000),
+  status: opportunityStatusSchema.default("draft"),
+});
+export type OpportunityInput = z.infer<typeof opportunityInputSchema>;
+
 // ── Academy recruiting settings ──────────────────────────────────────────────
 export const recruitingStatusSchema = z.enum(["OPEN", "LIMITED_SPOTS", "WAITLIST_OPEN", "CLOSED"]);
 export const PROGRAM_TYPES = ["Full Package", "Training Only", "Race Support", "Custom"] as const;
@@ -192,6 +213,7 @@ export const applicationSchema = z
     guardianContact: optionalStr(160),
     mediaLink: optionalUrl,
     packageId: optionalStr(40),
+    opportunityId: optionalStr(40),
   })
   .refine((d) => Boolean(d.fisCode) || Boolean(d.dob && d.nationality && d.discipline), {
     message: "Provide a FIS code, or fill in date of birth, nationality and discipline.",
