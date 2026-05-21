@@ -19,6 +19,14 @@ export default async function MembersPage() {
   const coachScope = s?.isAdmin ? null : s?.coachId ?? null;
   const [members, opts] = await Promise.all([getActiveAthletes(coachScope), getAssignmentOptions()]);
 
+  // Guided view: surface who needs a human. Flagged athletes sort to the top.
+  const flagged = members.map((m) => ({
+    m,
+    needs: m.overduePayments.length > 0 || m.missingDocs.length > 0 || m.perf === "declining",
+  }));
+  const needCount = flagged.filter((f) => f.needs).length;
+  const sorted = [...flagged].sort((a, b) => Number(b.needs) - Number(a.needs));
+
   return (
     <>
       <PageHeader
@@ -32,7 +40,17 @@ export default async function MembersPage() {
         }
       />
 
-      <div className="p-8">
+      <div className="space-y-4 p-8">
+        {/* Guided summary — only the few that need a human */}
+        <div className="flex items-center gap-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm">
+          <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+          {needCount === 0 ? (
+            <span className="text-[var(--color-fg)]/85">All {members.length} athletes on track — nothing needs you right now.</span>
+          ) : (
+            <span className="text-[var(--color-fg)]/85"><span className="font-semibold">{needCount} of {members.length} need a look</span> <span className="text-[var(--color-muted)]">— overdue payments, missing docs or a declining trend. They're at the top.</span></span>
+          )}
+        </div>
+
         <div className="card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -49,8 +67,8 @@ export default async function MembersPage() {
               </tr>
             </thead>
             <tbody>
-              {members.map((m) => (
-                <tr key={m.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]">
+              {sorted.map(({ m, needs }) => (
+                <tr key={m.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]" style={needs ? { boxShadow: "inset 2px 0 0 #f59e0b" } : undefined}>
                   <td className="px-5 py-3">
                     <Link href={`/dashboard/members/${m.id}`} className="flex items-center gap-3">
                       <Avatar first={m.athlete.firstName} last={m.athlete.lastName} color={m.athlete.photoColor} size={34} />
