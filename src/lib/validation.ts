@@ -183,6 +183,52 @@ export const academyPlanUpdateSchema = z.object({
   plan: planSchema,
 });
 
+// ── Platform user/account management (super-admin) ───────────────────────────
+export const userRoleSchema = z.enum(["super_admin", "academy_admin", "coach", "recruiter", "athlete"]);
+
+// A password is optional on create/reset: blank → the account is "claimed" (the
+// password is set) on first sign-in. When provided it must be at least 8 chars.
+const optionalPassword = z
+  .string()
+  .optional()
+  .transform((v) => (v && v.length ? v : undefined))
+  .refine((v) => v === undefined || v.length >= 8, { message: "Password must be at least 8 characters." });
+
+// super_admin accounts are platform-level (no academy); every other role needs one.
+export const userCreateSchema = z
+  .object({
+    name: z.string().trim().min(2, "Name is required.").max(120),
+    email: z.string().trim().toLowerCase().email("Enter a valid email."),
+    role: userRoleSchema,
+    academyId: z.string().optional().transform((v) => (v ? v : undefined)),
+    password: optionalPassword,
+  })
+  .refine((d) => d.role === "super_admin" || !!d.academyId, {
+    message: "Select an academy for this role.",
+    path: ["academyId"],
+  });
+
+export const userUpdateSchema = z
+  .object({
+    id: z.string().min(1),
+    name: z.string().trim().min(2, "Name is required.").max(120),
+    email: z.string().trim().toLowerCase().email("Enter a valid email."),
+    role: userRoleSchema,
+    academyId: z.string().optional().transform((v) => (v ? v : undefined)),
+  })
+  .refine((d) => d.role === "super_admin" || !!d.academyId, {
+    message: "Select an academy for this role.",
+    path: ["academyId"],
+  });
+
+export const userPasswordSchema = z.object({
+  id: z.string().min(1),
+  // blank → clear the credential (force claim on next sign-in)
+  password: optionalPassword,
+});
+
+export const userDeleteSchema = z.object({ id: z.string().min(1) });
+
 // Public application form
 export const applicationSchema = z
   .object({

@@ -67,3 +67,39 @@ export async function getPlatformTotals() {
   ]);
   return { academies, active, users, athletes };
 }
+
+export type PlatformUser = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  academyId: string | null;
+  academyName: string | null;
+  hasPassword: boolean;
+  createdAt: Date;
+};
+
+// Platform-wide account directory for the super-admin People page.
+export async function getPlatformUsers(): Promise<PlatformUser[]> {
+  await requireSuperAdmin();
+  const users = await prisma.user.findMany({
+    orderBy: [{ role: "asc" }, { name: "asc" }],
+    include: { academy: { select: { name: true } } },
+  });
+  return users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    academyId: u.academyId,
+    academyName: u.academy?.name ?? null,
+    hasPassword: !!u.passwordHash,
+    createdAt: u.createdAt,
+  }));
+}
+
+// Lightweight academy options for assigning users (no metrics needed).
+export async function getAcademyOptions(): Promise<{ id: string; name: string }[]> {
+  await requireSuperAdmin();
+  return prisma.academy.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } });
+}
