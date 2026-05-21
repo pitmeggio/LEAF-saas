@@ -168,9 +168,9 @@ async function main() {
 
   // Groups (one intentionally small to demo over-capacity automation)
   const groups = await Promise.all([
-    prisma.group.create({ data: { academyId: academy.id, name: "Development Team", sport: "ski", season: "2026/27", coachId: coaches[0].id, capacity: 10, budget: 40000 } }),
-    prisma.group.create({ data: { academyId: academy.id, name: "Speed Project Team", sport: "ski", season: "2026/27", coachId: coaches[1].id, capacity: 2, budget: 28000 } }),
-    prisma.group.create({ data: { academyId: academy.id, name: "Tech Team", sport: "ski", season: "2026/27", coachId: coaches[0].id, capacity: 12, budget: 35000 } }),
+    prisma.group.create({ data: { academyId: academy.id, name: "Development Team", sport: "ski", season: "2026/27", coachId: coaches[0].id, capacity: 10, budget: 40000, pointsMin: 38, pointsMax: 62, ageMin: 14, ageMax: 21, level: "development" } }),
+    prisma.group.create({ data: { academyId: academy.id, name: "Speed Project Team", sport: "ski", season: "2026/27", coachId: coaches[1].id, capacity: 2, budget: 28000, pointsMin: 8, pointsMax: 45, ageMin: 16, ageMax: 23, level: "elite", discipline: "super_g" } }),
+    prisma.group.create({ data: { academyId: academy.id, name: "Tech Team", sport: "ski", season: "2026/27", coachId: coaches[0].id, capacity: 12, budget: 35000, pointsMin: 18, pointsMax: 34, ageMin: 14, ageMax: 19, level: "competitive" } }),
   ]);
 
   // Sample coach expenses (drives the expenses module + group budget usage)

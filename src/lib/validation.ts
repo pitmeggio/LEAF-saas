@@ -399,6 +399,9 @@ export const coachInputSchema = z.object({
   active: z.boolean().optional().transform((v) => v ?? true),
 });
 
+const optInt = (min: number, max: number) =>
+  z.number().int().min(min).max(max).nullable().optional().transform((v) => (v == null ? null : v));
+
 export const groupInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),
   sport: z.string().trim().optional().transform((v) => v || "ski"),
@@ -407,6 +410,13 @@ export const groupInputSchema = z.object({
   capacity: z.number().int().min(1).max(200),
   notes: optText(2000),
   active: z.boolean().optional().transform((v) => v ?? true),
+  // Smart Group Assignment rules (all optional — null = no constraint)
+  pointsMin: optInt(0, 100000),
+  pointsMax: optInt(0, 100000),
+  ageMin: optInt(0, 100),
+  ageMax: optInt(0, 100),
+  level: z.string().trim().max(20).nullable().optional().transform((v) => (v ? v : null)),
+  discipline: z.string().trim().max(40).nullable().optional().transform((v) => (v ? v : null)),
 });
 
 export const packageInputSchema = z.object({

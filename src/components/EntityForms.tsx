@@ -137,12 +137,27 @@ export function CoachForm({ initial }: { initial?: { id: string; name: string; e
 }
 
 // ── Group ──
-export function GroupForm({ coaches, initial }: { coaches: Opt[]; initial?: { id: string; name: string; season: string; coachId: string | null; capacity: number; notes: string | null; active: boolean } }) {
-  const [f, set] = useState({ name: initial?.name ?? "", season: initial?.season ?? "2026/27", coachId: initial?.coachId ?? "", capacity: initial?.capacity ?? 12, notes: initial?.notes ?? "", active: initial?.active ?? true, sport: "ski" });
+type GroupInitial = { id: string; name: string; season: string; coachId: string | null; capacity: number; notes: string | null; active: boolean; pointsMin?: number | null; pointsMax?: number | null; ageMin?: number | null; ageMax?: number | null; level?: string | null; discipline?: string | null };
+
+export function GroupForm({ coaches, initial }: { coaches: Opt[]; initial?: GroupInitial }) {
+  const [f, set] = useState({
+    name: initial?.name ?? "", season: initial?.season ?? "2026/27", coachId: initial?.coachId ?? "",
+    capacity: initial?.capacity ?? 12, notes: initial?.notes ?? "", active: initial?.active ?? true, sport: "ski",
+    pointsMin: initial?.pointsMin ?? "", pointsMax: initial?.pointsMax ?? "",
+    ageMin: initial?.ageMin ?? "", ageMax: initial?.ageMax ?? "",
+    level: initial?.level ?? "", discipline: initial?.discipline ?? "",
+  });
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
+  const num = (v: string | number) => (v === "" || v == null ? null : Number(v));
+  const payload = (): GroupInput => ({
+    name: f.name, season: f.season, sport: f.sport, capacity: Number(f.capacity), notes: f.notes || undefined, active: f.active,
+    coachId: f.coachId || undefined,
+    pointsMin: num(f.pointsMin), pointsMax: num(f.pointsMax), ageMin: num(f.ageMin), ageMax: num(f.ageMax),
+    level: f.level || null, discipline: f.discipline || null,
+  } as GroupInput);
   return (
-    <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updateGroup(initial.id, { ...f, coachId: f.coachId || undefined } as GroupInput) : createGroup({ ...f, coachId: f.coachId || undefined } as GroupInput)); }} className="space-y-3">
+    <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updateGroup(initial.id, payload()) : createGroup(payload())); }} className="space-y-3">
       <Field label="Name *"><input className={inp} value={f.name} onChange={(e) => upd("name", e.target.value)} required /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Season"><input className={inp} value={f.season} onChange={(e) => upd("season", e.target.value)} /></Field>
@@ -153,6 +168,26 @@ export function GroupForm({ coaches, initial }: { coaches: Opt[]; initial?: { id
           <option value="">Unassigned</option>{coaches.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
       </Field>
+
+      <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3">
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-[var(--color-muted)]">
+          <span className="flex h-4 w-4 items-center justify-center rounded text-[8px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+          Smart assignment rules <span className="font-normal">· drives suggested groups</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Points min"><input type="number" className={inp} value={f.pointsMin} onChange={(e) => upd("pointsMin", e.target.value)} placeholder="any" /></Field>
+          <Field label="Points max"><input type="number" className={inp} value={f.pointsMax} onChange={(e) => upd("pointsMax", e.target.value)} placeholder="any" /></Field>
+          <Field label="Age min"><input type="number" className={inp} value={f.ageMin} onChange={(e) => upd("ageMin", e.target.value)} placeholder="any" /></Field>
+          <Field label="Age max"><input type="number" className={inp} value={f.ageMax} onChange={(e) => upd("ageMax", e.target.value)} placeholder="any" /></Field>
+          <Field label="Level">
+            <select className={inp} value={f.level} onChange={(e) => upd("level", e.target.value)}>
+              <option value="">Any</option><option value="development">Development</option><option value="competitive">Competitive</option><option value="elite">Elite</option>
+            </select>
+          </Field>
+          <Field label="Discipline (optional)"><input className={inp} value={f.discipline} onChange={(e) => upd("discipline", e.target.value)} placeholder="any" /></Field>
+        </div>
+      </div>
+
       <Field label="Notes"><textarea className={`${inp} resize-none`} rows={2} value={f.notes} onChange={(e) => upd("notes", e.target.value)} /></Field>
       <Footer pending={pending} error={error} />
     </form>
@@ -282,7 +317,7 @@ export function ExpenseForm({ groups, initial }: { groups: Opt[]; initial?: { id
 // ── Acceptance confirmation (manual review before enrollment) ──
 type PkgOpt = { id: string; name: string; price: number | null; currency: string; billingFreq: string };
 export function AcceptForm({
-  application, athleteName, academyName, packages, groups, coaches,
+  application, athleteName, academyName, packages, groups, coaches, recommendedGroupId,
 }: {
   application: { id: string; packageId: string | null };
   athleteName: string;
@@ -290,9 +325,10 @@ export function AcceptForm({
   packages: PkgOpt[];
   groups: Opt[];
   coaches: Opt[];
+  recommendedGroupId?: string | null;
 }) {
   const [packageId, setPackageId] = useState(application.packageId ?? "");
-  const [groupId, setGroupId] = useState("");
+  const [groupId, setGroupId] = useState(recommendedGroupId ?? "");
   const [coachId, setCoachId] = useState("");
   const { pending, error, submit } = useSubmit();
 

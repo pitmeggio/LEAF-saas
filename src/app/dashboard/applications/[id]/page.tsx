@@ -6,8 +6,10 @@ import { GrowthChart, type Point } from "@/components/GrowthChart";
 import { StatusSelector, AddNoteForm } from "@/components/ApplicationControls";
 import { Modal, ApplicationEditForm, AcceptForm, DeleteButton } from "@/components/EntityForms";
 import { getApplication } from "@/lib/queries";
-import { getAssignmentOptions, getNotifications } from "@/lib/ops";
+import { getAssignmentOptions, getGroupsForAssignment, getNotifications } from "@/lib/ops";
 import { NOTIF_LABEL } from "@/lib/notifications";
+import { suggestGroups } from "@/lib/ai/groupAssignment";
+import { GroupSuggestions } from "@/components/GroupSuggestions";
 import { DISCIPLINE_LABEL, COUNTRY, STATUS_LABEL, age, fmtDate, relativeDate, fmtPoints, type Status } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -16,9 +18,26 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
   const { id } = await params;
   const app = await getApplication(id);
   if (!app) notFound();
-  const [opts, notifications] = await Promise.all([getAssignmentOptions(), getNotifications({ applicationId: id })]);
+  const [opts, groupsForAi, notifications] = await Promise.all([
+    getAssignmentOptions(),
+    getGroupsForAssignment(),
+    getNotifications({ applicationId: id }),
+  ]);
 
   const a = app.athlete;
+
+  // Smart Group Assignment — explainable suggestions (advisory; coach overrides).
+  const suggestions = suggestGroups(
+    {
+      sport: a.sport,
+      points: a.fisPoints,
+      age: a.dob ? age(a.dob) : null,
+      discipline: a.discipline,
+      trendDeltaPoints: app.trend?.deltaPoints ?? null,
+    },
+    groupsForAi,
+  );
+  const recommendedGroupId = suggestions.find((s) => s.recommended)?.groupId ?? null;
   const chart: Point[] = a.rankings.map((r) => ({
     label: new Date(r.date).toLocaleDateString("en-GB", { month: "short" }),
     fisPoints: r.fisPoints,
@@ -144,6 +163,10 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
 
         {/* Right: status + timeline */}
         <div className="space-y-6">
+          {app.status !== "accepted" && suggestions.length > 0 && (
+            <GroupSuggestions suggestions={suggestions} />
+          )}
+
           <div className="card p-6">
             <h3 className="mb-3 text-sm font-semibold">Status</h3>
             <StatusSelector applicationId={app.id} current={app.status as Status} />
@@ -157,6 +180,7 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
                     packages={opts.packages}
                     groups={opts.groups}
                     coaches={opts.coaches}
+                    recommendedGroupId={recommendedGroupId}
                   />
                 </Modal>
                 <p className="mt-2 text-xs text-[var(--color-muted)]">Review package, group, coach and schedule before creating the enrollment.</p>

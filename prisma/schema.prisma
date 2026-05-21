@@ -437,6 +437,15 @@ model Group {
   budget      Int? // allocated season budget (currency major units)
   active      Boolean      @default(true)
   notes       String?
+  // ── Smart Group Assignment rules (per-academy config) ──
+  // Null = no constraint. Points band is in the sport's native scale (e.g. FIS
+  // points). The recommender scores applicants against these bands.
+  pointsMin   Int? // lower bound of the group's ranking-points band
+  pointsMax   Int? // upper bound
+  ageMin      Int?
+  ageMax      Int?
+  level       String? // development | competitive | elite (target level)
+  discipline  String? // optional discipline filter (null = any)
   enrollments   Enrollment[]
   expenses      Expense[]
   conversations Conversation[]

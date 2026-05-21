@@ -118,6 +118,34 @@ export async function getAssignmentOptions() {
   return { groups, coaches, packages, programs };
 }
 
+// Groups (active) with their assignment rules + current active-enrollment load,
+// shaped for the Smart Group Assignment recommender.
+export async function getGroupsForAssignment() {
+  const academyId = await requireAcademyId();
+  const groups = await prisma.group.findMany({
+    where: { academyId, active: true },
+    include: {
+      coach: { select: { name: true } },
+      _count: { select: { enrollments: { where: { status: "active" } } } },
+    },
+    orderBy: { name: "asc" },
+  });
+  return groups.map((g) => ({
+    id: g.id,
+    name: g.name,
+    sport: g.sport,
+    capacity: g.capacity,
+    enrolledCount: g._count.enrollments,
+    pointsMin: g.pointsMin,
+    pointsMax: g.pointsMax,
+    ageMin: g.ageMin,
+    ageMax: g.ageMax,
+    discipline: g.discipline,
+    level: g.level,
+    coachName: g.coach?.name ?? null,
+  }));
+}
+
 export async function getGroupsWithStats(coachId?: string | null) {
   const academyId = await requireAcademyId();
   const groups = await prisma.group.findMany({
