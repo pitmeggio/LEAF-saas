@@ -445,6 +445,9 @@ export type AthleteDirectoryCard = {
   publicPhotoUrl: string | null;
   verified: boolean;
   academyName: string | null;
+  fisPoints: number | null; // only when publicShowRanking
+  worldRank: number | null;
+  spark: number[] | null; // last ranking points (oldest→newest) for a mini trend
 };
 
 // All active academies (public-safe), with a count of their PUBLIC athletes.
@@ -480,6 +483,8 @@ export async function getPublicAthletesDirectory(): Promise<AthleteDirectoryCard
     select: {
       publicSlug: true, firstName: true, lastName: true, nationality: true, discipline: true,
       photoColor: true, publicPhotoUrl: true, publicVerified: true, publicShowAcademy: true,
+      publicShowRanking: true, fisPoints: true, worldRank: true,
+      rankings: { orderBy: { date: "asc" }, select: { fisPoints: true } },
       enrollments: { select: { academy: { select: { name: true, status: true } } } },
     },
     orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
@@ -488,6 +493,7 @@ export async function getPublicAthletesDirectory(): Promise<AthleteDirectoryCard
     const academyName = a.publicShowAcademy
       ? (a.enrollments.find((e) => e.academy?.status === "active")?.academy?.name ?? a.enrollments[0]?.academy?.name ?? null)
       : null;
+    const spark = a.publicShowRanking && a.rankings.length >= 2 ? a.rankings.slice(-8).map((r) => r.fisPoints) : null;
     return {
       slug: a.publicSlug as string,
       firstName: a.firstName,
@@ -498,6 +504,9 @@ export async function getPublicAthletesDirectory(): Promise<AthleteDirectoryCard
       publicPhotoUrl: a.publicPhotoUrl,
       verified: a.publicVerified,
       academyName,
+      fisPoints: a.publicShowRanking ? a.fisPoints : null,
+      worldRank: a.publicShowRanking ? a.worldRank : null,
+      spark,
     };
   });
 }

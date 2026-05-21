@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LEAF — Academy OS",
-  description: "Academy management software for sports academies",
+  title: "LEAF — Sports Performance OS",
+  description: "The intelligence layer behind elite sports academies — verified athlete performance, analytics, recruiting and academy operations in one platform.",
 };
 
 export default function RootLayout({

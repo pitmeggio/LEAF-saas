@@ -35,24 +35,28 @@ export default async function LoginPage() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Left — brand / product */}
-      <div className="relative hidden flex-col justify-between overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-surface)] p-12 lg:flex">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-[0.07]"
-          style={{ backgroundImage: "radial-gradient(circle at 20% 20%, var(--color-accent) 0, transparent 40%), radial-gradient(circle at 80% 60%, #38bdf8 0, transparent 45%)" }}
-        />
+      {/* Left — brand / product (command-center backdrop) */}
+      <div className="relative hidden flex-col justify-between overflow-hidden border-r border-[var(--color-border)] bg-[var(--color-bg)] p-12 lg:flex">
+        <div className="pointer-events-none absolute inset-0 grid-bg" />
+        <div className="pointer-events-none absolute left-[-80px] top-[20%] h-[360px] w-[480px] glow-accent" />
+        {/* faint analytics line */}
+        <svg className="pointer-events-none absolute bottom-0 left-0 w-full opacity-[0.18]" viewBox="0 0 600 200" fill="none" preserveAspectRatio="none">
+          <polyline points="0,170 90,150 170,158 250,120 330,128 410,80 500,92 600,40" stroke="var(--color-accent)" strokeWidth="2.5" />
+        </svg>
+
         <div className="relative flex items-center gap-3">
           <LeafMark size={34} />
-          <span className="text-lg font-bold tracking-tight">LEAF <span className="font-medium text-[var(--color-muted)]">Academy OS</span></span>
+          <span className="text-lg font-bold tracking-tight">LEAF</span>
         </div>
 
         <div className="relative">
-          <h1 className="max-w-md text-4xl font-bold leading-tight tracking-tight">
-            Manage athletes, coaches, finance and performance in one system.
+          <div className="kicker mb-4" style={{ color: "var(--color-accent)" }}>Sports Performance OS</div>
+          <h1 className="display max-w-md text-4xl font-bold">
+            The command center for elite athlete performance.
           </h1>
-          <div className="mt-10 grid max-w-md grid-cols-2 gap-4">
+          <div className="mt-9 grid max-w-md grid-cols-2 gap-3">
             {FEATURES.map((f) => (
-              <div key={f.title} className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/40 p-4">
+              <div key={f.title} className="card-2 p-4">
                 <div className="text-sm font-semibold">{f.title}</div>
                 <div className="mt-1 text-xs text-[var(--color-muted)]">{f.desc}</div>
               </div>
@@ -60,7 +64,7 @@ export default async function LoginPage() {
           </div>
         </div>
 
-        <div className="relative text-xs text-[var(--color-muted)]">Premium operating system for sports academies, clubs and federations.</div>
+        <div className="relative kicker">For academies · clubs · federations</div>
       </div>
 
       {/* Right — sign in */}

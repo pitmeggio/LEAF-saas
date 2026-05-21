@@ -3,8 +3,26 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { RecruitingBadge } from "@/components/Recruiting";
-import { DISCIPLINE_LABEL, COUNTRY } from "@/lib/domain";
+import { DISCIPLINE_LABEL, COUNTRY, fmtPoints } from "@/lib/domain";
 import type { AcademyDirectoryCard, AthleteDirectoryCard } from "@/lib/profiles";
+
+// Tiny inline trend line. Values are FIS points (lower = better), so a downward
+// line = improving → rendered green; otherwise muted amber.
+function Sparkline({ values }: { values: number[] }) {
+  const w = 72, h = 22;
+  const min = Math.min(...values), max = Math.max(...values);
+  const span = max - min || 1;
+  const pts = values
+    .map((v, i) => `${(i / (values.length - 1)) * w},${h - ((v - min) / span) * (h - 4) - 2}`)
+    .join(" ");
+  const improving = values[values.length - 1] <= values[0];
+  const color = improving ? "#7cff6b" : "#f59e0b";
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} fill="none" aria-hidden="true">
+      <polyline points={pts} stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 type Tab = "all" | "academies" | "athletes";
 
@@ -147,23 +165,34 @@ export function ExploreBrowser({
                 const country = COUNTRY[a.nationality];
                 const initials = `${a.firstName[0] ?? ""}${a.lastName[0] ?? ""}`.toUpperCase();
                 return (
-                  <Link key={a.slug} href={`/athlete/${a.slug}`} className="card group flex items-center gap-4 p-5 transition-all hover:-translate-y-0.5 hover:border-[var(--color-accent)]">
-                    <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl">
-                      {a.publicPhotoUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={a.publicPhotoUrl} alt={`${a.firstName} ${a.lastName}`} className="h-full w-full object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-lg font-black" style={{ background: a.photoColor, color: "#fff" }}>{initials}</div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate font-semibold">{a.firstName} {a.lastName}</span>
-                        {a.verified && <span title="Verified" style={{ color: "#7cff6b" }}>✓</span>}
+                  <Link key={a.slug} href={`/athlete/${a.slug}`} className="card card-hover group p-5">
+                    <div className="flex items-center gap-4">
+                      <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl ring-1 ring-[var(--color-border)]">
+                        {a.publicPhotoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={a.publicPhotoUrl} alt={`${a.firstName} ${a.lastName}`} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-lg font-black" style={{ background: a.photoColor, color: "#fff" }}>{initials}</div>
+                        )}
                       </div>
-                      <div className="truncate text-xs text-[var(--color-muted)]">{country?.flag} {DISCIPLINE_LABEL[a.discipline] ?? a.discipline}</div>
-                      {a.academyName && <div className="truncate text-xs text-[var(--color-muted)]">{a.academyName}</div>}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="truncate font-semibold">{a.firstName} {a.lastName}</span>
+                          {a.verified && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#7cff6b1a] px-1.5 py-0.5 text-[10px] font-semibold text-[#7cff6b]" title="Verified performance">✓</span>
+                          )}
+                        </div>
+                        <div className="truncate text-xs text-[var(--color-muted)]">{country?.flag} {DISCIPLINE_LABEL[a.discipline] ?? a.discipline}{a.academyName ? ` · ${a.academyName}` : ""}</div>
+                      </div>
+                      {a.spark && <Sparkline values={a.spark} />}
                     </div>
+                    {(a.fisPoints != null || a.worldRank != null) && (
+                      <div className="mt-4 flex items-center gap-5 border-t border-[var(--color-border)] pt-3">
+                        <Stat label="FIS pts" value={fmtPoints(a.fisPoints)} />
+                        <Stat label="World" value={a.worldRank != null ? `#${a.worldRank}` : "—"} />
+                        <span className="ml-auto text-[10px] uppercase tracking-wide text-[var(--color-muted)]">View profile →</span>
+                      </div>
+                    )}
                   </Link>
                 );
               })}
@@ -195,4 +224,13 @@ function SectionHead({ title, count }: { title: string; count: number }) {
 
 function Empty({ children }: { children: React.ReactNode }) {
   return <div className="card p-10 text-center text-sm text-[var(--color-muted)]">{children}</div>;
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="leading-tight">
+      <div className="num text-sm font-bold">{value}</div>
+      <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">{label}</div>
+    </div>
+  );
 }

@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: #0a0c10;
-  --color-surface: #12151c;
-  --color-surface-2: #181c25;
-  --color-border: #232834;
+  --color-bg: #07080b;
+  --color-surface: #0f1218;
+  --color-surface-2: #161a22;
+  --color-border: #20242e;
   --color-muted: #8a93a6;
-  --color-fg: #e8ecf3;
+  --color-fg: #eef1f6;
   --color-accent: #7cff6b;
   --color-accent-dim: #5bd14d;
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
@@ -51,5 +51,48 @@ body {
   .num {
     font-variant-numeric: tabular-nums;
     font-family: var(--font-mono);
+  }
+  /* Tighter, sharper display headings (premium sports-tech) */
+  .display {
+    letter-spacing: -0.03em;
+    line-height: 0.98;
+  }
+  /* Eyebrow / kicker */
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+  /* Accent gradient text (lime → emerald) */
+  .text-gradient {
+    background: linear-gradient(180deg, #d6ffb0 0%, #7cff6b 45%, #16c47a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* Faint technical grid background (for hero / panels) */
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, rgba(124, 255, 107, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(124, 255, 107, 0.05) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 30%, transparent 75%);
+  }
+  /* Soft accent glow */
+  .glow-accent {
+    background: radial-gradient(closest-side, rgba(124, 255, 107, 0.18), transparent 70%);
+    filter: blur(8px);
+  }
+  /* Premium hover for clickable cards */
+  .card-hover {
+    transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
+    background: var(--color-surface-2);
   }
 }
