@@ -3,16 +3,31 @@ import { LeafMark } from "@/components/LeafMark";
 import { PublicNav } from "@/components/PublicNav";
 
 export const metadata = {
-  title: "LEAF — Where athlete performance becomes intelligence",
-  description: "The operating system behind elite sports academies — verified athlete performance, analytics, recruiting and academy operations in one intelligent platform.",
+  title: "LEAF — The verified performance intelligence layer for elite sport",
+  description: "LEAF turns official federation data into performance intelligence — verified athlete profiles, AI analytics and the operating system elite academies run on.",
 };
 
-const PILLS = ["FIS / ATP verified", "Performance analytics", "Recruiting network", "Academy OS"];
+const PILLS = ["FIS-verified data", "AI performance intelligence", "Recruiting network", "Academy OS"];
+
+const FLYWHEEL = [
+  { n: "01", title: "Athletes build verified profiles", desc: "From their federation code, LEAF imports official results and builds a verified, AI-analysed profile they own." },
+  { n: "02", title: "Academies discover & run programs", desc: "Academies recruit from verified profiles, then run admissions, athletes, attendance, finance — all in one OS." },
+  { n: "03", title: "Intelligence compounds", desc: "Every result, session and outcome feeds the model — sharper insights, deeper moat, season after season." },
+];
+
+const AI = [
+  { tag: "Athlete AI", title: "Performance forecast", desc: "Projected ranking, progression and regression risk from the trajectory." },
+  { tag: "Athlete AI", title: "Insights & recommendations", desc: "Strengths, weak areas and what to work on next — in plain language." },
+  { tag: "Academy AI", title: "Smart group assignment", desc: "Suggests the right team for each applicant, with the reasons — coach decides." },
+  { tag: "Academy AI", title: "Fit score & risk flags", desc: "Scores every application and surfaces the risks before you decide." },
+  { tag: "Academy AI", title: "Academy health", desc: "Revenue, occupancy and retention read from live data the moment you log in." },
+  { tag: "Academy AI", title: "Smart alerts", desc: "Overdue fees, expiring contracts and attendance anomalies — caught automatically." },
+];
 
 const MISSION = [
-  { title: "Verified, not self-reported", desc: "Every metric is built from official, federation-published results — FIS, ATP and beyond." },
+  { title: "Verified, not self-reported", desc: "Every metric is built from official, federation-published results — FIS today, ATP and more next." },
   { title: "Owned by the athlete", desc: "Your performance, your link, your call on who sees it. No public roster to scroll." },
-  { title: "Built for every sport", desc: "One intelligence layer that adapts its language and metrics to your discipline." },
+  { title: "An intelligence layer, not a chatbot", desc: "AI works across grouping, performance and operations — explainable, every time." },
 ];
 
 export default function LeafLanding() {
@@ -20,23 +35,23 @@ export default function LeafLanding() {
     <div className="min-h-screen">
       <PublicNav />
 
-      {/* Hero — what LEAF is */}
+      {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 grid-bg" />
         <div className="pointer-events-none absolute left-1/2 top-[-120px] h-[420px] w-[820px] -translate-x-1/2 glow-accent" />
         <div className="pointer-events-none absolute right-[6%] top-[40px] h-[300px] w-[420px] glow-accent-2" />
         <div className="relative mx-auto max-w-4xl px-5 py-24 text-center md:px-12 md:py-32">
-          <div className="kicker mb-6">AI-powered sports performance OS</div>
+          <div className="kicker mb-6">The verified performance intelligence layer</div>
           <h1 className="display mx-auto max-w-3xl text-5xl font-bold md:text-7xl">
             Where athlete performance<br className="hidden sm:block" /> becomes <span className="text-gradient">intelligence</span>.
           </h1>
           <p className="mx-auto mt-7 max-w-2xl text-base leading-relaxed text-[var(--color-muted)] md:text-lg">
-            LEAF is the operating system behind elite sports academies — verified athlete data,
-            performance analytics, recruiting and academy operations, unified in one intelligent platform.
+            LEAF turns official federation data into performance intelligence — verified athlete profiles,
+            AI analytics, and the operating system elite academies run on.
           </p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link href="/explore" className="w-full rounded-xl bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-[#07080b] hover:bg-[var(--color-accent-dim)] sm:w-auto">
-              I'm an athlete →
+              I&apos;m an athlete →
             </Link>
             <Link href="/request" className="w-full rounded-xl border border-[var(--color-border)] px-6 py-3 text-sm font-medium hover:bg-[var(--color-surface)] sm:w-auto">
               I run an academy
@@ -50,18 +65,13 @@ export default function LeafLanding() {
         </div>
       </section>
 
-      {/* Mission / what LEAF is */}
+      {/* Thesis */}
       <section className="border-y border-[var(--color-border)] bg-[var(--color-surface)]/30">
         <div className="mx-auto max-w-4xl px-5 py-20 text-center md:px-12">
-          <div className="kicker mb-3" style={{ color: "var(--color-accent)" }}>Our mission</div>
+          <div className="kicker mb-3" style={{ color: "var(--color-accent)" }}>Why LEAF</div>
           <p className="display mx-auto max-w-3xl text-2xl font-semibold leading-snug md:text-3xl">
-            Elite sport runs on data that stays locked in federation databases and spreadsheets.
+            Elite sport runs on data locked in federation databases and spreadsheets.
             LEAF turns it into <span className="text-gradient">intelligence</span> — so athletes own their story and academies run world-class programs.
-          </p>
-          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-[var(--color-muted)]">
-            We started LEAF because performance is more than a ranking number. The trend, the consistency,
-            the development behind it — that's what coaches, selectors and athletes actually need to see.
-            One verified platform, every sport, from the public athlete profile to the academy's daily operations.
           </p>
           <div className="mt-9 grid gap-4 sm:grid-cols-3">
             {MISSION.map((m) => (
@@ -74,11 +84,51 @@ export default function LeafLanding() {
         </div>
       </section>
 
-      {/* Two audiences — pick your path */}
-      <section className="mx-auto max-w-5xl px-5 py-16 md:px-12">
-        <div className="mb-6 text-center">
-          <div className="kicker" style={{ color: "var(--color-accent)" }}>One platform, two sides</div>
-          <h2 className="display mt-1 text-2xl font-bold md:text-3xl">Where do you fit?</h2>
+      {/* The flywheel */}
+      <section className="mx-auto max-w-5xl px-5 py-20 md:px-12">
+        <div className="mb-10 text-center">
+          <div className="kicker" style={{ color: "var(--color-accent)" }}>How it works</div>
+          <h2 className="display mt-1 text-3xl font-bold md:text-4xl">One platform, two sides, one flywheel.</h2>
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          {FLYWHEEL.map((s) => (
+            <div key={s.n} className="relative">
+              <div className="num text-5xl font-bold text-[var(--color-border)]">{s.n}</div>
+              <h3 className="mt-3 text-lg font-semibold">{s.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--color-muted)]">{s.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* The intelligence layer */}
+      <section className="border-y border-[var(--color-border)] bg-[var(--color-surface)]/30">
+        <div className="mx-auto max-w-5xl px-5 py-20 md:px-12">
+          <div className="mb-10 max-w-2xl">
+            <div className="kicker" style={{ color: "var(--color-accent)" }}>The intelligence layer</div>
+            <h2 className="display mt-1 text-3xl font-bold md:text-4xl">AI that does the thinking — and shows its work.</h2>
+            <p className="mt-3 text-base text-[var(--color-muted)]">Across both sides of LEAF, the AI suggests, scores and forecasts. It never auto-decides, and every output is explainable.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {AI.map((a) => (
+              <div key={a.title} className="card p-5">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-4 w-4 items-center justify-center rounded text-[8px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+                  <span className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">{a.tag}</span>
+                </div>
+                <h3 className="mt-2 text-base font-semibold">{a.title}</h3>
+                <p className="mt-1 text-sm text-[var(--color-muted)]">{a.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Two audiences */}
+      <section className="mx-auto max-w-5xl px-5 py-20 md:px-12">
+        <div className="mb-8 text-center">
+          <div className="kicker" style={{ color: "var(--color-accent)" }}>Where do you fit?</div>
+          <h2 className="display mt-1 text-3xl font-bold md:text-4xl">Pick your side.</h2>
         </div>
         <div className="grid gap-5 md:grid-cols-2">
           <Layer
@@ -86,22 +136,39 @@ export default function LeafLanding() {
             kicker="For athletes"
             title="Your performance, verified."
             cta="Create your profile →"
-            points={["FIS / ATP-linked results & ranking", "Growth trend & deep analytics", "Verified, shareable athlete profile", "Recruiting visibility for scouts"]}
+            points={["Federation-linked results & ranking", "Growth trend, forecast & deep analytics", "Verified, shareable profile you own", "Recruiting visibility for academies"]}
           />
           <Layer
             href="/request"
             kicker="For academies"
             title="Run the whole program."
             cta="Bring your academy →"
-            points={["Applications, admissions & enrollments", "Athletes, coaches, groups & packages", "Payments, invoices, budgets & reports", "Documents, automation & messaging"]}
+            points={["Admissions with AI fit score & grouping", "Athletes, coaches, groups, attendance", "Payments, contracts, budgets & reports", "Academy health & smart alerts"]}
           />
         </div>
-        <p className="mt-6 text-center text-xs text-[var(--color-muted)]">One source of truth. The dashboard controls exactly what becomes public.</p>
+      </section>
+
+      {/* Credibility / data band */}
+      <section className="border-t border-[var(--color-border)]">
+        <div className="relative mx-auto max-w-4xl overflow-hidden px-5 py-20 text-center md:px-12">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[520px] -translate-x-1/2 -translate-y-1/2 glow-accent" />
+          <div className="relative">
+            <div className="kicker mb-3" style={{ color: "var(--color-accent)" }}>Built on verified data</div>
+            <h2 className="display text-3xl font-bold md:text-4xl">Real results. Real intelligence.</h2>
+            <p className="mx-auto mt-3 max-w-md text-base text-[var(--color-muted)]">
+              Starting with alpine skiing and live FIS data — built to scale to tennis, cycling and beyond.
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link href="/explore" className="w-full rounded-xl bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-[#07080b] hover:bg-[var(--color-accent-dim)] sm:w-auto">Create your profile</Link>
+              <Link href="/request" className="w-full rounded-xl border border-[var(--color-border)] px-6 py-3 text-sm font-medium hover:bg-[var(--color-surface)] sm:w-auto">Bring your academy</Link>
+            </div>
+          </div>
+        </div>
       </section>
 
       <footer className="flex items-center justify-between border-t border-[var(--color-border)] px-5 py-6 text-xs text-[var(--color-muted)] md:px-12">
         <div className="flex items-center gap-2"><LeafMark size={18} variant="currentColor" /> <span>LEAF</span></div>
-        <span>Sports Performance OS</span>
+        <span>The performance intelligence layer for elite sport</span>
       </footer>
     </div>
   );
