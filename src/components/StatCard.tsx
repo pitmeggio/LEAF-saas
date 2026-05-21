@@ -18,8 +18,11 @@ export function StatCard({
   const color = danger ? "#f87171" : accent ? "var(--color-accent)" : undefined;
   const body = (
     <>
-      <div className="text-xs uppercase tracking-wide text-[var(--color-muted)]">{label}</div>
-      <div className="mt-2 num text-2xl font-bold lg:text-3xl" style={{ color }}>
+      {(accent || danger) && (
+        <span className="absolute inset-x-0 top-0 h-[2px] rounded-t-[14px]" style={{ background: color, opacity: 0.85 }} />
+      )}
+      <div className="kicker">{label}</div>
+      <div className="mt-2.5 num text-3xl font-bold tracking-tight" style={{ color }}>
         {value}
       </div>
       {hint && <div className="mt-1 text-xs text-[var(--color-muted)]">{hint}</div>}
@@ -27,12 +30,13 @@ export function StatCard({
   );
   if (href) {
     return (
-      <Link href={href} className="card block p-5 transition-colors hover:border-[var(--color-accent)]/50">
+      <Link href={href} className="card card-hover group relative block p-5">
         {body}
+        <span className="absolute right-4 top-4 text-xs text-[var(--color-muted)] opacity-0 transition-opacity group-hover:opacity-100">↗</span>
       </Link>
     );
   }
-  return <div className="card p-5">{body}</div>;
+  return <div className="card relative p-5">{body}</div>;
 }
 
 export function PercentBar({ value, color = "var(--color-accent)" }: { value: number; color?: string }) {

@@ -26,44 +26,53 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
       <PublicNav />
 
       {/* Hero */}
-      <section className="mx-auto max-w-4xl px-5 pt-12 md:px-12">
-        <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-center sm:text-left">
-          <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl">
-            {p.publicPhotoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.publicPhotoUrl} alt={`${p.firstName} ${p.lastName}`} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full w-full items-center justify-center text-3xl font-black" style={{ background: p.photoColor, color: "#fff" }}>{initials}</div>
-            )}
-          </div>
-          <div className="flex-1">
-            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-              <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{p.firstName} {p.lastName}</h1>
-              {p.verified && (
-                <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold" style={{ background: "#7cff6b1a", color: "#7cff6b" }}>
-                  ✓ Verified
-                </span>
+      <section className="relative overflow-hidden border-b border-[var(--color-border)]">
+        <div className="pointer-events-none absolute inset-0 grid-bg" />
+        <div className="pointer-events-none absolute left-[10%] top-[-100px] h-[300px] w-[460px] glow-accent" />
+        <div className="relative mx-auto max-w-4xl px-5 pt-12 pb-10 md:px-12">
+          <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-center sm:text-left">
+            <div className="h-28 w-28 shrink-0 overflow-hidden rounded-2xl ring-1 ring-[var(--color-border)]">
+              {p.publicPhotoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={p.publicPhotoUrl} alt={`${p.firstName} ${p.lastName}`} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-3xl font-black" style={{ background: p.photoColor, color: "#fff" }}>{initials}</div>
               )}
             </div>
-            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-[var(--color-muted)] sm:justify-start">
-              <span>{country?.flag} {country?.name ?? p.nationality}</span>
-              <span>·</span>
-              <span className="capitalize">{p.sport}</span>
-              {p.disciplines.length > 0 && <><span>·</span><span>{p.disciplines.map((d) => DISCIPLINE_LABEL[d] ?? d).join(", ")}</span></>}
-            </div>
-            {p.academyName && (
-              <div className="mt-2 text-sm">
-                <span className="text-[var(--color-muted)]">Academy</span> <span className="font-medium">{p.academyName}</span>
+            <div className="flex-1">
+              <div className="kicker mb-2">Athlete profile</div>
+              <div className="flex flex-wrap items-center justify-center gap-2.5 sm:justify-start">
+                <h1 className="display text-4xl font-bold md:text-5xl">{p.firstName} {p.lastName}</h1>
+                {p.verified && (
+                  <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ background: "#7cff6b1a", color: "#7cff6b" }}>
+                    ✓ Verified
+                  </span>
+                )}
               </div>
-            )}
+              <div className="mt-2.5 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-sm text-[var(--color-muted)] sm:justify-start">
+                <span>{country?.flag} {country?.name ?? p.nationality}</span>
+                <span>·</span>
+                <span className="capitalize">{p.sport}</span>
+                {p.disciplines.length > 0 && <><span>·</span><span>{p.disciplines.map((d) => DISCIPLINE_LABEL[d] ?? d).join(", ")}</span></>}
+                {p.academyName && <><span>·</span><span className="text-[var(--color-fg)]">{p.academyName}</span></>}
+              </div>
+            </div>
           </div>
-        </div>
 
-        {p.publicBio && (
-          <p className="mx-auto mt-8 max-w-2xl text-center text-base leading-relaxed text-[var(--color-fg)]/90 sm:text-left">
-            {p.publicBio}
-          </p>
-        )}
+          {p.publicBio && (
+            <p className="mt-7 max-w-2xl text-base leading-relaxed text-[var(--color-fg)]/85">{p.publicBio}</p>
+          )}
+
+          {/* Performance stat strip */}
+          {(p.fisPoints != null || p.worldRank != null || p.performance) && (
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <HeroStat label="FIS points" value={fmtPoints(p.fisPoints)} accent />
+              <HeroStat label="World rank" value={p.worldRank != null ? `#${p.worldRank}` : "—"} />
+              {p.performance && <HeroStat label="Podium rate" value={`${p.performance.podiumPct}%`} />}
+              {p.performance && <HeroStat label="Races" value={String(p.performance.totalRaces)} />}
+            </div>
+          )}
+        </div>
       </section>
 
       <div className="mx-auto max-w-4xl space-y-12 px-5 py-12 md:px-12">
@@ -190,6 +199,16 @@ function SectionTitle({ kicker, title }: { kicker: string; title: string }) {
     <div className="mb-5">
       <div className="text-xs uppercase tracking-wide" style={{ color: "var(--color-accent)" }}>{kicker}</div>
       <h2 className="mt-1 text-2xl font-bold tracking-tight">{title}</h2>
+    </div>
+  );
+}
+
+function HeroStat({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="card-2 relative p-4">
+      {accent && <span className="absolute inset-x-0 top-0 h-[2px] rounded-t-[12px]" style={{ background: "var(--color-accent)", opacity: 0.85 }} />}
+      <div className="kicker">{label}</div>
+      <div className="num mt-1.5 text-2xl font-bold tracking-tight" style={accent ? { color: "var(--color-accent)" } : undefined}>{value}</div>
     </div>
   );
 }
