@@ -7,6 +7,8 @@ import { getInboxStats } from "@/lib/chat";
 import { getSession } from "@/lib/auth";
 import { CoachDashboard } from "@/components/CoachDashboard";
 import { fmtMoney } from "@/lib/domain";
+import { academyHealth } from "@/lib/ai/academyHealth";
+import { AcademyHealthPanel } from "@/components/AcademyHealthPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,17 @@ export default async function OverviewPage() {
   const inbox = await getInboxStats();
   const f = d.finance;
 
+  const health = academyHealth({
+    collected: f.collected,
+    outstandingTotal: f.outstandingTotal,
+    overdueTotal: f.overdueTotal,
+    mrr: f.monthlyRecurringEstimate,
+    unpaidAthletes: f.unpaidAthletes,
+    occupancyPct: d.occupancyPct,
+    statuses: d.enrollments.map((e) => e.status),
+    fmt: (n) => fmtMoney(n),
+  });
+
   return (
     <>
       <PageHeader
@@ -34,6 +47,9 @@ export default async function OverviewPage() {
       />
 
       <div className="space-y-6 p-8">
+        {/* Academy AI — business health */}
+        <AcademyHealthPanel health={health} mrrLabel="Monthly recurring" />
+
         {/* Operational KPIs */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           <StatCard label="Active athletes" value={String(d.activeAthletes)} hint="enrolled members" accent href="/dashboard/members" />
