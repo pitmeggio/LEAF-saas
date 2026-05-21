@@ -47,9 +47,9 @@ export default async function PublicProfilePage({
           <div className="mx-auto flex max-w-4xl flex-col items-start gap-1 px-5 py-3.5 md:flex-row md:items-center md:justify-between md:px-12">
             <div className="text-sm">
               <span className="font-semibold text-[var(--color-accent)]">✓ Profile created.</span>{" "}
-              <span className="text-[var(--color-fg)]/85">This is your verified profile — share this page's link with academies and coaches.</span>
+              <span className="text-[var(--color-fg)]/85">This is your verified profile — share this link with academies and coaches.</span>
             </div>
-            <span className="text-xs text-[var(--color-muted)]">Manage visibility from your academy workspace once enrolled.</span>
+            <Link href="/login" className="text-xs font-medium text-[var(--color-accent)] hover:underline">Sign in with your email to manage it →</Link>
           </div>
         </div>
       )}

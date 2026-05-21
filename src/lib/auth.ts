@@ -38,9 +38,19 @@ export type Session = {
   academyStatus: string | null;
   academyPlan: string | null;
   coachId: string | null;
+  athleteId: string | null;
   isSuperAdmin: boolean;
   isAdmin: boolean; // academy-level admin (academy_admin)
+  isAthlete: boolean;
 };
+
+// Post-login landing per role: athletes get their own workspace, super-admins the
+// platform portal, everyone else the academy dashboard.
+export function homeForRole(role: string): string {
+  if (role === ROLE.SUPER_ADMIN) return "/super-admin";
+  if (role === ROLE.ATHLETE) return "/me";
+  return "/dashboard";
+}
 
 export async function getSession(): Promise<Session | null> {
   const u = await getCurrentUser();
@@ -54,9 +64,19 @@ export async function getSession(): Promise<Session | null> {
     academyStatus: u.academy?.status ?? null,
     academyPlan: u.academy?.plan ?? null,
     coachId: u.coachId,
+    athleteId: u.athleteId,
     isSuperAdmin: u.role === ROLE.SUPER_ADMIN,
     isAdmin: u.role === ROLE.ACADEMY_ADMIN,
+    isAthlete: u.role === ROLE.ATHLETE,
   };
+}
+
+// Guard for the athlete workspace (/me). Returns the linked athleteId or redirects.
+export async function requireAthleteId(): Promise<string> {
+  const s = await getSession();
+  if (!s) redirect("/login");
+  if (!s.isAthlete || !s.athleteId) redirect(homeForRole(s.role));
+  return s.athleteId;
 }
 
 // Platform-level guard. Only SUPER_ADMIN may pass; everyone else goes to their workspace.

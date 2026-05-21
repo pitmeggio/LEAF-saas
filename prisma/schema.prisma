@@ -152,6 +152,8 @@ model User {
   academy   Academy? @relation(fields: [academyId], references: [id])
   coachId   String? // links a coach login to their Coach record (scopes their workspace)
   coach     Coach?   @relation(fields: [coachId], references: [id])
+  athleteId String? // links an athlete login to their Athlete record (My Profile workspace)
+  athlete   Athlete? @relation(fields: [athleteId], references: [id])
   notes     Note[]
   assignedConversations Conversation[] @relation("AssignedConversations")
   createdAt DateTime @default(now())
@@ -280,6 +282,7 @@ model Athlete {
   applications    Application[]
   enrollments     Enrollment[]
   conversations   Conversation[]
+  users           User[]
   createdAt       DateTime       @default(now())
 }
 

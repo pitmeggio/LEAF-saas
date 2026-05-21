@@ -9,6 +9,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!user) redirect("/login");
   // Platform owners don't have a tenant workspace — send them to the portal.
   if (user.role === "super_admin") redirect("/super-admin");
+  // Athletes have their own workspace, not the academy dashboard.
+  if (user.role === "athlete") redirect("/me");
 
   // Deactivated tenant: lock the whole workspace behind a notice (super admin can re-enable it).
   if (user.academy && user.academy.status !== "active") {

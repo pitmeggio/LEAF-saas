@@ -81,6 +81,17 @@ function CreateProfileModal({ onClose }: { onClose: () => void }) {
             <input type="hidden" name="source" value={source} />
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--color-muted)]">Email</label>
+              <input name="email" type="email" placeholder="you@email.com" className={field} />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-[var(--color-muted)]">Password</label>
+              <input name="password" type="password" placeholder="min 8 chars" className={field} />
+            </div>
+          </div>
+
           <div>
             <label className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
               {source === "fis" ? "FIS code" : "ATP player ID"}

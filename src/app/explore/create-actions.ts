@@ -5,12 +5,19 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { importAthleteByFisCode } from "@/lib/fis/import";
 import { fisCodeSchema, firstError } from "@/lib/validation";
+import { hashPassword } from "@/lib/password";
 
 export type CreateProfileState = { error?: string };
 
 const createProfileSchema = z.object({
   firstName: z.string().trim().min(1, "Enter your first name.").max(60),
   lastName: z.string().trim().min(1, "Enter your last name.").max(60),
+  email: z.string().trim().toLowerCase().email("Enter a valid email."),
+  password: z
+    .string()
+    .optional()
+    .transform((v) => (v && v.length ? v : undefined))
+    .refine((v) => v === undefined || v.length >= 8, { message: "Password must be at least 8 characters." }),
   source: z.enum(["fis", "atp"]).default("fis"),
   code: fisCodeSchema,
 });
@@ -50,6 +57,10 @@ export async function createProfileAction(_prev: CreateProfileState, formData: F
     return { error: "ATP import is coming soon. For now, create your profile with a FIS code." };
   }
 
+  // The email must be free to use as a login.
+  const emailClash = await prisma.user.findUnique({ where: { email: d.email }, select: { id: true } });
+  if (emailClash) return { error: "That email already has a LEAF account — sign in instead." };
+
   const imported = await importAthleteByFisCode(d.code);
   if (!imported) {
     return { error: `No FIS record found for "${d.code}". Double-check the code and try again.` };
@@ -63,12 +74,25 @@ export async function createProfileAction(_prev: CreateProfileState, formData: F
     data: {
       firstName: d.firstName,
       lastName: d.lastName,
+      email: d.email,
       publicSlug: slug,
       publicProfileEnabled: true,
       publicVisibility: "PUBLIC",
       publicVerified: true,
       publicShowRanking: true,
       publicShowResults: true,
+    },
+  });
+
+  // Create the athlete's own login linked to this profile (their "My Profile"
+  // workspace). A blank password is claimed on first sign-in.
+  await prisma.user.create({
+    data: {
+      name: `${d.firstName} ${d.lastName}`,
+      email: d.email,
+      role: "athlete",
+      athleteId: imported.athleteId,
+      passwordHash: d.password ? await hashPassword(d.password) : null,
     },
   });
 

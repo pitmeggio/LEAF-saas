@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { SESSION_COOKIE } from "@/lib/auth";
+import { SESSION_COOKIE, homeForRole } from "@/lib/auth";
 import { makeSessionToken, hashPassword, verifyPassword } from "@/lib/password";
 
 async function setSession(userId: string) {
@@ -20,8 +20,9 @@ async function setSession(userId: string) {
 // the showcase works everywhere; set DISABLE_DEMO_LOGIN=1 to turn it off.
 export async function signIn(userId: string) {
   if (process.env.DISABLE_DEMO_LOGIN === "1") redirect("/login");
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
   await setSession(userId);
-  redirect("/dashboard");
+  redirect(homeForRole(user?.role ?? "coach"));
 }
 
 export type SignInState = { error?: string };
@@ -46,7 +47,7 @@ export async function signInWithEmail(_prev: SignInState, formData: FormData): P
   }
 
   await setSession(user.id);
-  redirect("/dashboard");
+  redirect(homeForRole(user.role));
 }
 
 export async function signOut() {
