@@ -6,6 +6,7 @@ import { Dot } from "@/components/StatCard";
 import { GrowthChart, type Point } from "@/components/GrowthChart";
 import { ManagePanel, NotesEditor, PaymentControl, DocumentControl } from "@/components/MemberControls";
 import { PublicProfilePanel } from "@/components/PublicProfilePanel";
+import { ContractsPanel } from "@/components/ContractsPanel";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { getActiveAthlete, getAssignmentOptions, getNotifications } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
@@ -181,6 +182,16 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
               ))}
             </div>
           </div>
+
+          <ContractsPanel
+            enrollmentId={m.id}
+            contracts={m.contracts.map((c) => ({
+              id: c.id, title: c.title, status: c.status,
+              startDate: c.startDate ? new Date(c.startDate).toISOString() : null,
+              endDate: c.endDate ? new Date(c.endDate).toISOString() : null,
+              value: c.value, currency: c.currency, notes: c.notes,
+            }))}
+          />
 
           <NotesEditor enrollmentId={m.id} notes={m.notes ?? ""} />
         </div>

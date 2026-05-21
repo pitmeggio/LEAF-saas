@@ -500,6 +500,27 @@ export type ManualAthleteInput = z.infer<typeof manualAthleteSchema>;
 
 export type ApplicationInput = z.infer<typeof applicationSchema>;
 
+// ── Contracts ────────────────────────────────────────────────────────────────
+export const CONTRACT_STATUSES = ["draft", "sent", "signed", "expired"] as const;
+export const contractStatusSchema = z.enum(CONTRACT_STATUSES);
+
+export const contractCreateSchema = z.object({
+  enrollmentId: z.string().min(1),
+  title: z.string().trim().min(2, "Title is required.").max(120),
+  status: contractStatusSchema.default("draft"),
+  startDate: optionalStr(30),
+  endDate: optionalStr(30),
+  value: z.number().int().min(0).max(100000000).nullable().optional(),
+  currency: z.string().trim().max(8).optional().transform((v) => (v ? v : "EUR")),
+  notes: optionalStr(1000),
+});
+
+export const contractUpdateSchema = contractCreateSchema.extend({ id: z.string().min(1) }).omit({ enrollmentId: true });
+export const contractStatusUpdateSchema = z.object({ id: z.string().min(1), status: contractStatusSchema });
+
+export type ContractCreateInput = z.infer<typeof contractCreateSchema>;
+export type ContractUpdateInput = z.infer<typeof contractUpdateSchema>;
+
 // ── Attendance ───────────────────────────────────────────────────────────────
 export const ATTENDANCE_STATUSES = ["present", "late", "absent", "excused", "injured"] as const;
 export const attendanceStatusSchema = z.enum(ATTENDANCE_STATUSES);

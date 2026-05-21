@@ -69,6 +69,7 @@ model Academy {
   conversations Conversation[]
   users         User[]
   trainingSessions TrainingSession[]
+  contracts     Contract[]
   createdAt     DateTime       @default(now())
 }
 
@@ -86,6 +87,26 @@ model TrainingSession {
   notes      String?
   attendance Attendance[]
   createdAt  DateTime     @default(now())
+}
+
+// Athlete contract tied to an enrollment. Status flows draft → sent → signed,
+// with optional term dates + value (feeds contract reminders + finance later).
+model Contract {
+  id           String     @id @default(cuid())
+  academyId    String
+  academy      Academy    @relation(fields: [academyId], references: [id])
+  enrollmentId String
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  title        String
+  status       String     @default("draft") // draft | sent | signed | expired
+  startDate    DateTime?
+  endDate      DateTime?
+  value        Int? // contract value (currency major units)
+  currency     String     @default("EUR")
+  fileUrl      String?
+  notes        String?
+  signedAt     DateTime?
+  createdAt    DateTime   @default(now())
 }
 
 model Attendance {
@@ -389,6 +410,7 @@ model Enrollment {
   events        EnrollmentEvent[]
   conversations Conversation[]
   attendance    Attendance[]
+  contracts     Contract[]
   createdAt     DateTime          @default(now())
 }
 

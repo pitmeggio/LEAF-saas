@@ -89,6 +89,7 @@ export async function getActiveAthlete(id: string, coachId?: string | null) {
       events: { orderBy: { createdAt: "desc" } },
       application: true,
       conversations: { select: { id: true }, take: 1 },
+      contracts: { orderBy: { createdAt: "desc" } },
     },
   });
   if (!e) return null;
