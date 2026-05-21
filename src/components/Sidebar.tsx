@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/auth-actions";
+import { LeafMark } from "@/components/LeafMark";
 import { initials } from "@/lib/domain";
 
 type NavItem = { href: string; label: string; icon: string; soon?: boolean };
@@ -49,15 +50,10 @@ export function Sidebar({ user }: { user: { name: string; role: string; academy:
   return (
     <aside className="fixed inset-y-0 left-0 z-20 flex w-60 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-5">
       <div className="px-2 pb-6">
-        <div className="flex items-center gap-2">
-          <div
-            className="flex h-8 w-8 items-center justify-center rounded-lg font-black"
-            style={{ background: "var(--color-accent)", color: "#0a0c10" }}
-          >
-            A
-          </div>
+        <div className="flex items-center gap-2.5">
+          <LeafMark size={26} />
           <div>
-            <div className="text-sm font-bold leading-tight">Apex</div>
+            <div className="text-sm font-bold leading-tight tracking-tight">LEAF</div>
             <div className="text-[11px] text-[var(--color-muted)] leading-tight">Academy OS</div>
           </div>
         </div>

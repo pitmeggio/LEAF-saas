@@ -182,7 +182,7 @@ export default async function PublicAcademyPage({ params }: { params: Promise<{ 
       </div>
 
       <footer className="border-t border-[var(--color-border)] px-5 py-6 text-center text-xs text-[var(--color-muted)] md:px-12">
-        Powered by Apex · Academy OS
+        Powered by LEAF
       </footer>
     </div>
   );

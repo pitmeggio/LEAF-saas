@@ -11,7 +11,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg font-black" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>A</div>
           <div className="leading-tight">
-            <div className="text-sm font-bold">Apex Platform</div>
+            <div className="text-sm font-bold">LEAF Platform</div>
             <div className="text-[11px] text-[var(--color-muted)]">Super Admin</div>
           </div>
         </div>

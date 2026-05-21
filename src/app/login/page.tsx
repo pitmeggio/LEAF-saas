@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { LoginForm } from "@/components/LoginForm";
+import { LeafMark } from "@/components/LeafMark";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +42,8 @@ export default async function LoginPage() {
           style={{ backgroundImage: "radial-gradient(circle at 20% 20%, var(--color-accent) 0, transparent 40%), radial-gradient(circle at 80% 60%, #38bdf8 0, transparent 45%)" }}
         />
         <div className="relative flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl text-xl font-black" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>A</div>
-          <span className="text-lg font-bold">Apex Academy OS</span>
+          <LeafMark size={34} />
+          <span className="text-lg font-bold tracking-tight">LEAF <span className="font-medium text-[var(--color-muted)]">Academy OS</span></span>
         </div>
 
         <div className="relative">
@@ -66,9 +67,9 @@ export default async function LoginPage() {
       <div className="flex items-center justify-center p-8">
         {/* Mobile brand */}
         <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg font-black" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>A</div>
-            <span className="font-bold">Apex Academy OS</span>
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <LeafMark size={30} />
+            <span className="font-bold tracking-tight">LEAF</span>
           </div>
           <LoginForm demoUsers={demoUsers} />
         </div>

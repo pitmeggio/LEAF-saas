@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Apex — Academy OS",
+  title: "LEAF — Academy OS",
   description: "Academy management software for sports academies",
 };
 

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LeafMark } from "@/components/LeafMark";
 
 export const metadata = {
   title: "Leaf — the operating system for sports academies",
@@ -13,8 +14,8 @@ export default function LeafLanding() {
       {/* Navbar */}
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 px-5 py-3.5 backdrop-blur md:px-12">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg font-black" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>L</div>
-          <span className="font-semibold">Leaf</span>
+          <LeafMark size={30} />
+          <span className="text-lg font-bold tracking-tight">LEAF</span>
         </div>
         <nav className="flex items-center gap-1 sm:gap-2">
           <Link href="/explore" className="rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-fg)]">Explore</Link>
