@@ -22,7 +22,7 @@ const STEPS = [
 export default function ExplorePage() {
   return (
     <div className="min-h-screen">
-      <PublicNav active="explore" />
+      <PublicNav active="athletes" />
 
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-[var(--color-border)]">

@@ -7,7 +7,7 @@ export const metadata = { title: "Bring your academy to LEAF" };
 export default function RequestAcademyPage() {
   return (
     <div className="min-h-screen">
-      <PublicNav active="request" />
+      <PublicNav active="academies" />
       <section className="relative overflow-hidden border-b border-[var(--color-border)]">
         <div className="pointer-events-none absolute inset-0 grid-bg" />
         <div className="pointer-events-none absolute left-1/2 top-[-120px] h-[320px] w-[560px] -translate-x-1/2 glow-accent" />

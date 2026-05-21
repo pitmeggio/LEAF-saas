@@ -3,7 +3,7 @@ import { LeafMark } from "@/components/LeafMark";
 
 // Shared header across the public Leaf portal (landing, explore, academy, athlete).
 // Ties the otherwise-separate public pages into one navigable product.
-export function PublicNav({ active }: { active?: "explore" | "request" }) {
+export function PublicNav({ active }: { active?: "athletes" | "academies" }) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 px-5 py-3.5 backdrop-blur md:px-12">
       <Link href="/" className="flex items-center gap-2.5">
@@ -13,13 +13,13 @@ export function PublicNav({ active }: { active?: "explore" | "request" }) {
       <nav className="flex items-center gap-1 sm:gap-2">
         <Link
           href="/explore"
-          className={`rounded-lg px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)] ${active === "explore" ? "text-[var(--color-fg)]" : "text-[var(--color-muted)]"}`}
+          className={`rounded-lg px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)] ${active === "athletes" ? "text-[var(--color-fg)]" : "text-[var(--color-muted)]"}`}
         >
-          Explore
+          For athletes
         </Link>
         <Link
           href="/request"
-          className={`rounded-lg px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)] ${active === "request" ? "text-[var(--color-fg)]" : "text-[var(--color-muted)]"}`}
+          className={`rounded-lg px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)] ${active === "academies" ? "text-[var(--color-fg)]" : "text-[var(--color-muted)]"}`}
         >
           For academies
         </Link>
