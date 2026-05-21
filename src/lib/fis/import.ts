@@ -1,10 +1,26 @@
 import { prisma } from "@/lib/db";
-import type { FisProvider } from "./types";
+import type { FisProvider, FisAthleteData } from "./types";
 import { simulatedFisProvider, colorForCode } from "./simulatedProvider";
+import { liveFisProvider } from "./liveProvider";
 import { fisAthleteDataSchema } from "@/lib/validation";
 
-// Active source. Swap `simulatedFisProvider` for a real connector here.
-const provider: FisProvider = simulatedFisProvider;
+// Provider selection (env: FIS_PROVIDER = live | simulated | auto, default auto):
+//  • live      — real FIS points-list data only
+//  • simulated — deterministic demo data only
+//  • auto      — try live first, fall back to simulated (keeps demo codes working
+//                offline / when FIS is unreachable, while real codes return real data)
+const mode = (process.env.FIS_PROVIDER ?? "auto").toLowerCase();
+const provider: FisProvider =
+  mode === "simulated"
+    ? simulatedFisProvider
+    : mode === "live"
+      ? liveFisProvider
+      : {
+          sourceName: "FIS",
+          async fetchByCode(code: string): Promise<FisAthleteData | null> {
+            return (await liveFisProvider.fetchByCode(code)) ?? (await simulatedFisProvider.fetchByCode(code));
+          },
+        };
 
 export type ImportResult = {
   athleteId: string;

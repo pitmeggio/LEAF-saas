@@ -6,8 +6,8 @@ import { createProfileAction, type CreateProfileState } from "@/app/explore/crea
 const field =
   "w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-2.5 text-sm outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)]";
 
-// Demo FIS codes that resolve to curated records in the simulated provider.
-const DEMO_CODES = ["6294001", "5121884", "6535129", "6293770"];
+// Real FIS codes (resolve to live FIS points-list data). Try your own too.
+const DEMO_CODES = ["512269", "297601", "422304", "194364"];
 
 export function CreateProfileButton({ variant = "solid" }: { variant?: "solid" | "outline" }) {
   const [open, setOpen] = useState(false);
@@ -85,7 +85,7 @@ function CreateProfileModal({ onClose }: { onClose: () => void }) {
             <label className="mb-1 block text-xs font-medium text-[var(--color-muted)]">
               {source === "fis" ? "FIS code" : "ATP player ID"}
             </label>
-            <input name="code" placeholder={source === "fis" ? "e.g. 5121884" : "e.g. a0e2"} className={`${field} num`} />
+            <input name="code" placeholder={source === "fis" ? "e.g. 512269" : "e.g. a0e2"} className={`${field} num`} />
             {source === "fis" && (
               <p className="mt-1.5 text-xs text-[var(--color-muted)]">
                 Try a demo code:{" "}
