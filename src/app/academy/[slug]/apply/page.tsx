@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getPublicAcademy } from "@/lib/queries";
 import { getPublicOpportunities } from "@/lib/profiles";
 import { ApplyForm } from "@/components/ApplyForm";
+import { getSession } from "@/lib/auth";
+import { applyWithMyProfile } from "@/app/apply-actions";
 import { DISCIPLINE_LABEL, fmtDate, fmtMoney } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +24,8 @@ export default async function ApplyPage({
   if (!academy) notFound();
   const opportunities = await getPublicOpportunities(slug);
   const selected = opportunity ? opportunities.find((o) => o.id === opportunity) : undefined;
+  const session = await getSession();
+  const isAthlete = !!session?.athleteId;
 
   return (
     <div className="min-h-screen">
@@ -36,6 +40,35 @@ export default async function ApplyPage({
       </header>
 
       <div className="mx-auto max-w-2xl px-5 py-10 md:py-12">
+        {/* Apply with LEAF — one click for athletes with a verified profile */}
+        {isAthlete ? (
+          <form action={applyWithMyProfile} className="card mb-10 p-5">
+            <input type="hidden" name="slug" value={academy.slug} />
+            {opportunity && <input type="hidden" name="opportunityId" value={opportunity} />}
+            <div className="flex items-center gap-2">
+              <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>✦</span>
+              <h2 className="text-sm font-semibold">Apply with LEAF</h2>
+            </div>
+            <p className="mt-1.5 text-sm text-[var(--color-muted)]">
+              You&apos;re signed in as <span className="font-medium text-[var(--color-fg)]">{session?.name}</span>. Apply with your verified profile — no forms. {academy.name} receives your performance data, fit score and suggested group instantly.
+            </p>
+            <button type="submit" className="mt-4 w-full rounded-lg bg-[var(--color-accent)] px-5 py-3 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)] sm:w-auto">
+              Apply with my LEAF profile →
+            </button>
+          </form>
+        ) : (
+          <div className="card mb-10 flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>✦</span>
+                <h2 className="text-sm font-semibold">Already on LEAF?</h2>
+              </div>
+              <p className="mt-1 text-sm text-[var(--color-muted)]">Sign in and apply with your verified profile in one click — no forms.</p>
+            </div>
+            <Link href="/login/athlete" className="shrink-0 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:border-[var(--color-accent)]">Sign in &amp; apply →</Link>
+          </div>
+        )}
+
         {/* Open applications / opportunities */}
         {opportunities.length > 0 && (
           <section className="mb-10">

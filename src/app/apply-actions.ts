@@ -7,6 +7,7 @@ import { importAthleteByFisCode } from "@/lib/fis/import";
 import { colorForCode } from "@/lib/fis/simulatedProvider";
 import { applicationSchema, firstError } from "@/lib/validation";
 import { notify } from "@/lib/notifications";
+import { requireAthleteId } from "@/lib/auth";
 
 export type ApplyState = { error?: string };
 
@@ -131,4 +132,78 @@ export async function submitApplicationAction(_prev: ApplyState, formData: FormD
   revalidatePath("/applications");
   revalidatePath("/");
   redirect(`/academy/${d.slug}/thanks?c=${conversation.id}`);
+}
+
+// One-click "Apply with LEAF" for a signed-in athlete — files an application to
+// the academy using their existing verified profile. No form, no re-typing; the
+// application lands in the academy portal already enriched (the dashboard then
+// computes fit score + smart group suggestion from the verified data).
+export async function applyWithMyProfile(formData: FormData): Promise<void> {
+  const athleteId = await requireAthleteId();
+  const slug = String(formData.get("slug") ?? "");
+  const opportunityId = String(formData.get("opportunityId") ?? "") || null;
+
+  const academy = await prisma.academy.findUnique({ where: { slug } });
+  if (!academy) redirect(`/academy/${slug}`);
+
+  const athlete = await prisma.athlete.findUnique({ where: { id: athleteId } });
+  if (!athlete) redirect("/me");
+
+  // Don't double-apply: reuse the open conversation if one already exists.
+  const existing = await prisma.application.findFirst({
+    where: { academyId: academy!.id, athleteId },
+    include: { conversation: { select: { id: true } } },
+    orderBy: { submittedAt: "desc" },
+  });
+  if (existing) {
+    if (existing.conversation) redirect(`/academy/${slug}/thanks?c=${existing.conversation.id}`);
+    redirect(`/academy/${slug}/thanks`);
+  }
+
+  let validOpportunityId: string | null = null;
+  if (opportunityId) {
+    const opp = await prisma.opportunity.findFirst({ where: { id: opportunityId, academyId: academy!.id, status: "published" } });
+    validOpportunityId = opp?.id ?? null;
+  }
+
+  const application = await prisma.application.create({
+    data: {
+      academyId: academy!.id,
+      athleteId,
+      opportunityId: validOpportunityId,
+      status: "new",
+      source: "leaf_profile",
+      sport: athlete!.sport,
+    },
+  });
+  await prisma.statusEvent.create({ data: { applicationId: application.id, from: null, to: "new" } });
+
+  const conversation = await prisma.conversation.create({
+    data: {
+      academyId: academy!.id,
+      type: "application",
+      applicationId: application.id,
+      athleteId,
+      subject: `${athlete!.firstName} ${athlete!.lastName} — application (LEAF)`,
+      status: "open",
+      lastMessagePreview: "Application received via LEAF profile",
+    },
+  });
+  await prisma.message.create({
+    data: { conversationId: conversation.id, senderSide: "system", senderRole: "system", senderName: "System", body: "Application received via verified LEAF profile. The coaching staff will review it and reply here." },
+  });
+
+  if (athlete!.email) {
+    await notify({
+      academyId: academy!.id,
+      type: "thanks_for_applying",
+      toEmail: athlete!.email,
+      toName: `${athlete!.firstName} ${athlete!.lastName}`,
+      applicationId: application.id,
+      ctx: { academyName: academy!.name, athleteName: `${athlete!.firstName} ${athlete!.lastName}`, packageName: null },
+    });
+  }
+
+  revalidatePath("/dashboard/applications");
+  redirect(`/academy/${slug}/thanks?c=${conversation.id}`);
 }
