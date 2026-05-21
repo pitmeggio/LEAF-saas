@@ -1,24 +1,37 @@
 @import "tailwindcss";
 
 @theme inline {
-  --color-bg: #07080b;
-  --color-surface: #0f1218;
-  --color-surface-2: #161a22;
-  --color-border: #20242e;
-  --color-muted: #8a93a6;
-  --color-fg: #eef1f6;
+  /* Deep ink-navy base (not pure black) — layers are clearly separated so the UI
+     breathes. A faint ambient gradient adds depth/dynamism (see body). */
+  --color-bg: #0c0f17;
+  --color-surface: #151a25;
+  --color-surface-2: #1d2332;
+  --color-border: #2b3344;
+  --color-muted: #9aa4b6;
+  --color-fg: #f1f4f9;
   --color-accent: #7cff6b;
   --color-accent-dim: #5bd14d;
+  --color-accent-2: #2dd4bf; /* secondary (teal) for subtle dynamism */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
 html,
 body {
-  background: var(--color-bg);
   color: var(--color-fg);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient, layered background: warm lime glow at top, cool teal off to the side,
+   over a gentle top→bottom navy gradient. Fixed so it stays as you scroll. */
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 520px at 50% -8%, rgba(124, 255, 107, 0.07), transparent 60%),
+    radial-gradient(820px 560px at 100% 0%, rgba(45, 212, 191, 0.05), transparent 55%),
+    linear-gradient(180deg, #0e131d 0%, #0b0e15 100%);
+  background-attachment: fixed;
 }
 
 * {
@@ -30,7 +43,7 @@ body {
   height: 10px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2a3040;
+  background: #333c4f;
   border-radius: 6px;
 }
 ::-webkit-scrollbar-track {
@@ -42,11 +55,13 @@ body {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     border-radius: 14px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 8px 24px -16px rgba(0, 0, 0, 0.6);
   }
   .card-2 {
     background: var(--color-surface-2);
     border: 1px solid var(--color-border);
     border-radius: 12px;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset;
   }
   .num {
     font-variant-numeric: tabular-nums;
@@ -75,16 +90,21 @@ body {
   /* Faint technical grid background (for hero / panels) */
   .grid-bg {
     background-image:
-      linear-gradient(to right, rgba(124, 255, 107, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(124, 255, 107, 0.05) 1px, transparent 1px);
+      linear-gradient(to right, rgba(124, 255, 107, 0.06) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(124, 255, 107, 0.06) 1px, transparent 1px);
     background-size: 56px 56px;
     mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 30%, transparent 75%);
     -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 0%, #000 30%, transparent 75%);
   }
   /* Soft accent glow */
   .glow-accent {
-    background: radial-gradient(closest-side, rgba(124, 255, 107, 0.18), transparent 70%);
+    background: radial-gradient(closest-side, rgba(124, 255, 107, 0.22), transparent 70%);
     filter: blur(8px);
+  }
+  /* Cool secondary glow (teal) for layered, dynamic hero backdrops */
+  .glow-accent-2 {
+    background: radial-gradient(closest-side, rgba(45, 212, 191, 0.16), transparent 70%);
+    filter: blur(10px);
   }
   /* Premium hover for clickable cards */
   .card-hover {

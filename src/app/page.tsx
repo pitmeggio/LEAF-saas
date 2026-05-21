@@ -18,6 +18,7 @@ export default function LeafLanding() {
       <section className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 grid-bg" />
         <div className="pointer-events-none absolute left-1/2 top-[-120px] h-[420px] w-[820px] -translate-x-1/2 glow-accent" />
+        <div className="pointer-events-none absolute right-[6%] top-[40px] h-[300px] w-[420px] glow-accent-2" />
         <div className="relative mx-auto max-w-4xl px-5 py-24 text-center md:px-12 md:py-32">
           <div className="kicker mb-6">AI-powered sports performance OS</div>
           <h1 className="display mx-auto max-w-3xl text-5xl font-bold md:text-7xl">
