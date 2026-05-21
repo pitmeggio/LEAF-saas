@@ -154,7 +154,7 @@ export default async function AcademyRecruitingPage({ params }: { params: Promis
       </div>
 
       <footer className="border-t border-[var(--color-border)] px-5 py-6 text-center text-xs text-[var(--color-muted)] md:px-12">
-        Powered by Leaf · Academy recruiting
+        Powered by LEAF · Academy recruiting
       </footer>
     </div>
   );

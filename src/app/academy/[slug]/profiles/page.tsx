@@ -15,7 +15,7 @@ export default async function AcademyProfilesPage({ params }: { params: Promise<
   return (
     <div className="min-h-screen">
       <PublicNav />
-      <header className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-3.5 md:px-12">
+      <header className="sticky top-[57px] z-20 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 px-5 py-3 backdrop-blur md:top-[61px] md:px-12">
         <Link href={`/academy/${academy.slug}`} className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg font-black" style={{ background: academy.logoColor, color: "#0a0c10" }}>{academy.name[0]}</div>
           <span className="font-semibold">{academy.name}</span>
@@ -25,8 +25,8 @@ export default async function AcademyProfilesPage({ params }: { params: Promise<
 
       <section className="mx-auto max-w-5xl px-5 py-12 md:px-12">
         <div className="mb-8">
-          <div className="text-xs uppercase tracking-wide" style={{ color: "var(--color-accent)" }}>Athletes</div>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">Public athlete profiles</h1>
+          <div className="kicker" style={{ color: "var(--color-accent)" }}>Athletes</div>
+          <h1 className="display mt-1 text-3xl font-bold tracking-tight md:text-4xl">Public athlete profiles</h1>
           <p className="mt-2 text-sm text-[var(--color-muted)]">Verified athletes training at {academy.name}.</p>
         </div>
 
@@ -65,7 +65,7 @@ export default async function AcademyProfilesPage({ params }: { params: Promise<
       </section>
 
       <footer className="border-t border-[var(--color-border)] px-5 py-6 text-center text-xs text-[var(--color-muted)] md:px-12">
-        Powered by Leaf
+        Powered by LEAF
       </footer>
     </div>
   );

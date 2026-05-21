@@ -39,8 +39,8 @@ export default async function ApplyPage({
         {/* Open applications / opportunities */}
         {opportunities.length > 0 && (
           <section className="mb-10">
-            <div className="text-xs uppercase tracking-wide" style={{ color: "var(--color-accent)" }}>Open applications</div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight">Current openings at {academy.name}</h1>
+            <div className="kicker" style={{ color: "var(--color-accent)" }}>Open applications</div>
+            <h1 className="display mt-1 text-2xl font-bold tracking-tight md:text-3xl">Current openings at {academy.name}</h1>
             <div className="mt-5 space-y-3">
               {opportunities.map((o) => {
                 const active = o.id === opportunity;
@@ -75,7 +75,7 @@ export default async function ApplyPage({
 
         {/* Application form */}
         <div id="form">
-          <h2 className="text-2xl font-bold tracking-tight">{opportunities.length > 0 ? "Application" : `Apply to ${academy.name}`}</h2>
+          <h2 className="display text-2xl font-bold tracking-tight">{opportunities.length > 0 ? "Application" : `Apply to ${academy.name}`}</h2>
           {selected ? (
             <p className="mt-1 text-sm text-[var(--color-muted)]">Applying for <span className="font-medium text-[var(--color-fg)]">{selected.title}</span>.</p>
           ) : (
