@@ -5,6 +5,7 @@ import { getPublicOpportunities } from "@/lib/profiles";
 import { ApplyForm } from "@/components/ApplyForm";
 import { getSession } from "@/lib/auth";
 import { applyWithMyProfile } from "@/app/apply-actions";
+import { LeafMark } from "@/components/LeafMark";
 import { DISCIPLINE_LABEL, fmtDate, fmtMoney } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -29,15 +30,34 @@ export default async function ApplyPage({
 
   return (
     <div className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4 md:px-12">
+      {/* Branded portal bar — visitors land here from the academy's own site */}
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 px-5 py-3.5 backdrop-blur md:px-12">
         <Link href={`/academy/${academy.slug}`} className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg font-black" style={{ background: academy.logoColor, color: "#0a0c10" }}>
             {academy.name[0]}
           </div>
           <span className="font-semibold">{academy.name}</span>
         </Link>
-        <Link href={`/academy/${academy.slug}`} className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">← Back</Link>
+        <span className="flex items-center gap-1.5 text-xs text-[var(--color-muted)]">
+          Powered by <LeafMark size={20} /> <span className="font-bold text-[var(--color-fg)]">LEAF</span>
+        </span>
       </header>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b border-[var(--color-border)]">
+        <div className="pointer-events-none absolute inset-0 grid-bg" />
+        <div className="pointer-events-none absolute left-1/2 top-[-100px] h-[280px] w-[480px] -translate-x-1/2 glow-accent" />
+        <div className="relative mx-auto max-w-2xl px-5 py-12 text-center md:px-12">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-black ring-1 ring-[var(--color-border)]" style={{ background: academy.logoColor, color: "#0a0c10" }}>
+            {academy.name[0]}
+          </div>
+          <div className="kicker mt-4" style={{ color: "var(--color-accent)" }}>Apply to</div>
+          <h1 className="display mt-1 text-3xl font-bold md:text-4xl">{academy.name}</h1>
+          <p className="mx-auto mt-3 max-w-md text-sm text-[var(--color-muted)]">
+            Verified application powered by LEAF — your performance data, ranking and trend come through automatically.
+          </p>
+        </div>
+      </section>
 
       <div className="mx-auto max-w-2xl px-5 py-10 md:py-12">
         {/* Apply with LEAF — one click for athletes with a verified profile */}
@@ -73,7 +93,7 @@ export default async function ApplyPage({
         {opportunities.length > 0 && (
           <section className="mb-10">
             <div className="kicker" style={{ color: "var(--color-accent)" }}>Open applications</div>
-            <h1 className="display mt-1 text-2xl font-bold tracking-tight md:text-3xl">Current openings at {academy.name}</h1>
+            <h2 className="display mt-1 text-2xl font-bold tracking-tight md:text-3xl">Current openings</h2>
             <div className="mt-5 space-y-3">
               {opportunities.map((o) => {
                 const active = o.id === opportunity;
@@ -108,7 +128,7 @@ export default async function ApplyPage({
 
         {/* Application form */}
         <div id="form">
-          <h2 className="display text-2xl font-bold tracking-tight">{opportunities.length > 0 ? "Application" : `Apply to ${academy.name}`}</h2>
+          <h2 className="display text-2xl font-bold tracking-tight">Application details</h2>
           {selected ? (
             <p className="mt-1 text-sm text-[var(--color-muted)]">Applying for <span className="font-medium text-[var(--color-fg)]">{selected.title}</span>.</p>
           ) : (
