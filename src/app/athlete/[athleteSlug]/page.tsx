@@ -7,6 +7,7 @@ import { PerformanceAnalytics } from "@/components/PerformanceAnalytics";
 import { GrowthChart } from "@/components/GrowthChart";
 import { getSession } from "@/lib/auth";
 import { DISCIPLINE_LABEL, COUNTRY, fmtPoints, fmtDate } from "@/lib/domain";
+import { sportConfig } from "@/lib/sport";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export default async function PublicProfilePage({
 
   const country = COUNTRY[p.nationality];
   const initials = `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase();
+  const sport = sportConfig(p.sport);
 
   return (
     <div className="min-h-screen">
@@ -86,8 +88,8 @@ export default async function PublicProfilePage({
           {/* Performance stat strip */}
           {(p.fisPoints != null || p.worldRank != null || p.performance) && (
             <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <HeroStat label="FIS points" value={fmtPoints(p.fisPoints)} accent />
-              <HeroStat label="World rank" value={p.worldRank != null ? `#${p.worldRank}` : "—"} />
+              <HeroStat label={sport.pointsLabel} value={fmtPoints(p.fisPoints)} accent />
+              <HeroStat label={sport.rankLabel} value={p.worldRank != null ? `#${p.worldRank}` : "—"} />
               {p.performance && <HeroStat label="Podium rate" value={`${p.performance.podiumPct}%`} />}
               {p.performance && <HeroStat label="Races" value={String(p.performance.totalRaces)} />}
             </div>
@@ -104,12 +106,12 @@ export default async function PublicProfilePage({
           <section>
             <SectionTitle kicker="Performance" title="Ranking & trend" />
             <div className="grid gap-4 sm:grid-cols-2">
-              <Stat label="FIS points" value={fmtPoints(p.fisPoints)} />
-              <Stat label="World rank" value={p.worldRank != null ? `#${p.worldRank}` : "—"} />
+              <Stat label={sport.pointsLabel} value={fmtPoints(p.fisPoints)} />
+              <Stat label={sport.rankLabel} value={p.worldRank != null ? `#${p.worldRank}` : "—"} />
             </div>
             {p.pointsEvolution && (
               <div className="card mt-4 p-5">
-                <div className="mb-3 text-sm font-semibold">FIS points trend <span className="text-xs font-normal text-[var(--color-muted)]">· lower is better</span></div>
+                <div className="mb-3 text-sm font-semibold">{sport.pointsLabel} trend <span className="text-xs font-normal text-[var(--color-muted)]">· {sport.pointsHint}</span></div>
                 <GrowthChart data={p.pointsEvolution} />
               </div>
             )}
@@ -182,10 +184,10 @@ export default async function PublicProfilePage({
           <section>
             <SectionTitle kicker="Verified sources" title="External profiles" />
             {p.externalLinks.fisCode && (
-              <div className="mb-3 text-sm text-[var(--color-muted)]">FIS code <span className="num font-semibold text-[var(--color-fg)]">{p.externalLinks.fisCode}</span></div>
+              <div className="mb-3 text-sm text-[var(--color-muted)]">{sport.codeLabel} <span className="num font-semibold text-[var(--color-fg)]">{p.externalLinks.fisCode}</span></div>
             )}
             <div className="flex flex-wrap gap-3">
-              {p.externalLinks.fisProfileUrl && <ExtLink href={p.externalLinks.fisProfileUrl} label="FIS profile" />}
+              {p.externalLinks.fisProfileUrl && <ExtLink href={p.externalLinks.fisProfileUrl} label={sport.profileLinkLabel} />}
               {p.externalLinks.atpProfileUrl && <ExtLink href={p.externalLinks.atpProfileUrl} label="ATP profile" />}
             </div>
           </section>

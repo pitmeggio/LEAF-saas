@@ -9,6 +9,12 @@ export const metadata = {
 
 const PILLS = ["FIS / ATP verified", "Performance analytics", "Recruiting network", "Academy OS"];
 
+const MISSION = [
+  { title: "Verified, not self-reported", desc: "Every metric is built from official, federation-published results — FIS, ATP and beyond." },
+  { title: "Owned by the athlete", desc: "Your performance, your link, your call on who sees it. No public roster to scroll." },
+  { title: "Built for every sport", desc: "One intelligence layer that adapts its language and metrics to your discipline." },
+];
+
 export default function LeafLanding() {
   return (
     <div className="min-h-screen">
@@ -44,8 +50,32 @@ export default function LeafLanding() {
         </div>
       </section>
 
+      {/* Mission / what LEAF is */}
+      <section className="border-y border-[var(--color-border)] bg-[var(--color-surface)]/30">
+        <div className="mx-auto max-w-4xl px-5 py-20 text-center md:px-12">
+          <div className="kicker mb-3" style={{ color: "var(--color-accent)" }}>Our mission</div>
+          <p className="display mx-auto max-w-3xl text-2xl font-semibold leading-snug md:text-3xl">
+            Elite sport runs on data that stays locked in federation databases and spreadsheets.
+            LEAF turns it into <span className="text-gradient">intelligence</span> — so athletes own their story and academies run world-class programs.
+          </p>
+          <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-[var(--color-muted)]">
+            We started LEAF because performance is more than a ranking number. The trend, the consistency,
+            the development behind it — that's what coaches, selectors and athletes actually need to see.
+            One verified platform, every sport, from the public athlete profile to the academy's daily operations.
+          </p>
+          <div className="mt-9 grid gap-4 sm:grid-cols-3">
+            {MISSION.map((m) => (
+              <div key={m.title} className="card p-5 text-left">
+                <div className="text-sm font-semibold">{m.title}</div>
+                <div className="mt-1.5 text-sm text-[var(--color-muted)]">{m.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Two audiences — pick your path */}
-      <section className="mx-auto max-w-5xl px-5 pb-16 md:px-12">
+      <section className="mx-auto max-w-5xl px-5 py-16 md:px-12">
         <div className="mb-6 text-center">
           <div className="kicker" style={{ color: "var(--color-accent)" }}>One platform, two sides</div>
           <h2 className="display mt-1 text-2xl font-bold md:text-3xl">Where do you fit?</h2>

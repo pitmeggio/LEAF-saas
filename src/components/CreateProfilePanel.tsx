@@ -46,7 +46,7 @@ function CreateProfileModal({ onClose }: { onClose: () => void }) {
             <div className="kicker mb-1.5" style={{ color: "var(--color-accent)" }}>Create your profile</div>
             <h2 className="display text-xl font-bold">Import your verified record</h2>
             <p className="mt-1.5 text-sm text-[var(--color-muted)]">
-              Enter your name and your FIS code. LEAF pulls your FIS-published results and builds your analysis automatically.
+              Enter your name and your federation code — FIS for ski, ATP for tennis. LEAF pulls your published results and builds your analysis automatically.
             </p>
           </div>
           <button onClick={onClose} className="absolute right-4 top-4 text-[var(--color-muted)] hover:text-[var(--color-fg)]">✕</button>
