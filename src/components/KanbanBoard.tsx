@@ -111,7 +111,7 @@ export function KanbanBoard({ initial }: { initial: Card[] }) {
                               <span className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">
                                 {c.source === "marketplace" ? "★ marketplace" : "form"}
                               </span>
-                              <Link href={`/applications/${c.id}`} className="text-[11px] text-[var(--color-accent)] hover:underline">
+                              <Link href={`/dashboard/applications/${c.id}`} className="text-[11px] text-[var(--color-accent)] hover:underline">
                                 Open →
                               </Link>
                             </div>

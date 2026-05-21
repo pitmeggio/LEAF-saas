@@ -30,7 +30,7 @@ export default async function AthletesPage() {
         subtitle="Discover and filter your candidate pool by performance and growth."
         right={
           <Link
-            href="/athletes/import"
+            href="/dashboard/athletes/import"
             className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]"
           >
             + Import from FIS

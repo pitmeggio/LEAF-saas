@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicAcademy } from "@/lib/queries";
+import { RecruitingBadge } from "@/components/Recruiting";
+import type { RecruitingStatus } from "@/lib/profiles";
 import { DISCIPLINE_LABEL, COUNTRY } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +17,8 @@ export default async function PublicAcademyPage({ params }: { params: Promise<{ 
   const country = COUNTRY[academy.country];
   const requirements = (academy.requirements ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
   const applyHref = `/academy/${academy.slug}/apply`;
+  const profilesHref = `/academy/${academy.slug}/profiles`;
+  const recruitingOpen = academy.recruitingEnabled && academy.recruitingStatus !== "CLOSED";
 
   return (
     <div className="min-h-screen">
@@ -29,17 +33,23 @@ export default async function PublicAcademyPage({ params }: { params: Promise<{ 
           </div>
           <span className="font-semibold">{academy.name}</span>
         </div>
-        <Link
-          href={applyHref}
-          className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]"
-        >
-          Apply now
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href={profilesHref} className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">
+            Athletes
+          </Link>
+          <Link
+            href={applyHref}
+            className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]"
+          >
+            Apply now
+          </Link>
+        </div>
       </header>
 
       {/* Hero */}
       <section className="mx-auto max-w-4xl px-5 py-16 text-center md:px-12 md:py-24">
         <div className="mb-5 flex flex-wrap items-center justify-center gap-2 text-xs">
+          {recruitingOpen && <RecruitingBadge status={academy.recruitingStatus as RecruitingStatus} size="sm" />}
           <Badge>{country?.flag} {academy.location ?? country?.name}</Badge>
           <Badge>Alpine skiing</Badge>
           {academy.season && <Badge>Season {academy.season}</Badge>}
@@ -59,12 +69,12 @@ export default async function PublicAcademyPage({ params }: { params: Promise<{ 
           >
             Apply now →
           </Link>
-          <a
-            href="#packages"
+          <Link
+            href={profilesHref}
             className="w-full rounded-xl border border-[var(--color-border)] px-6 py-3 text-sm font-medium hover:bg-[var(--color-surface)] sm:w-auto"
           >
-            View packages
-          </a>
+            View athletes
+          </Link>
         </div>
       </section>
 

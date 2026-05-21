@@ -305,3 +305,63 @@ export async function getRecruitingAcademies(): Promise<RecruitingAcademyCard[]>
     ...applyTarget({ slug: a.slug, publicApplyEnabled: a.publicApplyEnabled, applicationUrl: a.applicationUrl }),
   }));
 }
+
+export type AcademyAthleteCard = {
+  slug: string;
+  firstName: string;
+  lastName: string;
+  nationality: string;
+  sport: string;
+  discipline: string;
+  photoColor: string;
+  publicPhotoUrl: string | null;
+  verified: boolean;
+  fisPoints: number | null;
+};
+
+export type AcademyProfilesPage = {
+  academy: { name: string; slug: string; logoColor: string; location: string | null };
+  athletes: AcademyAthleteCard[];
+};
+
+// Public-safe list of an academy's PUBLIC athletes — powers /academy/[slug]/profiles.
+// Only PUBLIC + enabled athletes enrolled at the academy are shown (no ACADEMY_ONLY /
+// PRIVATE), and only public-safe fields. Returns null if the academy is missing/inactive.
+export async function getAcademyPublicAthletes(slug: string): Promise<AcademyProfilesPage | null> {
+  const academy = await prisma.academy.findUnique({
+    where: { slug },
+    select: { id: true, name: true, slug: true, logoColor: true, location: true, status: true },
+  });
+  if (!academy || academy.status !== "active") return null;
+
+  const rows = await prisma.athlete.findMany({
+    where: {
+      publicProfileEnabled: true,
+      publicVisibility: "PUBLIC",
+      publicSlug: { not: null },
+      enrollments: { some: { academyId: academy.id } },
+    },
+    select: {
+      publicSlug: true, firstName: true, lastName: true, nationality: true, sport: true,
+      discipline: true, photoColor: true, publicPhotoUrl: true, publicVerified: true,
+      fisPoints: true, publicShowRanking: true,
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  });
+
+  return {
+    academy: { name: academy.name, slug: academy.slug, logoColor: academy.logoColor, location: academy.location },
+    athletes: rows.map((a) => ({
+      slug: a.publicSlug as string,
+      firstName: a.firstName,
+      lastName: a.lastName,
+      nationality: a.nationality,
+      sport: a.sport,
+      discipline: a.discipline,
+      photoColor: a.photoColor,
+      publicPhotoUrl: a.publicPhotoUrl,
+      verified: a.publicVerified,
+      fisPoints: a.publicShowRanking ? a.fisPoints : null,
+    })),
+  };
+}

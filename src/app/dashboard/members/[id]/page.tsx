@@ -34,7 +34,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
       <PageHeader
         title="Active athlete"
         subtitle={`Joined ${fmtDate(m.joinDate)} · ${m.level ? LEVEL_LABEL[m.level] : "—"}`}
-        right={<Link href="/members" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">← Active athletes</Link>}
+        right={<Link href="/dashboard/members" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">← Active athletes</Link>}
       />
 
       <div className="grid gap-6 p-8 lg:grid-cols-3">
@@ -58,7 +58,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                 <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium capitalize" style={{ background: `${ENROLLMENT_STATUS_COLOR[m.status]}1a`, color: ENROLLMENT_STATUS_COLOR[m.status] }}>
                   <Dot color={ENROLLMENT_STATUS_COLOR[m.status]} /> {m.status}
                 </span>
-                {m.conversations[0] && <Link href={`/inbox/${m.conversations[0].id}`} className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">✉ Chat</Link>}
+                {m.conversations[0] && <Link href={`/dashboard/inbox/${m.conversations[0].id}`} className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">✉ Chat</Link>}
                 <Modal label="Edit" title="Edit athlete" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
                   <AthleteEditForm athlete={{ id: a.id, firstName: a.firstName, lastName: a.lastName, email: a.email, phone: a.phone, nationality: a.nationality, discipline: a.discipline, emergencyContact: a.emergencyContact, guardianName: a.guardianName, guardianContact: a.guardianContact }} />
                 </Modal>

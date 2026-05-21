@@ -17,7 +17,7 @@ async function setSession(userId: string) {
 
 export async function signIn(userId: string) {
   await setSession(userId);
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export type SignInState = { error?: string };
@@ -33,7 +33,7 @@ export async function signInWithEmail(_prev: SignInState, formData: FormData): P
   if (!user) return { error: "No account found for that email." };
 
   await setSession(user.id);
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function signOut() {

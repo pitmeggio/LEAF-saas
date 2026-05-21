@@ -41,7 +41,7 @@ export function RecruitingSettings({ initial }: { initial: RecruitingValues }) {
   const set = <K extends keyof RecruitingValues>(k: K, v: RecruitingValues[K]) => { setF((p) => ({ ...p, [k]: v })); setOk(false); };
   const toggleProgram = (p: string) => set("programTypes", f.programTypes.includes(p) ? f.programTypes.filter((x) => x !== p) : [...f.programTypes, p]);
 
-  const publicHref = `/profiles/academy/${f.slug}`;
+  const publicHref = `/academy/${f.slug}`;
 
   const save = () => {
     setError(null);

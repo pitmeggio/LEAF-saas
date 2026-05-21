@@ -52,7 +52,7 @@ export default async function MembersPage() {
               {members.map((m) => (
                 <tr key={m.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]">
                   <td className="px-5 py-3">
-                    <Link href={`/members/${m.id}`} className="flex items-center gap-3">
+                    <Link href={`/dashboard/members/${m.id}`} className="flex items-center gap-3">
                       <Avatar first={m.athlete.firstName} last={m.athlete.lastName} color={m.athlete.photoColor} size={34} />
                       <span>
                         <span className="flex items-center gap-2 font-medium">

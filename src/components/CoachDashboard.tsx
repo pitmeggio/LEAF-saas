@@ -31,22 +31,22 @@ export async function CoachDashboard() {
       <PageHeader
         title="My Dashboard"
         subtitle={`${s?.name} · Coach workspace · ${s?.academyName ?? ""}`}
-        right={<Link href="/alerts" className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">{alerts.length} alerts →</Link>}
+        right={<Link href="/dashboard/alerts" className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">{alerts.length} alerts →</Link>}
       />
       <div className="space-y-6 p-8">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="My athletes" value={String(members.length)} accent href="/members" />
-          <StatCard label="My groups" value={String(groups.length)} href="/groups" />
-          <StatCard label="Improving" value={`${improving}/${members.length}`} hint="positive FIS trend" href="/members" />
-          <StatCard label="Group occupancy" value={`${occupancy}%`} hint={`${inGroups}/${totalCap}`} href="/groups" />
-          <StatCard label="Budget remaining" value={fmtMoney(remainingBudget)} danger={remainingBudget < 0} href="/groups" />
-          <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} waiting`} danger={inbox.unreadTotal > 0} href="/inbox" />
+          <StatCard label="My athletes" value={String(members.length)} accent href="/dashboard/members" />
+          <StatCard label="My groups" value={String(groups.length)} href="/dashboard/groups" />
+          <StatCard label="Improving" value={`${improving}/${members.length}`} hint="positive FIS trend" href="/dashboard/members" />
+          <StatCard label="Group occupancy" value={`${occupancy}%`} hint={`${inGroups}/${totalCap}`} href="/dashboard/groups" />
+          <StatCard label="Budget remaining" value={fmtMoney(remainingBudget)} danger={remainingBudget < 0} href="/dashboard/groups" />
+          <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} waiting`} danger={inbox.unreadTotal > 0} href="/dashboard/inbox" />
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
           {/* My groups budget */}
           <div className="card p-5 lg:col-span-2">
-            <div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-semibold">My groups</h2><Link href="/groups" className="text-xs text-[var(--color-accent)] hover:underline">View</Link></div>
+            <div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-semibold">My groups</h2><Link href="/dashboard/groups" className="text-xs text-[var(--color-accent)] hover:underline">View</Link></div>
             <div className="space-y-4">
               {groups.length === 0 && <p className="text-sm text-[var(--color-muted)]">No groups assigned.</p>}
               {groups.map((g) => (
@@ -63,7 +63,7 @@ export async function CoachDashboard() {
 
           {/* Alerts */}
           <div className="card p-5">
-            <div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-semibold">Alerts</h2><Link href="/alerts" className="text-xs text-[var(--color-accent)] hover:underline">All</Link></div>
+            <div className="mb-4 flex items-center justify-between"><h2 className="text-sm font-semibold">Alerts</h2><Link href="/dashboard/alerts" className="text-xs text-[var(--color-accent)] hover:underline">All</Link></div>
             <div className="space-y-1">
               {alerts.length === 0 && <p className="text-sm text-[var(--color-muted)]">All clear.</p>}
               {alerts.slice(0, 6).map((a) => (
@@ -84,7 +84,7 @@ export async function CoachDashboard() {
               {members.map((m) => (
                 <tr key={m.id} className="border-t border-[var(--color-border)] first:border-t-0 hover:bg-[var(--color-surface-2)]">
                   <td className="px-5 py-3">
-                    <Link href={`/members/${m.id}`} className="flex items-center gap-3">
+                    <Link href={`/dashboard/members/${m.id}`} className="flex items-center gap-3">
                       <Avatar first={m.athlete.firstName} last={m.athlete.lastName} color={m.athlete.photoColor} size={32} />
                       <span className="font-medium">{m.athlete.firstName} {m.athlete.lastName}</span>
                       <span className="text-xs text-[var(--color-muted)]">{age(m.athlete.dob)}y · {DISCIPLINE_LABEL[m.athlete.discipline]}</span>

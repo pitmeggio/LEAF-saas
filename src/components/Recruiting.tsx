@@ -47,7 +47,7 @@ export function AcademyRecruitingBanner({ banner }: { banner: Banner }) {
           </div>
         </div>
         <div className="flex shrink-0 gap-2">
-          <Link href={`/profiles/academy/${banner.academySlug}`} className="rounded-lg border border-[var(--color-border)] px-3.5 py-2 text-xs font-medium hover:bg-[var(--color-surface-2)]">
+          <Link href={`/academy/${banner.academySlug}`} className="rounded-lg border border-[var(--color-border)] px-3.5 py-2 text-xs font-medium hover:bg-[var(--color-surface-2)]">
             View academy
           </Link>
           {banner.applyEnabled && !closed && banner.applyHref && (
@@ -81,7 +81,7 @@ export function AcademyRecruitingCard({ a }: { a: RecruitingAcademyCard }) {
         {a.headline ?? (a.season ? `Applications open for the ${a.season} season.` : "Applications open.")}
       </p>
       <div className="mt-4 flex gap-2">
-        <Link href={`/profiles/academy/${a.slug}`} className="flex-1 rounded-lg border border-[var(--color-border)] px-3 py-2 text-center text-xs font-medium hover:bg-[var(--color-surface-2)]">View program</Link>
+        <Link href={`/academy/${a.slug}`} className="flex-1 rounded-lg border border-[var(--color-border)] px-3 py-2 text-center text-xs font-medium hover:bg-[var(--color-surface-2)]">View program</Link>
         {a.applyEnabled && !closed && a.applyHref && (
           <ApplyCTA href={a.applyHref} external={a.applyExternal} className="flex-1 rounded-lg px-3 py-2 text-center text-xs font-semibold text-[#0a0c10]" style={{ background: a.logoColor }}>
             Apply now

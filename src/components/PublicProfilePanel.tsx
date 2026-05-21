@@ -38,7 +38,7 @@ export function PublicProfilePanel({ initial }: { initial: PublicProfileValues }
   const set = <K extends keyof PublicProfileValues>(k: K, v: PublicProfileValues[K]) => { setF((p) => ({ ...p, [k]: v })); setOk(false); };
 
   const slugify = (v: string) => v.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  const publicUrl = f.publicSlug ? `/profiles/${f.publicSlug}` : null;
+  const publicUrl = f.publicSlug ? `/athlete/${f.publicSlug}` : null;
 
   const save = () => {
     setError(null);

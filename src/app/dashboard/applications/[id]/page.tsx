@@ -31,12 +31,12 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
         subtitle={`${app.program?.name ?? "General"} · submitted ${relativeDate(app.submittedAt)}`}
         right={
           <div className="flex items-center gap-2">
-            {app.conversation && <Link href={`/inbox/${app.conversation.id}`} className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface)]">✉ Conversation</Link>}
+            {app.conversation && <Link href={`/dashboard/inbox/${app.conversation.id}`} className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface)]">✉ Conversation</Link>}
             <Modal label="Edit" title="Edit application" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface)]">
               <ApplicationEditForm application={{ id: app.id, programId: app.programId, packageId: app.packageId, score: app.score, message: app.message }} programs={opts.programs} packages={opts.packages} />
             </Modal>
             <DeleteButton kind="application" id={app.id} label="Delete" />
-            <Link href="/applications" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">← Back</Link>
+            <Link href="/dashboard/applications" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">← Back</Link>
           </div>
         }
       />
@@ -49,7 +49,7 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
               <Avatar first={a.firstName} last={a.lastName} color={a.photoColor} size={64} />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <Link href={`/athletes/${a.id}`} className="text-xl font-bold hover:underline">
+                  <Link href={`/dashboard/athletes/${a.id}`} className="text-xl font-bold hover:underline">
                     {a.firstName} {a.lastName}
                   </Link>
                   {a.verified && <Verified />}

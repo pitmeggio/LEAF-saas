@@ -62,7 +62,7 @@ export async function getSession(): Promise<Session | null> {
 export async function requireSuperAdmin(): Promise<Session> {
   const s = await getSession();
   if (!s) redirect("/login");
-  if (!s.isSuperAdmin) redirect("/");
+  if (!s.isSuperAdmin) redirect("/dashboard");
   return s;
 }
 
@@ -72,7 +72,7 @@ export async function requireAdmin(): Promise<Session> {
   const s = await getSession();
   if (!s) redirect("/login");
   if (s.isSuperAdmin) redirect("/super-admin");
-  if (!s.isAdmin) redirect("/");
+  if (!s.isAdmin) redirect("/dashboard");
   return s;
 }
 
@@ -81,8 +81,8 @@ export async function requireCoachId(): Promise<string> {
   const s = await getSession();
   if (!s) redirect("/login");
   if (s.isSuperAdmin) redirect("/super-admin");
-  if (s.isAdmin) redirect("/");
-  if (!s.coachId) redirect("/");
+  if (s.isAdmin) redirect("/dashboard");
+  if (!s.coachId) redirect("/dashboard");
   return s.coachId;
 }
 

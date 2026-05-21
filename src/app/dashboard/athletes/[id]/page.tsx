@@ -39,7 +39,7 @@ export default async function AthleteProfilePage({
         title="Athlete profile"
         subtitle="FIS-verified sports CV · auto-imported"
         right={
-          <Link href="/athletes" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">
+          <Link href="/dashboard/athletes" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">
             ← Back to athletes
           </Link>
         }
@@ -114,7 +114,7 @@ export default async function AthleteProfilePage({
                 {a.applications.map((app) => (
                   <Link
                     key={app.id}
-                    href={`/applications/${app.id}`}
+                    href={`/dashboard/applications/${app.id}`}
                     className="flex items-center justify-between rounded-lg p-2 hover:bg-[var(--color-surface-2)]"
                   >
                     <span className="text-sm">{app.program?.name ?? "General"}</span>

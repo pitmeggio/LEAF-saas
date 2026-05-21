@@ -76,7 +76,7 @@ export default async function PaymentsPage() {
                   <tr key={p.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]">
                     <td className="num px-5 py-3 text-xs">{inv?.number ?? "—"}<div className="text-[10px] text-[var(--color-muted)]">{p.enrollment.package?.name ?? ""}</div></td>
                     <td className="px-3 py-3">
-                      <Link href={`/members/${p.enrollmentId}`} className="font-medium hover:underline">{ath.firstName} {ath.lastName}</Link>
+                      <Link href={`/dashboard/members/${p.enrollmentId}`} className="font-medium hover:underline">{ath.firstName} {ath.lastName}</Link>
                     </td>
                     <td className="px-3 py-3 text-[var(--color-muted)]">{p.label}</td>
                     <td className="num px-3 py-3 font-semibold">{fmtMoney(p.amount, p.currency)}</td>

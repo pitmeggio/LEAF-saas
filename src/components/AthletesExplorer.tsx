@@ -133,7 +133,7 @@ export function AthletesExplorer({ rows }: { rows: Row[] }) {
             {filtered.map((r) => (
               <tr key={r.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]">
                 <td className="px-5 py-3">
-                  <Link href={`/athletes/${r.id}`} className="flex items-center gap-3">
+                  <Link href={`/dashboard/athletes/${r.id}`} className="flex items-center gap-3">
                     <Avatar first={r.firstName} last={r.lastName} color={r.photoColor} size={34} />
                     <span className="flex items-center gap-2 font-medium">
                       {r.firstName} {r.lastName} {r.verified && <Verified />}

@@ -28,7 +28,7 @@ export default async function InboxPage() {
           {convs.map((c) => {
             const ath = c.athlete;
             return (
-              <Link key={c.id} href={`/inbox/${c.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-[var(--color-surface-2)]">
+              <Link key={c.id} href={`/dashboard/inbox/${c.id}`} className="flex items-center gap-4 px-5 py-4 hover:bg-[var(--color-surface-2)]">
                 {ath ? <Avatar first={ath.firstName} last={ath.lastName} color={ath.photoColor} size={38} /> : <div className="h-[38px] w-[38px] rounded-full bg-[var(--color-surface-2)]" />}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">

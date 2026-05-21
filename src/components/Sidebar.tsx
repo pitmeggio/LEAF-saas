@@ -8,31 +8,31 @@ import { initials } from "@/lib/domain";
 type NavItem = { href: string; label: string; icon: string; soon?: boolean };
 
 const ADMIN_NAV: NavItem[] = [
-  { href: "/", label: "Overview", icon: "▦" },
-  { href: "/inbox", label: "Inbox", icon: "✉" },
-  { href: "/applications", label: "Applications", icon: "▤" },
-  { href: "/members", label: "Active Athletes", icon: "⛷" },
-  { href: "/groups", label: "Groups", icon: "⬡" },
-  { href: "/coaches", label: "Coaches", icon: "◎" },
-  { href: "/recruiting", label: "Recruiting", icon: "✦" },
-  { href: "/packages", label: "Packages", icon: "▥" },
-  { href: "/payments", label: "Payments", icon: "€" },
-  { href: "/expenses", label: "Expenses", icon: "⊟" },
-  { href: "/reports", label: "Reports", icon: "▧" },
-  { href: "/documents", label: "Documents", icon: "▢" },
-  { href: "/alerts", label: "Alerts", icon: "△" },
-  { href: "/settings", label: "Settings", icon: "⚙", soon: true },
+  { href: "/dashboard", label: "Overview", icon: "▦" },
+  { href: "/dashboard/inbox", label: "Inbox", icon: "✉" },
+  { href: "/dashboard/applications", label: "Applications", icon: "▤" },
+  { href: "/dashboard/members", label: "Active Athletes", icon: "⛷" },
+  { href: "/dashboard/groups", label: "Groups", icon: "⬡" },
+  { href: "/dashboard/coaches", label: "Coaches", icon: "◎" },
+  { href: "/dashboard/recruiting", label: "Recruiting", icon: "✦" },
+  { href: "/dashboard/packages", label: "Packages", icon: "▥" },
+  { href: "/dashboard/payments", label: "Payments", icon: "€" },
+  { href: "/dashboard/expenses", label: "Expenses", icon: "⊟" },
+  { href: "/dashboard/reports", label: "Reports", icon: "▧" },
+  { href: "/dashboard/documents", label: "Documents", icon: "▢" },
+  { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
+  { href: "/dashboard/settings", label: "Settings", icon: "⚙", soon: true },
 ];
 
 const COACH_NAV: NavItem[] = [
-  { href: "/", label: "My Dashboard", icon: "▦" },
-  { href: "/inbox", label: "Inbox", icon: "✉" },
-  { href: "/applications", label: "Applications", icon: "▤" },
-  { href: "/members", label: "My Athletes", icon: "⛷" },
-  { href: "/groups", label: "My Groups", icon: "⬡" },
-  { href: "/documents", label: "Documents", icon: "▢" },
-  { href: "/alerts", label: "Alerts", icon: "△" },
-  { href: "/expenses", label: "My Expenses", icon: "⊟" },
+  { href: "/dashboard", label: "My Dashboard", icon: "▦" },
+  { href: "/dashboard/inbox", label: "Inbox", icon: "✉" },
+  { href: "/dashboard/applications", label: "Applications", icon: "▤" },
+  { href: "/dashboard/members", label: "My Athletes", icon: "⛷" },
+  { href: "/dashboard/groups", label: "My Groups", icon: "⬡" },
+  { href: "/dashboard/documents", label: "Documents", icon: "▢" },
+  { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
+  { href: "/dashboard/expenses", label: "My Expenses", icon: "⊟" },
 ];
 
 const ROLE_LABEL: Record<string, string> = {
@@ -65,7 +65,7 @@ export function Sidebar({ user }: { user: { name: string; role: string; academy:
 
       <nav className="flex flex-1 flex-col gap-1">
         {NAV.map((item) => {
-          const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const active = item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}

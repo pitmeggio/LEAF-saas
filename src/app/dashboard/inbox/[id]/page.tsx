@@ -21,7 +21,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
       <PageHeader
         title={ath ? `${ath.firstName} ${ath.lastName}` : conv.subject ?? "Conversation"}
         subtitle={`${conv.type === "athlete" ? "Athlete chat" : "Application chat"} · ${conv.status}`}
-        right={<Link href="/inbox" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">← Inbox</Link>}
+        right={<Link href="/dashboard/inbox" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">← Inbox</Link>}
       />
 
       <div className="grid gap-6 p-8 lg:grid-cols-3">
@@ -58,8 +58,8 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
                 </div>
               </div>
               <div className="mt-4 flex flex-col gap-2">
-                {conv.enrollmentId && <Link href={`/members/${conv.enrollmentId}`} className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-center text-xs font-medium hover:bg-[var(--color-surface-2)]">Open athlete profile →</Link>}
-                {conv.applicationId && <Link href={`/applications/${conv.applicationId}`} className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-center text-xs font-medium hover:bg-[var(--color-surface-2)]">Open application →</Link>}
+                {conv.enrollmentId && <Link href={`/dashboard/members/${conv.enrollmentId}`} className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-center text-xs font-medium hover:bg-[var(--color-surface-2)]">Open athlete profile →</Link>}
+                {conv.applicationId && <Link href={`/dashboard/applications/${conv.applicationId}`} className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-center text-xs font-medium hover:bg-[var(--color-surface-2)]">Open application →</Link>}
               </div>
             </div>
           )}
