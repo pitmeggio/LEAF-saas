@@ -17,7 +17,8 @@ import { MyProfileEditForm } from "@/components/MyProfileEditForm";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My profile — LEAF" };
 
-export default async function MyProfilePage() {
+export default async function MyProfilePage({ searchParams }: { searchParams: Promise<{ new?: string }> }) {
+  const { new: isNew } = await searchParams;
   const athleteId = await requireAthleteId();
   const s = await getSession();
   const w = await getAthleteWorkspace(athleteId);
@@ -51,6 +52,13 @@ export default async function MyProfilePage() {
       </header>
 
       <div className="mx-auto max-w-4xl space-y-10 px-5 py-10 md:px-12">
+        {isNew && (
+          <div className="rounded-xl border border-[var(--color-accent)]/30 p-4" style={{ background: "color-mix(in srgb, var(--color-accent) 8%, transparent)" }}>
+            <span className="text-sm font-semibold text-[var(--color-accent)]">✓ Welcome to LEAF.</span>{" "}
+            <span className="text-sm text-[var(--color-fg)]/85">Your verified profile is live. Fill in your bio and photo below, then share your public link.</span>
+          </div>
+        )}
+
         {/* Identity + stats */}
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
           <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl ring-1 ring-[var(--color-border)]">

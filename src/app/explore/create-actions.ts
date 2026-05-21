@@ -1,11 +1,13 @@
 "use server";
 
 import { z } from "zod";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { importAthleteByFisCode } from "@/lib/fis/import";
 import { fisCodeSchema, firstError } from "@/lib/validation";
-import { hashPassword } from "@/lib/password";
+import { hashPassword, makeSessionToken } from "@/lib/password";
+import { SESSION_COOKIE } from "@/lib/auth";
 
 export type CreateProfileState = { error?: string };
 
@@ -86,7 +88,7 @@ export async function createProfileAction(_prev: CreateProfileState, formData: F
 
   // Create the athlete's own login linked to this profile (their "My Profile"
   // workspace). A blank password is claimed on first sign-in.
-  await prisma.user.create({
+  const user = await prisma.user.create({
     data: {
       name: `${d.firstName} ${d.lastName}`,
       email: d.email,
@@ -96,5 +98,9 @@ export async function createProfileAction(_prev: CreateProfileState, formData: F
     },
   });
 
-  redirect(`/athlete/${slug}?new=1`);
+  // Sign them in immediately and drop them into their workspace.
+  const jar = await cookies();
+  jar.set(SESSION_COOKIE, makeSessionToken(user.id), { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+
+  redirect(`/me?new=1`);
 }

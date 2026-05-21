@@ -15,12 +15,12 @@ export function LoginForm({ demoUsers }: { demoUsers: DemoUser[] }) {
   return (
     <div className="w-full max-w-sm">
       <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
-      <p className="mt-1 text-sm text-[var(--color-muted)]">Welcome back. Sign in to your academy workspace.</p>
+      <p className="mt-1 text-sm text-[var(--color-muted)]">Welcome back. Athletes, coaches and academies — sign in to LEAF.</p>
 
       <form action={formAction} className="mt-7 space-y-4">
         <div>
           <label className="mb-1 block text-xs font-medium text-[var(--color-muted)]">Email</label>
-          <input name="email" type="email" autoComplete="email" placeholder="you@academy.com" className={field} />
+          <input name="email" type="email" autoComplete="email" placeholder="you@email.com" className={field} />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-[var(--color-muted)]">Password</label>
