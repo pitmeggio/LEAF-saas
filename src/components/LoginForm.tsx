@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState, useState } from "react";
 import { signInWithEmail, signIn, type SignInState } from "@/app/auth-actions";
 
@@ -8,14 +9,15 @@ type DemoUser = { id: string; name: string; role: string; email: string };
 const ROLE_LABEL: Record<string, string> = { academy_admin: "Academy admin", coach: "Coach", athlete: "Athlete", recruiter: "Recruiter" };
 const field = "w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 text-sm outline-none focus:border-[var(--color-accent)]";
 
-export function LoginForm({ demoUsers }: { demoUsers: DemoUser[] }) {
+export function LoginForm({ demoUsers, variant = "academy" }: { demoUsers: DemoUser[]; variant?: "academy" | "athlete" }) {
   const [state, formAction, pending] = useActionState<SignInState, FormData>(signInWithEmail, {});
   const [showDemo, setShowDemo] = useState(false);
+  const isAthlete = variant === "athlete";
 
   return (
     <div className="w-full max-w-sm">
-      <h1 className="text-2xl font-bold tracking-tight">Sign in</h1>
-      <p className="mt-1 text-sm text-[var(--color-muted)]">Welcome back. Athletes, coaches and academies — sign in to LEAF.</p>
+      <h1 className="text-2xl font-bold tracking-tight">{isAthlete ? "Athlete sign in" : "Academy & coach sign in"}</h1>
+      <p className="mt-1 text-sm text-[var(--color-muted)]">{isAthlete ? "Welcome back. Sign in to your performance profile." : "Welcome back. Sign in to your academy workspace."}</p>
 
       <form action={formAction} className="mt-7 space-y-4">
         <div>
@@ -26,10 +28,12 @@ export function LoginForm({ demoUsers }: { demoUsers: DemoUser[] }) {
           <label className="mb-1 block text-xs font-medium text-[var(--color-muted)]">Password</label>
           <input name="password" type="password" autoComplete="current-password" placeholder="••••••••" className={field} />
         </div>
-        <div>
-          <label className="mb-1 block text-xs font-medium text-[var(--color-muted)]">Academy code <span className="opacity-60">(optional)</span></label>
-          <input name="academyCode" placeholder="e.g. TRYSIL" className={`${field} num`} />
-        </div>
+        {!isAthlete && (
+          <div>
+            <label className="mb-1 block text-xs font-medium text-[var(--color-muted)]">Academy code <span className="opacity-60">(optional)</span></label>
+            <input name="academyCode" placeholder="e.g. TRYSIL" className={`${field} num`} />
+          </div>
+        )}
         {state.error && <p className="text-sm text-[#f87171]">{state.error}</p>}
         <button type="submit" disabled={pending} className="w-full rounded-lg bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)] disabled:opacity-50">
           {pending ? "Signing in…" : "Sign in"}
@@ -47,24 +51,34 @@ export function LoginForm({ demoUsers }: { demoUsers: DemoUser[] }) {
         ))}
       </div>
 
-      <div className="mt-8 border-t border-[var(--color-border)] pt-4">
-        <button onClick={() => setShowDemo((v) => !v)} className="text-xs text-[var(--color-muted)] hover:text-[var(--color-fg)]">
-          {showDemo ? "▾" : "▸"} Demo access
-        </button>
-        {showDemo && (
-          <div className="mt-3 space-y-2">
-            <p className="text-xs text-[var(--color-muted)]">
-              Sign in above with any email below · password <span className="num font-semibold text-[var(--color-fg)]">leaf2026</span>. Or one-click in:
-            </p>
-            {demoUsers.map((u) => (
-              <form key={u.id} action={signIn.bind(null, u.id)}>
-                <button type="submit" className="flex w-full items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-left text-sm hover:border-[var(--color-accent)]/50">
-                  <span>{u.name} <span className="text-[var(--color-muted)]">· {u.email}</span></span>
-                  <span className="text-xs text-[var(--color-muted)]">{ROLE_LABEL[u.role] ?? u.role}</span>
-                </button>
-              </form>
-            ))}
-          </div>
+      {!isAthlete && demoUsers.length > 0 && (
+        <div className="mt-8 border-t border-[var(--color-border)] pt-4">
+          <button onClick={() => setShowDemo((v) => !v)} className="text-xs text-[var(--color-muted)] hover:text-[var(--color-fg)]">
+            {showDemo ? "▾" : "▸"} Demo access
+          </button>
+          {showDemo && (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs text-[var(--color-muted)]">
+                Sign in above with any email below · password <span className="num font-semibold text-[var(--color-fg)]">leaf2026</span>. Or one-click in:
+              </p>
+              {demoUsers.map((u) => (
+                <form key={u.id} action={signIn.bind(null, u.id)}>
+                  <button type="submit" className="flex w-full items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-left text-sm hover:border-[var(--color-accent)]/50">
+                    <span>{u.name} <span className="text-[var(--color-muted)]">· {u.email}</span></span>
+                    <span className="text-xs text-[var(--color-muted)]">{ROLE_LABEL[u.role] ?? u.role}</span>
+                  </button>
+                </form>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-8 border-t border-[var(--color-border)] pt-4 text-center text-xs text-[var(--color-muted)]">
+        {isAthlete ? (
+          <>Academy or coach? <Link href="/login" className="font-medium text-[var(--color-accent)] hover:underline">Sign in here →</Link></>
+        ) : (
+          <>Are you an athlete? <Link href="/login/athlete" className="font-medium text-[var(--color-accent)] hover:underline">Sign in to your profile →</Link></>
         )}
       </div>
     </div>

@@ -49,7 +49,7 @@ export default async function PublicProfilePage({
               <span className="font-semibold text-[var(--color-accent)]">✓ Profile created.</span>{" "}
               <span className="text-[var(--color-fg)]/85">This is your verified profile — share this link with academies and coaches.</span>
             </div>
-            <Link href="/login" className="text-xs font-medium text-[var(--color-accent)] hover:underline">Sign in with your email to manage it →</Link>
+            <Link href="/login/athlete" className="text-xs font-medium text-[var(--color-accent)] hover:underline">Sign in with your email to manage it →</Link>
           </div>
         </div>
       )}

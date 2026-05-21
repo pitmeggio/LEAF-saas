@@ -23,7 +23,7 @@ export function PublicNav({ active }: { active?: "athletes" | "academies" }) {
         >
           For academies
         </Link>
-        <Link href="/login" className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]">
+        <Link href={active === "academies" ? "/login" : "/login/athlete"} className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]">
           Sign in
         </Link>
       </nav>
