@@ -14,6 +14,7 @@ import {
   userPasswordSchema,
   userDeleteSchema,
   academyConfigSchema,
+  academyRequestReviewSchema,
   firstError,
 } from "@/lib/validation";
 import { planDef } from "@/lib/plans";
@@ -23,6 +24,7 @@ export type Result = { ok: boolean; error?: string; id?: string };
 function revalidate() {
   revalidatePath("/super-admin");
   revalidatePath("/super-admin/people");
+  revalidatePath("/super-admin/requests");
 }
 
 // All actions below are platform-level and MUST be gated by requireSuperAdmin().
@@ -193,4 +195,63 @@ export async function deleteUser(input: unknown): Promise<Result> {
   await prisma.user.delete({ where: { id } });
   revalidate();
   return { ok: true, id };
+}
+
+// ── Academy onboarding lifecycle ─────────────────────────────────────────────
+// Approve provisions a full tenant: an Academy with the plan's default features +
+// limit, and an academy_admin owner account (claimed on first sign-in). Reject
+// just records the decision. Idempotent: a non-pending request can't be re-reviewed.
+export async function reviewAcademyRequest(input: unknown): Promise<Result> {
+  await requireSuperAdmin();
+  const parsed = academyRequestReviewSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { id, action, plan, slug, reviewerNote } = parsed.data;
+
+  const req = await prisma.academyRequest.findUnique({ where: { id } });
+  if (!req) return { ok: false, error: "Request not found." };
+  if (req.status !== "pending") return { ok: false, error: "This request has already been reviewed." };
+
+  if (action === "reject") {
+    await prisma.academyRequest.update({
+      where: { id },
+      data: { status: "rejected", reviewedAt: new Date(), reviewerNote: reviewerNote ?? null },
+    });
+    revalidate();
+    return { ok: true, id };
+  }
+
+  // Approve → provision tenant.
+  const finalPlan = plan ?? (req.plan as "BASIC" | "PRO" | "ELITE");
+  const def = planDef(finalPlan);
+
+  const slugClash = await prisma.academy.findUnique({ where: { slug: slug! } });
+  if (slugClash) return { ok: false, error: "That slug is already taken." };
+
+  const academy = await prisma.academy.create({
+    data: {
+      name: req.academyName,
+      slug: slug!,
+      country: req.country,
+      location: req.location,
+      sport: req.sport,
+      plan: finalPlan,
+      ...def.features,
+      maxAthletes: def.maxAthletes,
+    },
+  });
+
+  // Owner account — only if the email isn't already a user.
+  const existingUser = await prisma.user.findUnique({ where: { email: req.email } });
+  if (!existingUser) {
+    await prisma.user.create({
+      data: { name: req.contactName, email: req.email, role: "academy_admin", academyId: academy.id, passwordHash: null },
+    });
+  }
+
+  await prisma.academyRequest.update({
+    where: { id },
+    data: { status: "approved", reviewedAt: new Date(), reviewerNote: reviewerNote ?? null, provisionedAcademyId: academy.id, plan: finalPlan },
+  });
+  revalidate();
+  return { ok: true, id: academy.id };
 }

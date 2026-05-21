@@ -71,6 +71,26 @@ model Academy {
   createdAt     DateTime       @default(now())
 }
 
+// Inbound academy onboarding requests (apply / request a demo). Reviewed in the
+// super-admin portal; approval provisions a tenant + owner account.
+model AcademyRequest {
+  id          String   @id @default(cuid())
+  academyName String
+  contactName String
+  email       String
+  phone       String?
+  country     String
+  location    String?
+  sport       String   @default("ski")
+  plan        String   @default("BASIC") // requested tier
+  message     String?
+  status      String   @default("pending") // pending | approved | rejected
+  reviewerNote String?
+  provisionedAcademyId String? // set when approved → created Academy id
+  createdAt   DateTime @default(now())
+  reviewedAt  DateTime?
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique

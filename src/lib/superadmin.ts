@@ -119,3 +119,16 @@ export async function getAcademyOptions(): Promise<{ id: string; name: string }[
   await requireSuperAdmin();
   return prisma.academy.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } });
 }
+
+// Onboarding requests for the review queue (pending first, then most recent).
+export async function getAcademyRequests() {
+  await requireSuperAdmin();
+  return prisma.academyRequest.findMany({
+    orderBy: [{ status: "asc" }, { createdAt: "desc" }],
+  });
+}
+
+export async function getPendingRequestCount(): Promise<number> {
+  await requireSuperAdmin();
+  return prisma.academyRequest.count({ where: { status: "pending" } });
+}

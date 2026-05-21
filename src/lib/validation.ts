@@ -229,6 +229,32 @@ export const userPasswordSchema = z.object({
 
 export const userDeleteSchema = z.object({ id: z.string().min(1) });
 
+// ── Academy onboarding requests (public submit + super-admin review) ─────────
+export const academyRequestSchema = z.object({
+  academyName: z.string().trim().min(2, "Academy name is required.").max(120),
+  contactName: z.string().trim().min(2, "Your name is required.").max(120),
+  email: z.string().trim().toLowerCase().email("Enter a valid email."),
+  phone: optionalStr(40),
+  country: z.string().trim().min(2, "Country code is required.").max(2).toUpperCase(),
+  location: optionalStr(120),
+  sport: z.string().trim().min(2).max(40).optional().transform((v) => (v ? v : "ski")),
+  plan: planSchema.default("PRO"),
+  message: optionalStr(1500),
+});
+
+export const academyRequestReviewSchema = z
+  .object({
+    id: z.string().min(1),
+    action: z.enum(["approve", "reject"]),
+    plan: planSchema.optional(),
+    slug: z.string().optional().transform((v) => (v ? v : undefined)),
+    reviewerNote: optionalStr(500),
+  })
+  .refine((d) => d.action !== "approve" || (!!d.slug && slugSchema.safeParse(d.slug).success), {
+    message: "A valid slug is required to approve.",
+    path: ["slug"],
+  });
+
 // ── Per-tenant configuration (super-admin): branding + feature flags + limit ──
 export const academyConfigSchema = z.object({
   id: z.string().min(1),

@@ -3,7 +3,7 @@ import { LeafMark } from "@/components/LeafMark";
 
 // Shared header across the public Leaf portal (landing, explore, academy, athlete).
 // Ties the otherwise-separate public pages into one navigable product.
-export function PublicNav({ active }: { active?: "explore" }) {
+export function PublicNav({ active }: { active?: "explore" | "request" }) {
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 px-5 py-3.5 backdrop-blur md:px-12">
       <Link href="/" className="flex items-center gap-2.5">
@@ -16,6 +16,12 @@ export function PublicNav({ active }: { active?: "explore" }) {
           className={`rounded-lg px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)] ${active === "explore" ? "text-[var(--color-fg)]" : "text-[var(--color-muted)]"}`}
         >
           Explore
+        </Link>
+        <Link
+          href="/request"
+          className={`rounded-lg px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)] ${active === "request" ? "text-[var(--color-fg)]" : "text-[var(--color-muted)]"}`}
+        >
+          For academies
         </Link>
         <Link href="/login" className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]">
           Sign in
