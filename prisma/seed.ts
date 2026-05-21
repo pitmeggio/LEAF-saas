@@ -3,9 +3,9 @@ import { PrismaClient } from "../src/generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { REQUIRED_DOC_TYPES, buildPaymentSchedule } from "../src/lib/enrollmentLogic.js";
 
-// Single DATABASE_URL (Supabase Session pooler). Strip sslmode; TLS set explicitly.
+// Seeding prefers DIRECT_URL (Session pooler, 5432) when set, else DATABASE_URL.
 function seedConnectionString(): string {
-  const raw = process.env.DATABASE_URL;
+  const raw = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
   if (!raw) throw new Error("DATABASE_URL is not set — see the README 'Simple setup'.");
   try { const u = new URL(raw); u.searchParams.delete("sslmode"); return u.toString(); } catch { return raw; }
 }

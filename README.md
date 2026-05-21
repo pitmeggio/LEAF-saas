@@ -8,12 +8,15 @@ You only ever need **one** secret: a Supabase connection string called `DATABASE
 
 ### A. Get your database string from Supabase
 1. Go to [supabase.com](https://supabase.com) → create a project (remember the **database password** you set).
-2. In the project, click **Connect** (top bar) → choose **Session pooler**.
+2. In the project, click **Connect** (top bar) → choose **Transaction pooler**.
 3. Copy the connection string. It looks like:
-   `postgresql://postgres.abcd1234:YOUR-PASSWORD@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`
+   `postgresql://postgres.abcd1234:YOUR-PASSWORD@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true`
    - the username starts with `postgres.` followed by your project id — **not** just `postgres`
-   - the port is `5432`
+   - the port is `6543` (the **Transaction pooler** — required for serverless hosts like Vercel)
    - replace the password placeholder with your real database password
+
+   > Use the **Transaction pooler (6543)**, not the Session pooler (5432): on Vercel the
+   > session pooler quickly hits its connection limit (*"max clients reached in session mode"*).
 
 ### B. Run it locally
 ```bash

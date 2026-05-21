@@ -2,11 +2,12 @@ import "dotenv/config";
 import { defineConfig } from "prisma/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-// Single connection string: DATABASE_URL (Supabase Session pooler recommended — it
-// works for both app queries and `prisma db push`). We strip `sslmode` and set TLS
-// explicitly below so any string copied from Supabase works as-is.
+// Migrations / `prisma db push` prefer DIRECT_URL (Supabase Session pooler, 5432) when
+// set, because schema changes need advisory locks the transaction pooler can't hold.
+// Falls back to DATABASE_URL. We strip `sslmode` and set TLS explicitly below so any
+// string copied from Supabase works as-is.
 function getConnectionString(): string {
-  const raw = process.env.DATABASE_URL;
+  const raw = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
   if (!raw) throw new Error("DATABASE_URL is not set — see the README 'Simple setup'.");
   try {
     const u = new URL(raw);
