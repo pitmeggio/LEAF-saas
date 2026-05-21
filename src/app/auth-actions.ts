@@ -16,11 +16,10 @@ async function setSession(userId: string) {
   });
 }
 
-// One-click demo sign-in (the login page's demo user list). Disabled in production
-// unless ALLOW_DEMO_LOGIN is set, so it can't be used to impersonate real accounts.
+// One-click demo sign-in (the login page's demo user list). Enabled by default so
+// the showcase works everywhere; set DISABLE_DEMO_LOGIN=1 to turn it off.
 export async function signIn(userId: string) {
-  const demoAllowed = process.env.NODE_ENV !== "production" || process.env.ALLOW_DEMO_LOGIN === "1";
-  if (!demoAllowed) redirect("/login");
+  if (process.env.DISABLE_DEMO_LOGIN === "1") redirect("/login");
   await setSession(userId);
   redirect("/dashboard");
 }
