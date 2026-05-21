@@ -8,6 +8,8 @@ import { GrowthChart } from "@/components/GrowthChart";
 import { getSession } from "@/lib/auth";
 import { DISCIPLINE_LABEL, COUNTRY, fmtPoints, fmtDate } from "@/lib/domain";
 import { sportConfig } from "@/lib/sport";
+import { deriveAthleteInsights } from "@/lib/ai/athleteInsights";
+import { AthleteInsights } from "@/components/AthleteInsights";
 
 export const dynamic = "force-dynamic";
 
@@ -147,6 +149,11 @@ export default async function PublicProfilePage({
               </table>
             </div>
           </section>
+        )}
+
+        {/* Athlete AI — performance insights */}
+        {p.performance && p.performance.totalRaces > 0 && (
+          <AthleteInsights insights={deriveAthleteInsights(p.performance, { sport: p.sport, worldRank: p.worldRank })} />
         )}
 
         {/* Premium performance analytics */}
