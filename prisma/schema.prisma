@@ -236,8 +236,9 @@ model Result {
   eventName  String
   location   String
   discipline String
-  rank       Int
+  rank       Int // finishing place (ignored when status != finished)
   fisPoints  Float
+  status     String   @default("finished") // finished | dnf | dns | dsq — powers DNF% analytics
 }
 
 model Media {

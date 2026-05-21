@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { computePerformance, type PerformanceStats } from "@/lib/performance";
 
 // ── Public profile read layer (the privacy boundary) ─────────────────────────
 // This module is the ONLY sanctioned way to read athlete data for the public
@@ -101,9 +102,13 @@ export type PublicProfile = {
   worldRank: number | null;
   results: PublicResult[] | null;
   media: PublicMediaItem[] | null;
-  externalLinks: { fisProfileUrl: string | null; atpProfileUrl: string | null } | null;
+  externalLinks: { fisProfileUrl: string | null; atpProfileUrl: string | null; fisCode: string | null } | null;
   contactEnabled: boolean;
   recruiting: RecruitingBanner | null; // present only when the athlete's academy is recruiting
+  // Performance layer
+  pointsEvolution: { label: string; fisPoints: number }[] | null; // free trend chart (gated by publicShowRanking)
+  performance: PerformanceStats | null; // premium analytics source (gated by publicShowResults)
+  premiumUnlocked: boolean; // academy-enrolled athletes get premium analytics free
 };
 
 export type ResolveResult =
@@ -135,7 +140,8 @@ export async function resolvePublicProfile(slug: string, viewerAcademyId: string
   const a = await prisma.athlete.findUnique({
     where: { publicSlug: slug },
     include: {
-      results: { orderBy: { date: "desc" }, take: 6 },
+      results: { orderBy: { date: "desc" }, take: 60 },
+      rankings: { orderBy: { date: "asc" }, select: { date: true, fisPoints: true } },
       publicMedia: { where: { isApprovedPublic: true }, orderBy: { sortOrder: "asc" } },
       // enrollments only to (a) derive academy name, (b) gate ACADEMY_ONLY, and (c) build
       // the recruiting banner — we read only public-safe academy fields, never any
@@ -196,6 +202,14 @@ export async function resolvePublicProfile(slug: string, viewerAcademyId: string
     new Set([a.discipline, ...a.results.map((r) => r.discipline)].filter(Boolean)),
   );
 
+  // Performance analytics (computed from all results + ranking history).
+  const perf = computePerformance(
+    a.results.map((r) => ({ date: r.date, discipline: r.discipline, rank: r.rank, fisPoints: r.fisPoints, status: r.status })),
+    a.rankings.map((r) => ({ date: r.date, fisPoints: r.fisPoints })),
+  );
+  // Premium is unlocked free for athletes enrolled in a Leaf academy.
+  const premiumUnlocked = a.enrollments.length > 0;
+
   const profile: PublicProfile = {
     slug,
     firstName: a.firstName,
@@ -212,7 +226,7 @@ export async function resolvePublicProfile(slug: string, viewerAcademyId: string
     fisPoints: a.publicShowRanking ? a.fisPoints : null,
     worldRank: a.publicShowRanking ? a.worldRank : null,
     results: a.publicShowResults
-      ? a.results.map((r) => ({
+      ? a.results.slice(0, 6).map((r) => ({
           id: r.id,
           date: r.date,
           eventName: r.eventName,
@@ -226,10 +240,13 @@ export async function resolvePublicProfile(slug: string, viewerAcademyId: string
       ? a.publicMedia.map((m) => ({ id: m.id, type: m.type, title: m.title, url: m.url, thumbnailUrl: m.thumbnailUrl }))
       : null,
     externalLinks: a.publicShowExternalProfiles
-      ? { fisProfileUrl: a.fisProfileUrl, atpProfileUrl: a.atpProfileUrl }
+      ? { fisProfileUrl: a.fisProfileUrl, atpProfileUrl: a.atpProfileUrl, fisCode: a.fisCode }
       : null,
     contactEnabled: a.publicContactEnabled,
     recruiting,
+    pointsEvolution: a.publicShowRanking && perf.pointsEvolution.length >= 2 ? perf.pointsEvolution : null,
+    performance: a.publicShowResults ? perf : null,
+    premiumUnlocked,
   };
 
   return { status: "ok", profile };

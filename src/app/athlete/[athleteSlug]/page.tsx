@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolvePublicProfile, type PublicProfile } from "@/lib/profiles";
 import { AcademyRecruitingBanner } from "@/components/Recruiting";
+import { PerformanceAnalytics } from "@/components/PerformanceAnalytics";
+import { GrowthChart } from "@/components/GrowthChart";
 import { getSession } from "@/lib/auth";
 import { DISCIPLINE_LABEL, COUNTRY, fmtPoints, fmtDate } from "@/lib/domain";
 
@@ -79,13 +81,19 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         {p.recruiting && <AcademyRecruitingBanner banner={p.recruiting} />}
 
         {/* Ranking */}
-        {(p.fisPoints != null || p.worldRank != null) && (
+        {(p.fisPoints != null || p.worldRank != null || p.pointsEvolution) && (
           <section>
-            <SectionTitle kicker="Performance" title="Ranking" />
+            <SectionTitle kicker="Performance" title="Ranking & trend" />
             <div className="grid gap-4 sm:grid-cols-2">
               <Stat label="FIS points" value={fmtPoints(p.fisPoints)} />
               <Stat label="World rank" value={p.worldRank != null ? `#${p.worldRank}` : "—"} />
             </div>
+            {p.pointsEvolution && (
+              <div className="card mt-4 p-5">
+                <div className="mb-3 text-sm font-semibold">FIS points trend <span className="text-xs font-normal text-[var(--color-muted)]">· lower is better</span></div>
+                <GrowthChart data={p.pointsEvolution} />
+              </div>
+            )}
           </section>
         )}
 
@@ -120,6 +128,11 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
           </section>
         )}
 
+        {/* Premium performance analytics */}
+        {p.performance && p.performance.totalRaces > 0 && (
+          <PerformanceAnalytics stats={p.performance} locked={!p.premiumUnlocked} />
+        )}
+
         {/* Media */}
         {p.media && p.media.length > 0 && (
           <section>
@@ -146,9 +159,12 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
         )}
 
         {/* External profiles */}
-        {p.externalLinks && (p.externalLinks.fisProfileUrl || p.externalLinks.atpProfileUrl) && (
+        {p.externalLinks && (p.externalLinks.fisCode || p.externalLinks.fisProfileUrl || p.externalLinks.atpProfileUrl) && (
           <section>
             <SectionTitle kicker="Verified sources" title="External profiles" />
+            {p.externalLinks.fisCode && (
+              <div className="mb-3 text-sm text-[var(--color-muted)]">FIS code <span className="num font-semibold text-[var(--color-fg)]">{p.externalLinks.fisCode}</span></div>
+            )}
             <div className="flex flex-wrap gap-3">
               {p.externalLinks.fisProfileUrl && <ExtLink href={p.externalLinks.fisProfileUrl} label="FIS profile" />}
               {p.externalLinks.atpProfileUrl && <ExtLink href={p.externalLinks.atpProfileUrl} label="ATP profile" />}

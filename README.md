@@ -32,11 +32,10 @@ If `DATABASE_URL` is missing or wrong, the app shows a clear error telling you t
 ### C. Deploy to Vercel
 1. Push this project to GitHub.
 2. On [vercel.com](https://vercel.com) → **Add New → Project** → import the repo.
-3. Open **Settings → Environment Variables** and add **one** variable:
-   - **Name:** `DATABASE_URL`
-   - **Value:** your Supabase **Session pooler** string (same format as above)
-   - apply it to **Production** (and **Preview** if you want preview deploys)
-4. Click **Deploy**.
+3. Open **Settings → Environment Variables** and add **two** variables (Production + Preview):
+   - **`DATABASE_URL`** = your Supabase **Transaction pooler** string (port **6543**) — used by the running app.
+   - **`DIRECT_URL`** = your Supabase **Session pooler** string (port **5432**) — used by the build to sync the database schema (`prisma db push`). Required: the build hangs on the 6543 pooler.
+4. Click **Deploy**. The build runs `prisma db push` (via `DIRECT_URL`) to create/update tables, then builds the app.
 
 The database tables are created by running `npm run db:push` **once** (step B). If you start from a brand-new empty Supabase database, run `npm run db:push` against it one time before the app can read/write data.
 

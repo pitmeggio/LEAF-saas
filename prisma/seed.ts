@@ -254,9 +254,16 @@ async function main() {
       await prisma.rankingPoint.create({ data: { athleteId: athlete.id, date: monthsAgo(span - m), fisPoints: pts, worldRank: rank } });
     }
 
-    for (let r = 0; r < 5; r++) {
+    // Richer race history so the performance analytics (frequency, discipline split,
+    // consistency, DNF%, podium%) have real signal.
+    const DISC_POOL = ["slalom", "giant_slalom", "super_g", "downhill"];
+    for (let r = 0; r < 8; r++) {
       const pts = round(a.endPoints + (Math.random() * 8 - 2), 2);
-      await prisma.result.create({ data: { athleteId: athlete.id, date: monthsAgo(r * 2 + 1), eventName: EVENTS[(i + r) % EVENTS.length], location: VENUES[(i + r) % VENUES.length], discipline: a.discipline, rank: 1 + ((i + r * 3) % 25), fisPoints: Math.max(5, pts) } });
+      // mostly finished; deterministic DNF/DSQ sprinkle for the DNF% stat
+      const status = r === 2 ? "dnf" : r === 5 && i % 3 === 0 ? "dsq" : r === 6 && i % 2 === 1 ? "dnf" : "finished";
+      const discipline = r % 3 === 0 ? a.discipline : DISC_POOL[(i + r) % DISC_POOL.length];
+      const rank = status === "finished" ? 1 + ((i + r * 3) % 25) : 0;
+      await prisma.result.create({ data: { athleteId: athlete.id, date: monthsAgo(r * 2 + 1), eventName: EVENTS[(i + r) % EVENTS.length], location: VENUES[(i + r) % VENUES.length], discipline, rank, fisPoints: Math.max(5, pts), status } });
     }
 
     await prisma.media.create({ data: { athleteId: athlete.id, type: "video", title: "Season highlights", duration: "2:14" } });
