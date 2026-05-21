@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { resolvePublicProfile, type PublicProfile } from "@/lib/profiles";
 import { AcademyRecruitingBanner } from "@/components/Recruiting";
 import { PublicNav } from "@/components/PublicNav";
+import { SiteFooter } from "@/components/SiteFooter";
 import { PerformanceAnalytics } from "@/components/PerformanceAnalytics";
 import { GrowthChart } from "@/components/GrowthChart";
 import { getSession } from "@/lib/auth";
@@ -229,9 +230,7 @@ export default async function PublicProfilePage({
         )}
       </div>
 
-      <footer className="border-t border-[var(--color-border)] px-5 py-6 text-center text-xs text-[var(--color-muted)] md:px-12">
-        Powered by LEAF · Verified athlete profiles
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

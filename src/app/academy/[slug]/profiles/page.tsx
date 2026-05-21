@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAcademyPublicAthletes } from "@/lib/profiles";
 import { PublicNav } from "@/components/PublicNav";
+import { SiteFooter } from "@/components/SiteFooter";
 import { DISCIPLINE_LABEL, COUNTRY, fmtPoints } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -64,9 +65,7 @@ export default async function AcademyProfilesPage({ params }: { params: Promise<
         )}
       </section>
 
-      <footer className="border-t border-[var(--color-border)] px-5 py-6 text-center text-xs text-[var(--color-muted)] md:px-12">
-        Powered by LEAF
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

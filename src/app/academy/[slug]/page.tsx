@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getPublicAcademy } from "@/lib/queries";
 import { RecruitingBadge } from "@/components/Recruiting";
 import { PublicNav } from "@/components/PublicNav";
+import { SiteFooter } from "@/components/SiteFooter";
 import type { RecruitingStatus } from "@/lib/profiles";
 import { DISCIPLINE_LABEL, COUNTRY } from "@/lib/domain";
 
@@ -212,9 +213,7 @@ export default async function PublicAcademyPage({ params }: { params: Promise<{ 
         </section>
       </div>
 
-      <footer className="border-t border-[var(--color-border)] px-5 py-6 text-center text-xs text-[var(--color-muted)] md:px-12">
-        Powered by LEAF
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

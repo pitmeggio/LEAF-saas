@@ -1,4 +1,5 @@
 import { PublicNav } from "@/components/PublicNav";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata = { title: "Privacy & data terms — LEAF" };
 
@@ -38,6 +39,7 @@ export default function PrivacyPage() {
           before commercial launch.
         </p>
       </div>
+      <SiteFooter />
     </div>
   );
 }

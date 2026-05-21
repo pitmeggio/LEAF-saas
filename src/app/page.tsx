@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { LeafMark } from "@/components/LeafMark";
 import { PublicNav } from "@/components/PublicNav";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata = {
   title: "LEAF — The verified performance intelligence layer for elite sport",
@@ -166,10 +166,7 @@ export default function LeafLanding() {
         </div>
       </section>
 
-      <footer className="flex items-center justify-between border-t border-[var(--color-border)] px-5 py-6 text-xs text-[var(--color-muted)] md:px-12">
-        <div className="flex items-center gap-2"><LeafMark size={18} variant="currentColor" /> <span>LEAF</span></div>
-        <span>The performance intelligence layer for elite sport</span>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

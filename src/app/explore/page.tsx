@@ -1,5 +1,6 @@
 import { PublicNav } from "@/components/PublicNav";
 import { CreateProfileButton } from "@/components/CreateProfilePanel";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata = { title: "Your performance, analyzed — LEAF" };
 
@@ -132,9 +133,7 @@ export default function ExplorePage() {
         </div>
       </section>
 
-      <footer className="border-t border-[var(--color-border)] px-5 py-6 text-center text-xs text-[var(--color-muted)] md:px-12">
-        Powered by LEAF · Verified athlete profiles
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

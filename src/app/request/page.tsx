@@ -1,5 +1,6 @@
 import { PublicNav } from "@/components/PublicNav";
 import { RequestAcademyForm } from "@/components/RequestAcademyForm";
+import { SiteFooter } from "@/components/SiteFooter";
 import { PLANS } from "@/lib/plans";
 
 export const metadata = { title: "Bring your academy to LEAF" };
@@ -124,9 +125,7 @@ export default function RequestAcademyPage() {
         </div>
       </div>
 
-      <footer className="border-t border-[var(--color-border)] px-5 py-6 text-center text-xs text-[var(--color-muted)] md:px-12">
-        Powered by LEAF
-      </footer>
+      <SiteFooter />
     </div>
   );
 }
