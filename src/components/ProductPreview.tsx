@@ -1,22 +1,10 @@
-// Dynamic product preview — a CSS mock of a verified athlete profile + AI.
-// The frame sits in 3D perspective and straightens on hover; inner tiles pop
-// toward the viewer; accent chips float just outside the frame for depth.
+// Clean, centered product mock of a verified athlete profile + AI.
+// Flat and still — the visual does the talking (Apple-style), no 3D tricks.
 export function ProductPreview() {
   return (
-    <div className="relative mx-auto max-w-3xl [perspective:1400px]">
-      <div className="pointer-events-none absolute -inset-x-16 -top-16 bottom-0 glow-accent opacity-70" />
-      <div className="pointer-events-none absolute right-0 top-1/3 h-[240px] w-[300px] glow-accent-2 opacity-60" />
-
-      {/* Floating chips — sit slightly outside the card */}
-      <div className="float-slow pointer-events-none absolute -left-3 top-10 z-20 hidden rounded-xl border border-[var(--color-accent)]/40 bg-[var(--color-bg)]/90 px-3 py-2 text-xs font-semibold shadow-2xl backdrop-blur sm:block" style={{ color: "var(--color-accent)" }}>
-        ↘ Improving trend
-      </div>
-      <div className="float-slow pointer-events-none absolute -right-4 bottom-16 z-20 hidden items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg)]/90 px-3 py-2 text-xs font-semibold shadow-2xl backdrop-blur sm:flex" style={{ animationDelay: "1.2s" }}>
-        <span className="flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
-        Projected ≈ 18.4
-      </div>
-
-      <div className="tilt card relative overflow-hidden p-0 shadow-2xl">
+    <div className="relative mx-auto max-w-3xl">
+      <div className="pointer-events-none absolute -inset-x-16 -top-20 bottom-0 glow-accent opacity-60" />
+      <div className="card relative overflow-hidden p-0" style={{ boxShadow: "0 40px 120px -40px rgba(0,0,0,0.8)" }}>
         {/* window bar */}
         <div className="flex items-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-2)] px-4 py-3">
           <span className="h-2.5 w-2.5 rounded-full bg-[#f87171]" />
@@ -39,16 +27,16 @@ export function ProductPreview() {
               </div>
             </div>
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="card-2 pop p-3">
+              <div className="card-2 p-3">
                 <div className="kicker">FIS points</div>
                 <div className="num mt-1 text-xl font-bold" style={{ color: "var(--color-accent)" }}>23.1</div>
               </div>
-              <div className="card-2 pop p-3">
+              <div className="card-2 p-3">
                 <div className="kicker">World rank</div>
                 <div className="num mt-1 text-xl font-bold">#142</div>
               </div>
             </div>
-            <div className="card-2 pop mt-3 p-3">
+            <div className="card-2 mt-3 p-3">
               <div className="kicker mb-2">Points trend · lower is better</div>
               <svg width="100%" height="40" viewBox="0 0 200 40" preserveAspectRatio="none">
                 <polyline points="0,34 30,30 60,31 90,24 120,22 150,16 200,12" fill="none" stroke="var(--color-accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
@@ -57,7 +45,7 @@ export function ProductPreview() {
           </div>
 
           {/* AI panel */}
-          <div className="card-2 pop p-4">
+          <div className="card-2 p-4">
             <div className="mb-2 flex items-center gap-2">
               <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
               <span className="text-sm font-semibold">Performance insights</span>
