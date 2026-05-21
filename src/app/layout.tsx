@@ -12,9 +12,23 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://leaf-saas-gbf8.vercel.app";
+
 export const metadata: Metadata = {
-  title: "LEAF — Sports Performance OS",
-  description: "The intelligence layer behind elite sports academies — verified athlete performance, analytics, recruiting and academy operations in one platform.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: "LEAF — Sports Performance OS", template: "%s · LEAF" },
+  description: "The verified performance intelligence layer for elite sport — athlete profiles, AI analytics and the operating system academies run on.",
+  openGraph: {
+    type: "website",
+    siteName: "LEAF",
+    title: "LEAF — Where athlete performance becomes intelligence",
+    description: "Verified athlete profiles, AI performance analytics, and the academy operating system — in one platform.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LEAF — Where athlete performance becomes intelligence",
+    description: "Verified athlete profiles, AI performance analytics, and the academy operating system.",
+  },
 };
 
 export default function RootLayout({

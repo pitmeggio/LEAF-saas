@@ -13,6 +13,9 @@ import { AthleteInsights } from "@/components/AthleteInsights";
 import { deriveRecommendations } from "@/lib/ai/recommendations";
 import { RecommendationsCard } from "@/components/RecommendationsCard";
 import { MyProfileEditForm } from "@/components/MyProfileEditForm";
+import { ShareButton } from "@/components/ShareButton";
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://leaf-saas-gbf8.vercel.app";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My profile — LEAF" };
@@ -41,9 +44,12 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
         </div>
         <div className="flex items-center gap-2">
           {w.slug && (
-            <Link href={`/athlete/${w.slug}`} target="_blank" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface)]">
-              View public profile ↗
-            </Link>
+            <>
+              <ShareButton url={`${baseUrl}/athlete/${w.slug}`} label="Copy link" className="hidden rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:border-[var(--color-accent)] sm:inline-flex" />
+              <Link href={`/athlete/${w.slug}`} target="_blank" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface)]">
+                View public profile ↗
+              </Link>
+            </>
           )}
           <form action={signOut}>
             <button type="submit" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface)]">Sign out</button>

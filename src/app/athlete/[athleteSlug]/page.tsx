@@ -4,6 +4,7 @@ import { resolvePublicProfile, type PublicProfile } from "@/lib/profiles";
 import { AcademyRecruitingBanner } from "@/components/Recruiting";
 import { PublicNav } from "@/components/PublicNav";
 import { SiteFooter } from "@/components/SiteFooter";
+import { ShareButton } from "@/components/ShareButton";
 import { PerformanceAnalytics } from "@/components/PerformanceAnalytics";
 import { GrowthChart } from "@/components/GrowthChart";
 import { getSession } from "@/lib/auth";
@@ -15,8 +16,22 @@ import { forecastTrajectory } from "@/lib/ai/forecast";
 import { ForecastCard } from "@/components/ForecastCard";
 import { deriveRecommendations } from "@/lib/ai/recommendations";
 import { RecommendationsCard } from "@/components/RecommendationsCard";
+import { prisma } from "@/lib/db";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ athleteSlug: string }> }): Promise<Metadata> {
+  const { athleteSlug } = await params;
+  const a = await prisma.athlete.findUnique({
+    where: { publicSlug: athleteSlug },
+    select: { firstName: true, lastName: true, sport: true, publicProfileEnabled: true, publicVisibility: true },
+  });
+  if (!a || !a.publicProfileEnabled || a.publicVisibility !== "PUBLIC") return { title: "Athlete profile" };
+  const name = `${a.firstName} ${a.lastName}`;
+  const desc = `${name} — verified ${sportConfig(a.sport).label} profile on LEAF: ranking, growth trend and performance analytics.`;
+  return { title: name, description: desc, openGraph: { title: `${name} · LEAF`, description: desc } };
+}
 
 export default async function PublicProfilePage({
   params,
@@ -85,6 +100,9 @@ export default async function PublicProfilePage({
                 <span className="capitalize">{p.sport}</span>
                 {p.disciplines.length > 0 && <><span>·</span><span>{p.disciplines.map((d) => DISCIPLINE_LABEL[d] ?? d).join(", ")}</span></>}
                 {p.academyName && <><span>·</span><span className="text-[var(--color-fg)]">{p.academyName}</span></>}
+              </div>
+              <div className="mt-4 flex justify-center sm:justify-start">
+                <ShareButton label="Share profile" />
               </div>
             </div>
           </div>
