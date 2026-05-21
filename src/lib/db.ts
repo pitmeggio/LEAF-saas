@@ -1,15 +1,35 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-// Runtime uses the pooled DATABASE_URL (Supabase transaction pooler, serverless-safe).
-// ssl.rejectUnauthorized=false: the Supabase pooler presents a cert chain Node doesn't
-// trust by default; the connection is still TLS-encrypted. Harden later with the CA cert.
-const connectionString = process.env.DATABASE_URL;
+// Resolve the Postgres connection string from the single DATABASE_URL env var.
+// We strip `sslmode` from the URL because we set TLS explicitly below — leaving
+// `sslmode=require` in the string makes node-postgres re-enable strict cert
+// verification, which fails on Supabase's pooler ("self-signed certificate in chain").
+function getConnectionString(): string {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) {
+    throw new Error(
+      "DATABASE_URL is not set. Copy .env.example to .env and paste your Supabase " +
+        "connection string (Supabase → Connect → Session pooler). See the README 'Simple setup'.",
+    );
+  }
+  try {
+    const u = new URL(raw);
+    u.searchParams.delete("sslmode");
+    return u.toString();
+  } catch {
+    return raw;
+  }
+}
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 export const prisma =
   globalForPrisma.prisma ??
-  new PrismaClient({ adapter: new PrismaPg({ connectionString, ssl: { rejectUnauthorized: false } }) });
+  new PrismaClient({
+    // ssl.rejectUnauthorized=false: Supabase's pooler presents a cert chain Node
+    // doesn't trust by default; the connection is still TLS-encrypted.
+    adapter: new PrismaPg({ connectionString: getConnectionString(), ssl: { rejectUnauthorized: false } }),
+  });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

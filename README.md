@@ -1,3 +1,58 @@
+# Academy OS + Leaf Profiles
+
+A multi-tenant academy management app (Academy OS) plus public athlete recruiting profiles (Leaf Profiles). Next.js + Prisma + PostgreSQL (Supabase). Academy OS writes the data; Leaf Profiles shows the approved public parts. Both share **one** database.
+
+## Simple setup
+
+You only ever need **one** secret: a Supabase connection string called `DATABASE_URL`.
+
+### A. Get your database string from Supabase
+1. Go to [supabase.com](https://supabase.com) → create a project (remember the **database password** you set).
+2. In the project, click **Connect** (top bar) → choose **Session pooler**.
+3. Copy the connection string. It looks like:
+   `postgresql://postgres.abcd1234:YOUR-PASSWORD@aws-0-eu-central-1.pooler.supabase.com:5432/postgres`
+   - the username starts with `postgres.` followed by your project id — **not** just `postgres`
+   - the port is `5432`
+   - replace the password placeholder with your real database password
+
+### B. Run it locally
+```bash
+cp .env.example .env        # then paste your string into .env as DATABASE_URL
+npm install                 # installs everything + generates the database client
+npm run db:push             # creates the tables in your database
+npm run db:seed             # (optional) adds demo data
+npm run dev                 # start the app at http://localhost:3000
+```
+
+If `DATABASE_URL` is missing or wrong, the app shows a clear error telling you to fix `.env`.
+
+### C. Deploy to Vercel
+1. Push this project to GitHub.
+2. On [vercel.com](https://vercel.com) → **Add New → Project** → import the repo.
+3. Open **Settings → Environment Variables** and add **one** variable:
+   - **Name:** `DATABASE_URL`
+   - **Value:** your Supabase **Session pooler** string (same format as above)
+   - apply it to **Production** (and **Preview** if you want preview deploys)
+4. Click **Deploy**.
+
+The database tables are created by running `npm run db:push` **once** (step B). If you start from a brand-new empty Supabase database, run `npm run db:push` against it one time before the app can read/write data.
+
+> Tips:
+> - Don't add `?sslmode=...` to the string — the app handles the secure connection for you.
+> - Use the **Session pooler** string (port 5432); avoid the `db.<id>.supabase.co` "direct" string (it doesn't work on most cloud builders).
+> - If you ever see a login/database error like *"password authentication failed"*, your `DATABASE_URL` password is wrong — re-copy the Session pooler string from Supabase (reset the database password under **Settings → Database** if unsure) and update it in `.env` (local) and in Vercel **Environment Variables** (then redeploy).
+
+### Useful commands
+| Command | What it does |
+|---|---|
+| `npm run dev` | Run the app locally |
+| `npm run db:push` | Create/update database tables from the schema |
+| `npm run db:generate` | Regenerate the Prisma client |
+| `npm run db:seed` | Load demo data |
+| `npm run build` | Production build (also syncs the database) |
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

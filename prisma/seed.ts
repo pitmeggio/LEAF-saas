@@ -3,9 +3,14 @@ import { PrismaClient } from "../src/generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { REQUIRED_DOC_TYPES, buildPaymentSchedule } from "../src/lib/enrollmentLogic.js";
 
-// Seed runs through the session pooler / direct URL so it can perform writes reliably.
+// Single DATABASE_URL (Supabase Session pooler). Strip sslmode; TLS set explicitly.
+function seedConnectionString(): string {
+  const raw = process.env.DATABASE_URL;
+  if (!raw) throw new Error("DATABASE_URL is not set — see the README 'Simple setup'.");
+  try { const u = new URL(raw); u.searchParams.delete("sslmode"); return u.toString(); } catch { return raw; }
+}
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DIRECT_URL ?? process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }),
+  adapter: new PrismaPg({ connectionString: seedConnectionString(), ssl: { rejectUnauthorized: false } }),
 });
 
 type AthleteSeed = {
