@@ -435,20 +435,9 @@ export type AcademyDirectoryCard = {
   athleteCount: number;
 };
 
-export type AthleteDirectoryCard = {
-  slug: string;
-  firstName: string;
-  lastName: string;
-  nationality: string;
-  discipline: string;
-  photoColor: string;
-  publicPhotoUrl: string | null;
-  verified: boolean;
-  academyName: string | null;
-  fisPoints: number | null; // only when publicShowRanking
-  worldRank: number | null;
-  spark: number[] | null; // last ranking points (oldest→newest) for a mini trend
-};
+// NOTE: There is intentionally NO public athlete directory. LEAF does not expose a
+// browsable roster of athletes — a profile is reachable only via its owner-shared link
+// (resolvePublicProfile by slug). This is a deliberate privacy boundary, not an omission.
 
 // All active academies (public-safe), with a count of their PUBLIC athletes.
 export async function getPublicAcademiesDirectory(): Promise<AcademyDirectoryCard[]> {
@@ -474,39 +463,4 @@ export async function getPublicAcademiesDirectory(): Promise<AcademyDirectoryCar
     recruiting: a.recruitingEnabled ? normStatus(a.recruitingStatus) : null,
     athleteCount: new Set(a.enrollments.map((e) => e.athleteId)).size,
   }));
-}
-
-// All PUBLIC athlete profiles (public-safe), with their primary academy name.
-export async function getPublicAthletesDirectory(): Promise<AthleteDirectoryCard[]> {
-  const rows = await prisma.athlete.findMany({
-    where: { publicProfileEnabled: true, publicVisibility: "PUBLIC", publicSlug: { not: null } },
-    select: {
-      publicSlug: true, firstName: true, lastName: true, nationality: true, discipline: true,
-      photoColor: true, publicPhotoUrl: true, publicVerified: true, publicShowAcademy: true,
-      publicShowRanking: true, fisPoints: true, worldRank: true,
-      rankings: { orderBy: { date: "asc" }, select: { fisPoints: true } },
-      enrollments: { select: { academy: { select: { name: true, status: true } } } },
-    },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-  });
-  return rows.map((a) => {
-    const academyName = a.publicShowAcademy
-      ? (a.enrollments.find((e) => e.academy?.status === "active")?.academy?.name ?? a.enrollments[0]?.academy?.name ?? null)
-      : null;
-    const spark = a.publicShowRanking && a.rankings.length >= 2 ? a.rankings.slice(-8).map((r) => r.fisPoints) : null;
-    return {
-      slug: a.publicSlug as string,
-      firstName: a.firstName,
-      lastName: a.lastName,
-      nationality: a.nationality,
-      discipline: a.discipline,
-      photoColor: a.photoColor,
-      publicPhotoUrl: a.publicPhotoUrl,
-      verified: a.publicVerified,
-      academyName,
-      fisPoints: a.publicShowRanking ? a.fisPoints : null,
-      worldRank: a.publicShowRanking ? a.worldRank : null,
-      spark,
-    };
-  });
 }

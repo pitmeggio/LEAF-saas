@@ -10,8 +10,15 @@ import { DISCIPLINE_LABEL, COUNTRY, fmtPoints, fmtDate } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
 
-export default async function PublicProfilePage({ params }: { params: Promise<{ athleteSlug: string }> }) {
+export default async function PublicProfilePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ athleteSlug: string }>;
+  searchParams: Promise<{ new?: string }>;
+}) {
   const { athleteSlug } = await params;
+  const { new: isNew } = await searchParams;
   // Anonymous-safe: only ACADEMY_ONLY profiles consult the viewer's academy.
   const session = await getSession();
   const res = await resolvePublicProfile(athleteSlug, session?.academyId ?? null);
@@ -24,6 +31,19 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
   return (
     <div className="min-h-screen">
       <PublicNav />
+
+      {/* Just-created confirmation */}
+      {isNew && (
+        <div className="border-b border-[var(--color-accent)]/30 bg-[var(--color-accent)]/10">
+          <div className="mx-auto flex max-w-4xl flex-col items-start gap-1 px-5 py-3.5 md:flex-row md:items-center md:justify-between md:px-12">
+            <div className="text-sm">
+              <span className="font-semibold text-[var(--color-accent)]">✓ Profile created.</span>{" "}
+              <span className="text-[var(--color-fg)]/85">This is your verified profile — share this page's link with academies and coaches.</span>
+            </div>
+            <span className="text-xs text-[var(--color-muted)]">Manage visibility from your academy workspace once enrolled.</span>
+          </div>
+        </div>
+      )}
 
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-[var(--color-border)]">
