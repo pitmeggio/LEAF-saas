@@ -2,6 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { REQUIRED_DOC_TYPES, buildPaymentSchedule } from "../src/lib/enrollmentLogic.js";
+import bcrypt from "bcryptjs";
 
 // Seeding prefers DIRECT_URL (Session pooler, 5432) when set, else DATABASE_URL.
 function seedConnectionString(): string {
@@ -417,6 +418,11 @@ async function main() {
       });
     }
   }
+
+  // Give every seeded login a known demo password (real bcrypt hash) so the
+  // email/password sign-in works out of the box. Override with DEMO_PASSWORD.
+  const demoHash = await bcrypt.hash(process.env.DEMO_PASSWORD || "leaf2026", 10);
+  await prisma.user.updateMany({ where: { passwordHash: null }, data: { passwordHash: demoHash } });
 
   console.log(`Seeded: 1 academy, ${athletes.length} athletes (${ENROLLED_COUNT} active), ${coaches.length} coaches, ${packages.length} packages, ${groups.length} groups.`);
   console.log(`Users: ${admin.name} (admin), ${coachUser.name} (coach).`);

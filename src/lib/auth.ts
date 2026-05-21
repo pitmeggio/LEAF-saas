@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { readSessionToken } from "@/lib/password";
 
 export const SESSION_COOKIE = "academy_uid";
 
@@ -23,7 +24,7 @@ export type AcademyStatus = (typeof ACADEMY_STATUSES)[number];
 
 export async function getCurrentUser() {
   const jar = await cookies();
-  const uid = jar.get(SESSION_COOKIE)?.value;
+  const uid = readSessionToken(jar.get(SESSION_COOKIE)?.value);
   if (!uid) return null;
   return prisma.user.findUnique({ where: { id: uid }, include: { academy: true } });
 }

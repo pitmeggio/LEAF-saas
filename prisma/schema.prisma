@@ -67,6 +67,7 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
+  passwordHash String? // bcrypt hash; null = no credential set yet (legacy/demo)
   role      String   @default("coach") // super_admin | academy_admin | coach | athlete | recruiter
   academyId String? // null for super_admin (platform-level, not bound to a tenant)
   academy   Academy? @relation(fields: [academyId], references: [id])

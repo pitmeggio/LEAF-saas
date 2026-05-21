@@ -53,10 +53,13 @@ export function LoginForm({ demoUsers }: { demoUsers: DemoUser[] }) {
         </button>
         {showDemo && (
           <div className="mt-3 space-y-2">
+            <p className="text-xs text-[var(--color-muted)]">
+              Sign in above with any email below · password <span className="num font-semibold text-[var(--color-fg)]">leaf2026</span>. Or one-click in:
+            </p>
             {demoUsers.map((u) => (
               <form key={u.id} action={signIn.bind(null, u.id)}>
                 <button type="submit" className="flex w-full items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-left text-sm hover:border-[var(--color-accent)]/50">
-                  <span>{u.name}</span>
+                  <span>{u.name} <span className="text-[var(--color-muted)]">· {u.email}</span></span>
                   <span className="text-xs text-[var(--color-muted)]">{ROLE_LABEL[u.role] ?? u.role}</span>
                 </button>
               </form>

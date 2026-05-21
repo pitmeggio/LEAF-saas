@@ -4,10 +4,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { SESSION_COOKIE } from "@/lib/auth";
+import { makeSessionToken, hashPassword, verifyPassword } from "@/lib/password";
 
 async function setSession(userId: string) {
   const jar = await cookies();
-  jar.set(SESSION_COOKIE, userId, {
+  jar.set(SESSION_COOKIE, makeSessionToken(userId), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
@@ -15,15 +16,20 @@ async function setSession(userId: string) {
   });
 }
 
+// One-click demo sign-in (the login page's demo user list). Disabled in production
+// unless ALLOW_DEMO_LOGIN is set, so it can't be used to impersonate real accounts.
 export async function signIn(userId: string) {
+  const demoAllowed = process.env.NODE_ENV !== "production" || process.env.ALLOW_DEMO_LOGIN === "1";
+  if (!demoAllowed) redirect("/login");
   await setSession(userId);
   redirect("/dashboard");
 }
 
 export type SignInState = { error?: string };
 
-// Email/password sign-in. NOTE: password is not yet verified (real auth is a later
-// phase) — we authenticate by email lookup. The UI presents a normal credentials form.
+// Email/password sign-in. Verifies a bcrypt hash. Accounts without a hash yet
+// (legacy/demo rows) are "claimed" on first sign-in: the entered password becomes
+// their credential. The session cookie is signed (see lib/password).
 export async function signInWithEmail(_prev: SignInState, formData: FormData): Promise<SignInState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
@@ -31,6 +37,14 @@ export async function signInWithEmail(_prev: SignInState, formData: FormData): P
 
   const user = await prisma.user.findFirst({ where: { email: { equals: email } } });
   if (!user) return { error: "No account found for that email." };
+
+  if (user.passwordHash) {
+    const ok = await verifyPassword(password, user.passwordHash);
+    if (!ok) return { error: "Incorrect password." };
+  } else {
+    // First sign-in for a credential-less account → set the password now.
+    await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password) } });
+  }
 
   await setSession(user.id);
   redirect("/dashboard");
