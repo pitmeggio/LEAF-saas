@@ -10,6 +10,8 @@ import { DISCIPLINE_LABEL, COUNTRY, fmtPoints, fmtDate } from "@/lib/domain";
 import { sportConfig } from "@/lib/sport";
 import { deriveAthleteInsights } from "@/lib/ai/athleteInsights";
 import { AthleteInsights } from "@/components/AthleteInsights";
+import { forecastTrajectory } from "@/lib/ai/forecast";
+import { ForecastCard } from "@/components/ForecastCard";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +117,11 @@ export default async function PublicProfilePage({
               <div className="card mt-4 p-5">
                 <div className="mb-3 text-sm font-semibold">{sport.pointsLabel} trend <span className="text-xs font-normal text-[var(--color-muted)]">· {sport.pointsHint}</span></div>
                 <GrowthChart data={p.pointsEvolution} />
+              </div>
+            )}
+            {p.pointsEvolution && (
+              <div className="mt-4">
+                <ForecastCard forecast={forecastTrajectory(p.pointsEvolution, p.sport)} pointsLabel={sport.pointsLabel} />
               </div>
             )}
           </section>
