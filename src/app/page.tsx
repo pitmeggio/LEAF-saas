@@ -16,8 +16,9 @@ export default function LeafLanding() {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg font-black" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>L</div>
           <span className="font-semibold">Leaf</span>
         </div>
-        <nav className="flex items-center gap-2">
-          <a href={DEMO_MAILTO} className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">Request demo</a>
+        <nav className="flex items-center gap-1 sm:gap-2">
+          <Link href="/explore" className="rounded-lg px-3 py-2 text-sm font-medium text-[var(--color-muted)] hover:bg-[var(--color-surface)] hover:text-[var(--color-fg)]">Explore</Link>
+          <a href={DEMO_MAILTO} className="hidden rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)] sm:inline-block">Request demo</a>
           <Link href="/login" className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]">Sign in</Link>
         </nav>
       </header>

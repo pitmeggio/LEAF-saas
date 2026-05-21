@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAcademyPublicAthletes } from "@/lib/profiles";
+import { PublicNav } from "@/components/PublicNav";
 import { DISCIPLINE_LABEL, COUNTRY, fmtPoints } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +14,8 @@ export default async function AcademyProfilesPage({ params }: { params: Promise<
 
   return (
     <div className="min-h-screen">
-      <header className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4 md:px-12">
+      <PublicNav />
+      <header className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-3.5 md:px-12">
         <Link href={`/academy/${academy.slug}`} className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg font-black" style={{ background: academy.logoColor, color: "#0a0c10" }}>{academy.name[0]}</div>
           <span className="font-semibold">{academy.name}</span>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { resolvePublicProfile, type PublicProfile } from "@/lib/profiles";
 import { AcademyRecruitingBanner } from "@/components/Recruiting";
+import { PublicNav } from "@/components/PublicNav";
 import { PerformanceAnalytics } from "@/components/PerformanceAnalytics";
 import { GrowthChart } from "@/components/GrowthChart";
 import { getSession } from "@/lib/auth";
@@ -22,18 +23,7 @@ export default async function PublicProfilePage({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-screen">
-      {/* Top bar */}
-      <header className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4 md:px-12">
-        <Link href="/profiles" className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg font-black" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>L</div>
-          <span className="text-sm font-semibold">Leaf Profiles</span>
-        </Link>
-        {p.contactEnabled && (
-          <a href="#contact" className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]">
-            Contact athlete
-          </a>
-        )}
-      </header>
+      <PublicNav />
 
       {/* Hero */}
       <section className="mx-auto max-w-4xl px-5 pt-12 md:px-12">

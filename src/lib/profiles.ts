@@ -422,3 +422,82 @@ export async function getAcademyPublicAthletes(slug: string): Promise<AcademyPro
     })),
   };
 }
+
+// ── Public directory (the unified Explore hub) ───────────────────────────────
+export type AcademyDirectoryCard = {
+  slug: string;
+  name: string;
+  logoColor: string;
+  location: string | null;
+  sport: string;
+  season: string | null;
+  recruiting: RecruitingStatus | null; // null when not recruiting
+  athleteCount: number;
+};
+
+export type AthleteDirectoryCard = {
+  slug: string;
+  firstName: string;
+  lastName: string;
+  nationality: string;
+  discipline: string;
+  photoColor: string;
+  publicPhotoUrl: string | null;
+  verified: boolean;
+  academyName: string | null;
+};
+
+// All active academies (public-safe), with a count of their PUBLIC athletes.
+export async function getPublicAcademiesDirectory(): Promise<AcademyDirectoryCard[]> {
+  const rows = await prisma.academy.findMany({
+    where: { status: "active" },
+    select: {
+      slug: true, name: true, logoColor: true, location: true, sport: true, season: true,
+      recruitingEnabled: true, recruitingStatus: true,
+      enrollments: {
+        where: { athlete: { publicProfileEnabled: true, publicVisibility: "PUBLIC" } },
+        select: { athleteId: true },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+  return rows.map((a) => ({
+    slug: a.slug,
+    name: a.name,
+    logoColor: a.logoColor,
+    location: a.location,
+    sport: a.sport,
+    season: a.season,
+    recruiting: a.recruitingEnabled ? normStatus(a.recruitingStatus) : null,
+    athleteCount: new Set(a.enrollments.map((e) => e.athleteId)).size,
+  }));
+}
+
+// All PUBLIC athlete profiles (public-safe), with their primary academy name.
+export async function getPublicAthletesDirectory(): Promise<AthleteDirectoryCard[]> {
+  const rows = await prisma.athlete.findMany({
+    where: { publicProfileEnabled: true, publicVisibility: "PUBLIC", publicSlug: { not: null } },
+    select: {
+      publicSlug: true, firstName: true, lastName: true, nationality: true, discipline: true,
+      photoColor: true, publicPhotoUrl: true, publicVerified: true, publicShowAcademy: true,
+      enrollments: { select: { academy: { select: { name: true, status: true } } } },
+    },
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+  });
+  return rows.map((a) => {
+    const academyName = a.publicShowAcademy
+      ? (a.enrollments.find((e) => e.academy?.status === "active")?.academy?.name ?? a.enrollments[0]?.academy?.name ?? null)
+      : null;
+    return {
+      slug: a.publicSlug as string,
+      firstName: a.firstName,
+      lastName: a.lastName,
+      nationality: a.nationality,
+      discipline: a.discipline,
+      photoColor: a.photoColor,
+      publicPhotoUrl: a.publicPhotoUrl,
+      verified: a.publicVerified,
+      academyName,
+    };
+  });
+}

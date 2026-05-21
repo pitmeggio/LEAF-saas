@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPublicAcademy } from "@/lib/queries";
 import { RecruitingBadge } from "@/components/Recruiting";
+import { PublicNav } from "@/components/PublicNav";
 import type { RecruitingStatus } from "@/lib/profiles";
 import { DISCIPLINE_LABEL, COUNTRY } from "@/lib/domain";
 
@@ -22,8 +23,9 @@ export default async function PublicAcademyPage({ params }: { params: Promise<{ 
 
   return (
     <div className="min-h-screen">
-      {/* Top bar */}
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 px-5 py-3.5 backdrop-blur md:px-12">
+      <PublicNav />
+      {/* Academy context bar */}
+      <header className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-3.5 md:px-12">
         <div className="flex items-center gap-3">
           <div
             className="flex h-9 w-9 items-center justify-center rounded-lg font-black"
