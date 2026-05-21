@@ -47,6 +47,40 @@ export default async function OverviewPage() {
       />
 
       <div className="space-y-6 p-8">
+        {/* Today — LEAF triages everything; you only see what needs a human */}
+        <div className="card p-6">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+            <h2 className="text-sm font-semibold">Today</h2>
+          </div>
+          {d.alerts.length === 0 ? (
+            <p className="text-sm text-[var(--color-fg)]/85">
+              ✓ You&apos;re all caught up. LEAF is auto-tracking {d.activeAthletes} athletes — payments, documents, attendance and performance.
+            </p>
+          ) : (
+            <>
+              <p className="text-sm text-[var(--color-muted)]">
+                <span className="font-semibold text-[var(--color-fg)]">{d.alerts.length} thing{d.alerts.length === 1 ? "" : "s"} need you</span> — everything else is handled automatically across {d.activeAthletes} athletes.
+              </p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {d.alerts.slice(0, 4).map((a) => (
+                  <Link key={a.id} href={a.href ?? "#"} className="group flex items-center gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 hover:border-[var(--color-accent)]">
+                    <Dot color={SEV_COLOR[a.severity]} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium">{a.title}</span>
+                      <span className="block truncate text-xs text-[var(--color-muted)]">{a.detail}</span>
+                    </span>
+                    <span className="text-[var(--color-muted)] group-hover:text-[var(--color-accent)]">→</span>
+                  </Link>
+                ))}
+              </div>
+              {d.alerts.length > 4 && (
+                <Link href="/dashboard/alerts" className="mt-3 inline-block text-xs text-[var(--color-accent)] hover:underline">See all {d.alerts.length} →</Link>
+              )}
+            </>
+          )}
+        </div>
+
         {/* Academy AI — business health */}
         <AcademyHealthPanel health={health} mrrLabel="Monthly recurring" />
 
@@ -67,25 +101,7 @@ export default async function OverviewPage() {
           <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} waiting`} danger={inbox.unreadTotal > 0} href="/dashboard/inbox" />
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Alerts preview */}
-          <div className="card p-5 lg:col-span-2">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Automation alerts</h2>
-              <Link href="/dashboard/alerts" className="text-xs text-[var(--color-accent)] hover:underline">View all</Link>
-            </div>
-            <div className="space-y-1">
-              {d.alerts.length === 0 && <p className="text-sm text-[var(--color-muted)]">No alerts — everything is on track.</p>}
-              {d.alerts.slice(0, 6).map((a) => (
-                <Link key={a.id} href={a.href ?? "#"} className="flex items-center gap-3 rounded-lg px-2 py-2 hover:bg-[var(--color-surface-2)]">
-                  <Dot color={SEV_COLOR[a.severity]} />
-                  <span className="text-sm font-medium">{a.title}</span>
-                  <span className="truncate text-xs text-[var(--color-muted)]">{a.detail}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-
+        <div className="grid gap-6">
           {/* Package revenue breakdown */}
           <div className="card p-5">
             <h2 className="mb-4 text-sm font-semibold">Revenue by package</h2>
