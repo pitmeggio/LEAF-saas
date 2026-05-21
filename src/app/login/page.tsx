@@ -13,8 +13,24 @@ const FEATURES = [
 ];
 
 export default async function LoginPage() {
-  if (await getCurrentUser()) redirect("/");
-  const demoUsers = await prisma.user.findMany({ orderBy: { role: "asc" }, select: { id: true, name: true, role: true, email: true } });
+  // The sign-in form must always be reachable, so a DB outage must never 500 this page.
+  // We read the session in a try/catch (redirect() is called OUTSIDE the catch so its
+  // internal throw isn't swallowed). Already signed in → go straight to the app.
+  let signedIn = false;
+  try {
+    signedIn = !!(await getCurrentUser());
+  } catch {
+    signedIn = false;
+  }
+  if (signedIn) redirect("/dashboard");
+
+  // Demo accounts are a convenience; if the DB is unreachable, still render the form.
+  let demoUsers: { id: string; name: string; role: string; email: string }[] = [];
+  try {
+    demoUsers = await prisma.user.findMany({ orderBy: { role: "asc" }, select: { id: true, name: true, role: true, email: true } });
+  } catch {
+    demoUsers = [];
+  }
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
