@@ -83,6 +83,31 @@ function render(type: NotifType, c: NotifCtx): { subject: string; body: string }
   }
 }
 
+// Real delivery via Resend (https://resend.com). When RESEND_API_KEY is unset we
+// skip the network call and the notification is recorded as "queued" (outbox) —
+// so the app works fully offline/in demo, and sends for real once the key is set.
+// No SDK dependency: a single fetch to the Resend REST API.
+async function sendEmail(to: string, name: string | null, subject: string, body: string): Promise<"sent" | "queued" | "failed"> {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return "queued";
+  const from = process.env.EMAIL_FROM || "LEAF <onboarding@resend.dev>";
+  try {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from,
+        to: [name ? `${name} <${to}>` : to],
+        subject,
+        text: body,
+      }),
+    });
+    return res.ok ? "sent" : "failed";
+  } catch {
+    return "failed";
+  }
+}
+
 export async function notify(opts: {
   academyId: string;
   type: NotifType;
@@ -93,6 +118,7 @@ export async function notify(opts: {
   ctx: NotifCtx;
 }) {
   const { subject, body } = render(opts.type, opts.ctx);
+  const status = opts.toEmail ? await sendEmail(opts.toEmail, opts.toName ?? null, subject, body) : "queued";
   await prisma.notification.create({
     data: {
       academyId: opts.academyId,
@@ -101,7 +127,7 @@ export async function notify(opts: {
       toName: opts.toName ?? null,
       subject,
       body,
-      status: "sent",
+      status,
       applicationId: opts.applicationId ?? null,
       enrollmentId: opts.enrollmentId ?? null,
     },
