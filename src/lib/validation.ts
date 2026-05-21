@@ -305,6 +305,11 @@ export const applicationSchema = z
     mediaLink: optionalUrl,
     packageId: optionalStr(40),
     opportunityId: optionalStr(40),
+    consent: z.string().optional(), // "on" when the consent box is ticked
+  })
+  .refine((d) => d.consent === "on", {
+    message: "Please accept the data & privacy terms to apply.",
+    path: ["consent"],
   })
   .refine((d) => Boolean(d.fisCode) || Boolean(d.dob && d.nationality && d.discipline), {
     message: "Provide a FIS code, or fill in date of birth, nationality and discipline.",

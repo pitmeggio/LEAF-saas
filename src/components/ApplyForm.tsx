@@ -153,6 +153,14 @@ export function ApplyForm({
         </Field>
       </Section>
 
+      <label className="flex items-start gap-2 text-xs text-[var(--color-muted)]">
+        <input type="checkbox" name="consent" required className="mt-0.5 accent-[var(--color-accent)]" />
+        <span>
+          I agree to LEAF processing my (or my child&apos;s) published competition data to build this application, per the{" "}
+          <a href="/privacy" target="_blank" className="text-[var(--color-accent)] hover:underline">privacy terms</a>.
+        </span>
+      </label>
+
       {state.error && (
         <p className="rounded-lg border border-[#f8717140] bg-[#f871711a] px-3 py-2 text-sm text-[#f87171]">{state.error}</p>
       )}

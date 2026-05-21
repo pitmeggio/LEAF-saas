@@ -22,6 +22,10 @@ const createProfileSchema = z.object({
     .refine((v) => v === undefined || v.length >= 8, { message: "Password must be at least 8 characters." }),
   source: z.enum(["fis", "atp"]).default("fis"),
   code: fisCodeSchema,
+  consent: z.string().optional(), // "on" when accepted
+}).refine((d) => d.consent === "on", {
+  message: "Please accept the data & privacy terms to continue.",
+  path: ["consent"],
 });
 
 // Build a URL-safe slug from a name, then guarantee global uniqueness by suffixing.

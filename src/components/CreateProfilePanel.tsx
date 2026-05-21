@@ -107,6 +107,14 @@ function CreateProfileModal({ onClose }: { onClose: () => void }) {
             )}
           </div>
 
+          <label className="flex items-start gap-2 text-xs text-[var(--color-muted)]">
+            <input type="checkbox" name="consent" required className="mt-0.5 accent-[var(--color-accent)]" />
+            <span>
+              I agree to LEAF processing my published competition data to build my profile, per the{" "}
+              <a href="/privacy" target="_blank" className="text-[var(--color-accent)] hover:underline">privacy terms</a>.
+            </span>
+          </label>
+
           {state.error && <p className="text-sm text-[#f87171]">{state.error}</p>}
 
           <button
