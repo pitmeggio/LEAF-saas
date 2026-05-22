@@ -170,6 +170,8 @@ model User {
   athlete   Athlete? @relation(fields: [athleteId], references: [id])
   notes     Note[]
   assignedConversations Conversation[] @relation("AssignedConversations")
+  approvedExpenses Expense[] @relation("ExpenseApprover")
+  expenseEvents ExpenseEvent[]
   createdAt DateTime @default(now())
 }
 
@@ -194,20 +196,41 @@ model Coach {
 }
 
 model Expense {
-  id        String   @id @default(cuid())
-  academyId String
-  academy   Academy  @relation(fields: [academyId], references: [id])
-  coachId   String
-  coach     Coach    @relation(fields: [coachId], references: [id])
-  groupId   String?
-  group     Group?   @relation(fields: [groupId], references: [id])
-  title     String
-  amount    Int
-  currency  String   @default("EUR")
-  category  String   @default("other") // travel | equipment | accommodation | other
-  status    String   @default("draft") // draft | submitted | approved | rejected | reimbursed
-  notes     String?
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  academyId   String
+  academy     Academy  @relation(fields: [academyId], references: [id])
+  coachId     String
+  coach       Coach    @relation(fields: [coachId], references: [id])
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id])
+  title       String
+  amount      Int
+  currency    String   @default("EUR")
+  category    String   @default("other") // hotel | fuel | lift_pass | transport | equipment | race_cost | other (legacy: travel | accommodation)
+  status      String   @default("draft") // draft | submitted (pending) | approved | rejected | reimbursed
+  notes       String?
+  expenseDate DateTime? // when the cost was incurred (defaults to createdAt if unset)
+  receiptUrl  String? // link to the uploaded receipt
+  approvedById String? // user (academy admin) who approved/rejected
+  approvedBy   User?    @relation("ExpenseApprover", fields: [approvedById], references: [id])
+  approvedAt   DateTime?
+  events      ExpenseEvent[]
+  createdAt   DateTime @default(now())
+}
+
+// Immutable audit trail for an expense — every status change / edit, with who + when.
+model ExpenseEvent {
+  id         String   @id @default(cuid())
+  expenseId  String
+  expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  type       String // created | submitted | approved | rejected | reimbursed | edited
+  fromStatus String?
+  toStatus   String?
+  byUserId   String?
+  byUser     User?    @relation(fields: [byUserId], references: [id])
+  byName     String? // denormalised actor name (survives user deletion)
+  note       String?
+  createdAt  DateTime @default(now())
 }
 
 model Program {
@@ -513,6 +536,7 @@ model Group {
   coach       Coach?       @relation(fields: [coachId], references: [id])
   capacity    Int          @default(12)
   budget      Int? // allocated season budget (currency major units)
+  budgetHardStop Boolean   @default(false) // block approvals that would exceed the budget
   active      Boolean      @default(true)
   notes       String?
   // ── Smart Group Assignment rules (per-academy config) ──

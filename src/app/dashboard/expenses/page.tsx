@@ -61,7 +61,13 @@ export default async function ExpensesPage() {
                 <tr key={e.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]">
                   <td className="px-5 py-3">
                     <div className="font-medium">{e.title}</div>
-                    <div className="text-xs text-[var(--color-muted)] capitalize">{e.category} · {fmtDate(e.createdAt)}</div>
+                    <div className="text-xs text-[var(--color-muted)] capitalize">
+                      {e.category.replace(/_/g, " ")} · {fmtDate(e.expenseDate ?? e.createdAt)}
+                      {e.receiptUrl && <> · <a href={e.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent)] hover:underline">receipt ↗</a></>}
+                    </div>
+                    {e.approvedBy && (e.status === "approved" || e.status === "reimbursed" || e.status === "rejected") && (
+                      <div className="text-[10px] text-[var(--color-muted)]">{e.status === "rejected" ? "Rejected" : "Approved"} by {e.approvedBy.name}{e.approvedAt ? ` · ${fmtDate(e.approvedAt)}` : ""}</div>
+                    )}
                   </td>
                   {isAdmin && <td className="px-3 py-3 text-[var(--color-muted)]">{e.coach.name}</td>}
                   <td className="px-3 py-3 text-[var(--color-muted)]">{e.group?.name ?? "—"}</td>

@@ -137,12 +137,13 @@ export function CoachForm({ initial }: { initial?: { id: string; name: string; e
 }
 
 // ── Group ──
-type GroupInitial = { id: string; name: string; season: string; coachId: string | null; capacity: number; notes: string | null; active: boolean; pointsMin?: number | null; pointsMax?: number | null; ageMin?: number | null; ageMax?: number | null; level?: string | null; discipline?: string | null };
+type GroupInitial = { id: string; name: string; season: string; coachId: string | null; capacity: number; notes: string | null; active: boolean; budget?: number | null; budgetHardStop?: boolean; pointsMin?: number | null; pointsMax?: number | null; ageMin?: number | null; ageMax?: number | null; level?: string | null; discipline?: string | null };
 
-export function GroupForm({ coaches, initial }: { coaches: Opt[]; initial?: GroupInitial }) {
+export function GroupForm({ coaches, initial, currency = "EUR" }: { coaches: Opt[]; initial?: GroupInitial; currency?: string }) {
   const [f, set] = useState({
     name: initial?.name ?? "", season: initial?.season ?? "2026/27", coachId: initial?.coachId ?? "",
     capacity: initial?.capacity ?? 12, notes: initial?.notes ?? "", active: initial?.active ?? true, sport: "ski",
+    budget: initial?.budget ?? "", budgetHardStop: initial?.budgetHardStop ?? false,
     pointsMin: initial?.pointsMin ?? "", pointsMax: initial?.pointsMax ?? "",
     ageMin: initial?.ageMin ?? "", ageMax: initial?.ageMax ?? "",
     level: initial?.level ?? "", discipline: initial?.discipline ?? "",
@@ -152,7 +153,7 @@ export function GroupForm({ coaches, initial }: { coaches: Opt[]; initial?: Grou
   const num = (v: string | number) => (v === "" || v == null ? null : Number(v));
   const payload = (): GroupInput => ({
     name: f.name, season: f.season, sport: f.sport, capacity: Number(f.capacity), notes: f.notes || undefined, active: f.active,
-    coachId: f.coachId || undefined,
+    coachId: f.coachId || undefined, budget: num(f.budget), budgetHardStop: f.budgetHardStop,
     pointsMin: num(f.pointsMin), pointsMax: num(f.pointsMax), ageMin: num(f.ageMin), ageMax: num(f.ageMax),
     level: f.level || null, discipline: f.discipline || null,
   } as GroupInput);
@@ -162,6 +163,13 @@ export function GroupForm({ coaches, initial }: { coaches: Opt[]; initial?: Grou
       <div className="grid grid-cols-2 gap-3">
         <Field label="Season"><input className={inp} value={f.season} onChange={(e) => upd("season", e.target.value)} /></Field>
         <Field label="Capacity"><input type="number" min={1} className={inp} value={f.capacity} onChange={(e) => upd("capacity", Number(e.target.value))} /></Field>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label={`Season budget (${currency})`}><input type="number" min={0} className={inp} value={f.budget} placeholder="e.g. 90000" onChange={(e) => upd("budget", e.target.value)} /></Field>
+        <label className="flex items-end gap-2 pb-2 text-sm">
+          <input type="checkbox" checked={f.budgetHardStop} onChange={(e) => upd("budgetHardStop", e.target.checked)} className="accent-[var(--color-accent)]" />
+          <span>Block over-budget approvals</span>
+        </label>
       </div>
       <Field label="Coach">
         <select className={inp} value={f.coachId} onChange={(e) => upd("coachId", e.target.value)}>
@@ -296,11 +304,20 @@ export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName:
 
 // ── Expense (coach) ──
 const EXPENSE_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "NOK", "SEK", "DKK", "CAD", "AUD", "JPY"];
-export function ExpenseForm({ groups, initial, currency = "EUR" }: { groups: Opt[]; initial?: { id: string; title: string; amount: number; category: string; groupId: string | null; notes: string | null; currency?: string }; currency?: string }) {
-  const [f, set] = useState({ title: initial?.title ?? "", amount: initial?.amount ?? 0, category: initial?.category ?? "travel", groupId: initial?.groupId ?? "", notes: initial?.notes ?? "", currency: initial?.currency ?? currency });
+const EXPENSE_CATEGORIES: { value: string; label: string }[] = [
+  { value: "hotel", label: "Hotel" },
+  { value: "fuel", label: "Fuel" },
+  { value: "lift_pass", label: "Lift pass" },
+  { value: "transport", label: "Transport" },
+  { value: "equipment", label: "Training equipment" },
+  { value: "race_cost", label: "Race cost" },
+  { value: "other", label: "Other" },
+];
+export function ExpenseForm({ groups, initial, currency = "EUR" }: { groups: Opt[]; initial?: { id: string; title: string; amount: number; category: string; groupId: string | null; notes: string | null; currency?: string; expenseDate?: string | null; receiptUrl?: string | null }; currency?: string }) {
+  const [f, set] = useState({ title: initial?.title ?? "", amount: initial?.amount ?? 0, category: initial?.category ?? "hotel", groupId: initial?.groupId ?? "", notes: initial?.notes ?? "", currency: initial?.currency ?? currency, expenseDate: initial?.expenseDate ?? "", receiptUrl: initial?.receiptUrl ?? "" });
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
-  const payload = (): ExpenseInput => ({ title: f.title, amount: Number(f.amount) || 0, category: f.category as "travel" | "equipment" | "accommodation" | "other", groupId: f.groupId || undefined, notes: f.notes || undefined, currency: f.currency }) as ExpenseInput;
+  const payload = (): ExpenseInput => ({ title: f.title, amount: Number(f.amount) || 0, category: f.category, groupId: f.groupId || undefined, notes: f.notes || undefined, currency: f.currency, expenseDate: f.expenseDate || undefined, receiptUrl: f.receiptUrl || undefined }) as unknown as ExpenseInput;
   // Currency options always include the academy's own currency, even if not in the preset list.
   const currencyOptions = EXPENSE_CURRENCIES.includes(currency) ? EXPENSE_CURRENCIES : [currency, ...EXPENSE_CURRENCIES];
   return (
@@ -309,10 +326,14 @@ export function ExpenseForm({ groups, initial, currency = "EUR" }: { groups: Opt
       <div className="grid grid-cols-3 gap-3">
         <Field label="Amount *"><input type="number" min={1} className={inp} value={f.amount} onChange={(e) => upd("amount", e.target.value)} required /></Field>
         <Field label="Currency"><select className={inp} value={f.currency} onChange={(e) => upd("currency", e.target.value)}>{currencyOptions.map((c) => <option key={c} value={c}>{c}</option>)}</select></Field>
-        <Field label="Category"><select className={inp} value={f.category} onChange={(e) => upd("category", e.target.value)}><option value="travel">Travel</option><option value="equipment">Equipment</option><option value="accommodation">Accommodation</option><option value="other">Other</option></select></Field>
+        <Field label="Category"><select className={inp} value={f.category} onChange={(e) => upd("category", e.target.value)}>{EXPENSE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></Field>
       </div>
-      <Field label="Group"><select className={inp} value={f.groupId} onChange={(e) => upd("groupId", e.target.value)}><option value="">No group</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></Field>
-      <Field label="Notes"><textarea className={`${inp} resize-none`} rows={2} value={f.notes} onChange={(e) => upd("notes", e.target.value)} /></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Date"><input type="date" className={inp} value={f.expenseDate} onChange={(e) => upd("expenseDate", e.target.value)} /></Field>
+        <Field label="Group"><select className={inp} value={f.groupId} onChange={(e) => upd("groupId", e.target.value)}><option value="">No group</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></Field>
+      </div>
+      <Field label="Receipt link"><input type="url" className={inp} value={f.receiptUrl} placeholder="https://… (upload to Drive/Dropbox and paste the link)" onChange={(e) => upd("receiptUrl", e.target.value)} /></Field>
+      <Field label="Description"><textarea className={`${inp} resize-none`} rows={2} value={f.notes} onChange={(e) => upd("notes", e.target.value)} /></Field>
       <Footer pending={pending} error={error} />
     </form>
   );

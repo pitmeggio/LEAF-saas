@@ -24,7 +24,7 @@ export default async function GroupsPage() {
       <PageHeader
         title={isAdmin ? "Groups / Teams" : "My Groups"}
         subtitle={isAdmin ? "Occupancy, revenue and budget per team." : "Your teams — occupancy and budget usage."}
-        right={isAdmin ? <Modal label="+ New group" title="New group" className={newBtn}><GroupForm coaches={opts.coaches} /></Modal> : undefined}
+        right={isAdmin ? <Modal label="+ New group" title="New group" className={newBtn}><GroupForm coaches={opts.coaches} currency={currency} /></Modal> : undefined}
       />
       <div className="grid gap-4 p-8 sm:grid-cols-2 lg:grid-cols-3">
         {groups.length === 0 && <p className="text-sm text-[var(--color-muted)]">No groups assigned.</p>}
@@ -49,6 +49,16 @@ export default async function GroupsPage() {
               <PercentBar value={g.occupancyPct} color={g.overCapacity ? "#f87171" : g.occupancyPct > 85 ? "#f59e0b" : "var(--color-accent)"} />
             </div>
 
+            {g.budget != null && g.budget > 0 && (
+              <div className="mt-3">
+                <div className="mb-1 flex items-center justify-between text-xs">
+                  <span className="text-[var(--color-muted)]">Budget used</span>
+                  <span className="num">{g.pctUsed}%{g.budgetHardStop ? " · hard stop" : ""}</span>
+                </div>
+                <PercentBar value={Math.min(100, g.pctUsed)} color={g.overBudget ? "#f87171" : g.pctUsed > 85 ? "#f59e0b" : "var(--color-accent)"} />
+              </div>
+            )}
+
             <dl className="mt-4 space-y-1.5 border-t border-[var(--color-border)] pt-3 text-sm">
               <Row label="Athletes" value={String(g.count)} />
               <Row label="Contract revenue" value={fmtMoney(g.revenue, currency)} />
@@ -58,6 +68,10 @@ export default async function GroupsPage() {
               <Row label="Used budget" value={fmtMoney(g.usedBudget, currency)} />
               <Row label="Remaining" value={fmtMoney(g.remainingBudget, currency)} color={g.remainingBudget < 0 ? "#f87171" : undefined} />
               <Row label="Pending expenses" value={fmtMoney(g.pendingExpenses, currency)} />
+              <Row label="Monthly burn" value={fmtMoney(g.monthlyBurnRate, currency)} />
+              {g.foreignExpenseCount > 0 && (
+                <div className="pt-0.5 text-[10px] text-[var(--color-muted)]">+{g.foreignExpenseCount} foreign-currency expense(s) tracked separately</div>
+              )}
               {isAdmin && (
                 <div className="flex justify-between border-t border-[var(--color-border)] pt-1.5">
                   <dt className="font-medium">Est. margin</dt>
@@ -69,7 +83,7 @@ export default async function GroupsPage() {
             {isAdmin && (
               <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
                 <Modal label="Edit" title="Edit group" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
-                  <GroupForm coaches={opts.coaches} initial={{ id: g.id, name: g.name, season: g.season, coachId: g.coachId, capacity: g.capacity, notes: g.notes, active: g.active, pointsMin: g.pointsMin, pointsMax: g.pointsMax, ageMin: g.ageMin, ageMax: g.ageMax, level: g.level, discipline: g.discipline }} />
+                  <GroupForm coaches={opts.coaches} currency={currency} initial={{ id: g.id, name: g.name, season: g.season, coachId: g.coachId, capacity: g.capacity, notes: g.notes, active: g.active, budget: g.budget, budgetHardStop: g.budgetHardStop, pointsMin: g.pointsMin, pointsMax: g.pointsMax, ageMin: g.ageMin, ageMax: g.ageMax, level: g.level, discipline: g.discipline }} />
                 </Modal>
                 <DeleteButton kind="group" id={g.id} label="Delete" />
               </div>

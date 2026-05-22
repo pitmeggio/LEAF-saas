@@ -42,7 +42,7 @@ export async function getExpenses(coachId?: string | null) {
   const academyId = await requireAcademyId();
   const expenses = await prisma.expense.findMany({
     where: { academyId, ...(coachId ? { coachId } : {}) },
-    include: { coach: true, group: true },
+    include: { coach: true, group: true, approvedBy: { select: { name: true } } },
     orderBy: { createdAt: "desc" },
   });
   const sum = (st: string[]) => expenses.filter((e) => st.includes(e.status)).reduce((s, e) => s + e.amount, 0);
@@ -245,10 +245,17 @@ export async function getGroupsWithStats(coachId?: string | null) {
     // trip abroad) are still tracked + reimbursed, but excluded here to avoid mixing
     // currencies (converting them would need FX rates we don't hold yet).
     const baseExpenses = g.expenses.filter((e) => e.currency === baseCurrency);
-    const usedBudget = baseExpenses.filter((e) => e.status === "approved" || e.status === "reimbursed").reduce((s, e) => s + e.amount, 0);
+    const approvedExpenses = baseExpenses.filter((e) => e.status === "approved" || e.status === "reimbursed");
+    const usedBudget = approvedExpenses.reduce((s, e) => s + e.amount, 0);
     const pendingExpenses = baseExpenses.filter((e) => e.status === "submitted").reduce((s, e) => s + e.amount, 0);
     const foreignExpenseCount = g.expenses.length - baseExpenses.length;
     const remainingBudget = budget - usedBudget;
+    const pctUsed = budget > 0 ? Math.round((usedBudget / budget) * 100) : 0;
+    // Monthly burn rate = approved spend in the last 30 days (base currency).
+    const since30 = Date.now() - 30 * 24 * 3600 * 1000;
+    const monthlyBurnRate = approvedExpenses
+      .filter((e) => +(e.expenseDate ?? e.createdAt) >= since30)
+      .reduce((s, e) => s + e.amount, 0);
     return {
       ...g,
       count,
@@ -264,6 +271,8 @@ export async function getGroupsWithStats(coachId?: string | null) {
       pendingExpenses,
       remainingBudget,
       foreignExpenseCount,
+      pctUsed,
+      monthlyBurnRate,
       overBudget: usedBudget > budget,
     };
   });

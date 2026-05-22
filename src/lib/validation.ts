@@ -414,6 +414,8 @@ export const groupInputSchema = z.object({
   season: z.string().trim().min(1).max(20),
   coachId: nullableId,
   capacity: z.number().int().min(1).max(200),
+  budget: optInt(0, 1000000000),
+  budgetHardStop: z.boolean().optional().transform((v) => v ?? false),
   notes: optText(2000),
   active: z.boolean().optional().transform((v) => v ?? true),
   // Smart Group Assignment rules (all optional — null = no constraint)
@@ -493,9 +495,14 @@ export const expenseInputSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
   amount: z.number().int().min(1, "Amount must be positive"),
   currency: z.string().trim().optional().transform((v) => v || "EUR"),
-  category: z.enum(["travel", "equipment", "accommodation", "other"]).optional().transform((v) => v ?? "other"),
+  category: z
+    .enum(["hotel", "fuel", "lift_pass", "transport", "equipment", "race_cost", "other", "travel", "accommodation"])
+    .optional()
+    .transform((v) => v ?? "other"),
   groupId: nullableId,
   notes: optText(1000),
+  expenseDate: z.string().trim().optional().transform((v) => (v ? v : undefined)),
+  receiptUrl: optionalUrl,
 });
 export type ExpenseInput = z.infer<typeof expenseInputSchema>;
 
