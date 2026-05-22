@@ -28,14 +28,14 @@ export default async function ReportsPage() {
     <>
       <PageHeader title="Reports" subtitle={`Auto-generated from current data · ${fmtDate(new Date())}`} />
       <div className="grid gap-6 p-8 lg:grid-cols-2">
-        <Section title="Roster summary">
+        <Section title="Roster summary" subtitle="your athletes by current status">
           <Line label="Active athletes" value={String(members.length)} />
           <Line label="Active" value={String(byStatus("active"))} />
           <Line label="Injured" value={String(byStatus("injured"))} />
           <Line label="Paused" value={String(byStatus("paused"))} />
         </Section>
 
-        <Section title="Performance summary">
+        <Section title="Performance summary" subtitle="ranking direction across the squad">
           <Bars items={[
             { label: "Improving", value: perf.improving, color: PERF_COLOR.improving },
             { label: "Stable", value: perf.stable, color: PERF_COLOR.stable },
@@ -43,15 +43,15 @@ export default async function ReportsPage() {
           ]} total={members.length || 1} />
         </Section>
 
-        <Section title="Financial summary">
-          <Line label="Total contract value" value={fmtMoney(finance.totalContract)} />
-          <Line label="Monthly recurring estimate" value={fmtMoney(finance.monthlyRecurringEstimate)} />
-          <Line label="Paid this month" value={fmtMoney(finance.paidThisMonth)} />
-          <Line label="Overdue" value={fmtMoney(finance.overdueTotal)} danger />
-          <Line label="Active subscriptions" value={String(finance.activeSubscriptions)} />
+        <Section title="Financial summary" subtitle="the season's money at a glance">
+          <Line label="Total contract value" hint="all active deals combined" value={fmtMoney(finance.totalContract)} />
+          <Line label="Monthly recurring" hint="expected income / month" value={fmtMoney(finance.monthlyRecurringEstimate)} />
+          <Line label="Paid this month" hint="collected so far" value={fmtMoney(finance.paidThisMonth)} />
+          <Line label="Overdue" hint="past due date" value={fmtMoney(finance.overdueTotal)} danger />
+          <Line label="Active subscriptions" hint="athletes on a package" value={String(finance.activeSubscriptions)} />
         </Section>
 
-        <Section title="Capacity & compliance">
+        <Section title="Capacity & compliance" subtitle="spots used + documents in order">
           <div className="mb-3">
             <div className="mb-1 flex justify-between text-xs"><span className="text-[var(--color-muted)]">Group occupancy</span><span className="num">{inGroups}/{totalCap}</span></div>
             <PercentBar value={totalCap ? (inGroups / totalCap) * 100 : 0} />
@@ -64,7 +64,7 @@ export default async function ReportsPage() {
         </Section>
 
         <div className="lg:col-span-2">
-          <Section title="Budget allocation by team">
+          <Section title="Budget allocation by team" subtitle="margin = revenue − coach cost, per group">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
@@ -96,18 +96,23 @@ export default async function ReportsPage() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
   return (
     <div className="card p-6">
-      <h3 className="mb-4 text-sm font-semibold">{title}</h3>
-      <div className="space-y-2 text-sm">{children}</div>
+      <h3 className="text-sm font-semibold">{title}</h3>
+      {subtitle && <p className="mb-4 mt-0.5 text-xs text-[var(--color-muted)]">{subtitle}</p>}
+      {!subtitle && <div className="mb-4" />}
+      <div className="space-y-2.5 text-sm">{children}</div>
     </div>
   );
 }
-function Line({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
+function Line({ label, value, hint, danger }: { label: string; value: string; hint?: string; danger?: boolean }) {
   return (
-    <div className="flex justify-between">
-      <span className="text-[var(--color-muted)]">{label}</span>
+    <div className="flex items-start justify-between">
+      <span className="text-[var(--color-muted)]">
+        {label}
+        {hint && <span className="block text-[11px] opacity-70">{hint}</span>}
+      </span>
       <span className="num font-semibold" style={danger ? { color: "#f87171" } : undefined}>{value}</span>
     </div>
   );

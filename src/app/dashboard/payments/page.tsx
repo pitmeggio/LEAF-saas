@@ -23,12 +23,12 @@ export default async function PaymentsPage() {
 
       <div className="space-y-6 p-8">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="Collected" value={fmtMoney(f.collected)} accent />
-          <StatCard label="Outstanding" value={fmtMoney(f.outstandingTotal)} danger={f.outstandingTotal > 0} />
-          <StatCard label="Overdue" value={fmtMoney(f.overdueTotal)} danger={f.overdueTotal > 0} hint={`${f.unpaidAthletes} athlete(s)`} />
-          <StatCard label="Paid this month" value={fmtMoney(f.paidThisMonth)} />
-          <StatCard label="Active subscriptions" value={String(f.activeSubscriptions)} />
-          <StatCard label="Monthly recurring est." value={fmtMoney(f.monthlyRecurringEstimate)} />
+          <StatCard label="Collected" value={fmtMoney(f.collected)} hint="paid to date" accent />
+          <StatCard label="Outstanding" value={fmtMoney(f.outstandingTotal)} hint="billed, not yet paid" danger={f.outstandingTotal > 0} />
+          <StatCard label="Overdue" value={fmtMoney(f.overdueTotal)} hint={`past due · ${f.unpaidAthletes} athlete(s)`} danger={f.overdueTotal > 0} />
+          <StatCard label="Paid this month" value={fmtMoney(f.paidThisMonth)} hint="collected this month" />
+          <StatCard label="Active subscriptions" value={String(f.activeSubscriptions)} hint="athletes on a package" />
+          <StatCard label="Monthly recurring" value={fmtMoney(f.monthlyRecurringEstimate)} hint="expected income / month" />
         </div>
 
         <div className="card p-5">
@@ -73,7 +73,7 @@ export default async function PaymentsPage() {
                 const ath = p.enrollment.athlete;
                 const outstanding = p.amount - p.paidAmount;
                 return (
-                  <tr key={p.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]">
+                  <tr key={p.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]" style={ist === "overdue" ? { boxShadow: "inset 2px 0 0 #f87171" } : undefined}>
                     <td className="num px-5 py-3 text-xs">{inv?.number ?? "—"}<div className="text-[10px] text-[var(--color-muted)]">{p.enrollment.package?.name ?? ""}</div></td>
                     <td className="px-3 py-3">
                       <Link href={`/dashboard/members/${p.enrollmentId}`} className="font-medium hover:underline">{ath.firstName} {ath.lastName}</Link>
