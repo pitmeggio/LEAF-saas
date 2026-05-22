@@ -36,6 +36,10 @@ model Academy {
   featureChat           Boolean @default(true)
   maxAthletes           Int?    // null = unlimited (plan default)
   requiredDocs          String? // comma-separated document keys; null = platform default
+  // Config-driven application form. JSON shape: { fields: ApplicationFieldConfig[] }.
+  // null = platform default form (see lib/applicationForm.ts). Additive + reversible:
+  // standard answers still map to Application columns, custom answers to customFields.
+  applicationConfig     Json?
 
   // ── Public recruiting (surfaced by the profiles.leaf.ai experience) ──
   // Only exposed when recruitingEnabled && status == "active". Read exclusively
@@ -357,6 +361,7 @@ model Application {
   guardianName   String?
   guardianContact String?
   mediaLink      String?
+  customFields   Json? // academy-defined custom question answers ({ [fieldKey]: value })
   submittedAt    DateTime      @default(now())
   notes          Note[]
   events         StatusEvent[]

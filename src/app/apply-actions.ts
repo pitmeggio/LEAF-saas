@@ -8,6 +8,7 @@ import { colorForCode } from "@/lib/fis/simulatedProvider";
 import { applicationSchema, firstError } from "@/lib/validation";
 import { notify } from "@/lib/notifications";
 import { requireAthleteId } from "@/lib/auth";
+import { resolveApplicationFields, extractCustomAnswers, firstMissingCustom } from "@/lib/applicationForm";
 
 export type ApplyState = { error?: string };
 
@@ -18,6 +19,15 @@ export async function submitApplicationAction(_prev: ApplyState, formData: FormD
 
   const academy = await prisma.academy.findUnique({ where: { slug: d.slug } });
   if (!academy) return { error: "Academy not found." };
+
+  // Config-driven custom questions: collect + enforce required ones server-side.
+  const formFields = resolveApplicationFields(academy.applicationConfig);
+  const customAnswers = extractCustomAnswers(formFields, (name) => {
+    const v = formData.get(name);
+    return typeof v === "string" ? v : null;
+  });
+  const missing = firstMissingCustom(formFields, customAnswers);
+  if (missing) return { error: `Please complete the required field: ${missing}.` };
 
   // Validate package belongs to this academy.
   let validPackageId: string | null = null;
@@ -98,6 +108,7 @@ export async function submitApplicationAction(_prev: ApplyState, formData: FormD
       guardianName: d.guardianName ?? null,
       guardianContact: d.guardianContact ?? null,
       mediaLink: d.mediaLink ?? null,
+      customFields: customAnswers ?? undefined,
     },
   });
   await prisma.statusEvent.create({ data: { applicationId: application.id, from: null, to: "new" } });

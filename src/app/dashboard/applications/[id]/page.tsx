@@ -13,6 +13,7 @@ import { GroupSuggestions } from "@/components/GroupSuggestions";
 import { reviewApplication } from "@/lib/ai/applicationReview";
 import { ApplicationReviewCard } from "@/components/ApplicationReview";
 import { DISCIPLINE_LABEL, COUNTRY, STATUS_LABEL, age, fmtDate, relativeDate, fmtPoints, type Status } from "@/lib/domain";
+import { resolveApplicationFields } from "@/lib/applicationForm";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,14 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
   ]);
 
   const a = app.athlete;
+
+  // Academy-defined custom question answers (config-driven application form).
+  const customFormFields = resolveApplicationFields(app.academy.applicationConfig);
+  const customEntries =
+    app.customFields && typeof app.customFields === "object" && !Array.isArray(app.customFields)
+      ? Object.entries(app.customFields as Record<string, unknown>).filter(([, v]) => v != null && String(v).trim() !== "")
+      : [];
+  const customLabel = (k: string) => customFormFields.find((f) => f.key === k)?.label ?? k;
 
   // Smart Group Assignment — explainable suggestions (advisory; coach overrides).
   const suggestions = suggestGroups(
@@ -147,6 +156,17 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
                   </div>
                 )}
               </dl>
+            )}
+
+            {customEntries.length > 0 && (
+              <div className="mt-5 border-t border-[var(--color-border)] pt-4">
+                <div className="mb-2 text-xs uppercase tracking-wide text-[var(--color-muted)]">Additional answers</div>
+                <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                  {customEntries.map(([k, v]) => (
+                    <Info key={k} label={customLabel(k)} value={String(v)} />
+                  ))}
+                </dl>
+              </div>
             )}
           </div>
 

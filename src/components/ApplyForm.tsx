@@ -3,12 +3,13 @@
 import { useActionState, useMemo, useState } from "react";
 import { submitApplicationAction, type ApplyState } from "@/app/apply-actions";
 import { DISCIPLINE_LABEL, COUNTRY } from "@/lib/domain";
+import { fieldHidesWithFis, type ApplicationFieldConfig } from "@/lib/applicationForm";
 
 type Package = { id: string; name: string; price: number | null; period: string };
 
 const field =
   "w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 text-sm outline-none focus:border-[var(--color-accent)]";
-const label = "mb-1 block text-xs font-medium text-[var(--color-muted)]";
+const labelCls = "mb-1 block text-xs font-medium text-[var(--color-muted)]";
 
 function ageFromDob(dob: string): number | null {
   if (!dob || Number.isNaN(Date.parse(dob))) return null;
@@ -21,11 +22,13 @@ export function ApplyForm({
   packages,
   defaultPackage,
   opportunityId,
+  fields,
 }: {
   slug: string;
   packages: Package[];
   defaultPackage?: string;
   opportunityId?: string;
+  fields: ApplicationFieldConfig[];
 }) {
   const [state, formAction, pending] = useActionState<ApplyState, FormData>(submitApplicationAction, {});
   const [hasFis, setHasFis] = useState(false);
@@ -33,6 +36,25 @@ export function ApplyForm({
 
   const age = useMemo(() => ageFromDob(dob), [dob]);
   const isMinor = age != null && age < 18;
+
+  // Index enabled fields by key; only enabled fields are rendered.
+  const byKey = useMemo(() => {
+    const m = new Map<string, ApplicationFieldConfig>();
+    for (const f of fields) if (f.enabled) m.set(f.key, f);
+    return m;
+  }, [fields]);
+  const customFields = useMemo(() => fields.filter((f) => f.enabled && f.custom), [fields]);
+
+  const has = (key: string) => byKey.has(key);
+  const lbl = (key: string, fallback: string) => byKey.get(key)?.label ?? fallback;
+  const req = (key: string) => byKey.get(key)?.required ?? false;
+  const star = (key: string) => (req(key) ? " *" : "");
+
+  // Sport-data fields hide when a FIS code is supplied (auto-filled on import).
+  const showSport = !hasFis && ["dob", "nationality", "sport", "discipline", "currentRanking"].some(
+    (k) => has(k) && fieldHidesWithFis(k),
+  );
+  const showGuardian = !hasFis && isMinor && (has("guardianName") || has("guardianContact"));
 
   return (
     <form action={formAction} className="card space-y-5 p-5 sm:p-6">
@@ -70,71 +92,96 @@ export function ApplyForm({
       </div>
 
       {/* Manual sport data — required only when no FIS code */}
-      {!hasFis && (
+      {showSport && (
         <Section title="Sport data">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Date of birth">
-              <input name="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} className={field} />
-            </Field>
-            <Field label="Nationality">
-              <select name="nationality" className={field} defaultValue="">
-                <option value="" disabled>
-                  Select…
-                </option>
-                {Object.entries(COUNTRY).map(([code, c]) => (
-                  <option key={code} value={code}>
-                    {c.flag} {c.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Sport">
-              <select name="sport" className={field} defaultValue="ski">
-                <option value="ski">Alpine skiing</option>
-                <option value="tennis">Tennis</option>
-              </select>
-            </Field>
-            <Field label="Discipline / category">
-              <select name="discipline" className={field} defaultValue="">
-                <option value="" disabled>
-                  Select…
-                </option>
-                {Object.entries(DISCIPLINE_LABEL).map(([code, l]) => (
-                  <option key={code} value={code}>
-                    {l}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            {has("dob") && (
+              <Field label={lbl("dob", "Date of birth") + star("dob")}>
+                <input name="dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} className={field} required={req("dob")} />
+              </Field>
+            )}
+            {has("nationality") && (
+              <Field label={lbl("nationality", "Nationality") + star("nationality")}>
+                <select name="nationality" className={field} defaultValue="" required={req("nationality")}>
+                  <option value="" disabled>Select…</option>
+                  {Object.entries(COUNTRY).map(([code, c]) => (
+                    <option key={code} value={code}>{c.flag} {c.name}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
+            {has("sport") && (
+              <Field label={lbl("sport", "Sport") + star("sport")}>
+                <select name="sport" className={field} defaultValue="ski" required={req("sport")}>
+                  <option value="ski">Alpine skiing</option>
+                  <option value="tennis">Tennis</option>
+                </select>
+              </Field>
+            )}
+            {has("discipline") && (
+              <Field label={lbl("discipline", "Discipline / category") + star("discipline")}>
+                <select name="discipline" className={field} defaultValue="" required={req("discipline")}>
+                  <option value="" disabled>Select…</option>
+                  {Object.entries(DISCIPLINE_LABEL).map(([code, l]) => (
+                    <option key={code} value={code}>{l}</option>
+                  ))}
+                </select>
+              </Field>
+            )}
           </div>
-          <Field label="Current ranking / FIS points / tennis ranking">
-            <input name="currentRanking" placeholder="e.g. 28.4 FIS pts · NR 142" className={field} />
-          </Field>
+          {has("currentRanking") && (
+            <Field label={lbl("currentRanking", "Current ranking / points") + star("currentRanking")}>
+              <input name="currentRanking" placeholder={byKey.get("currentRanking")?.placeholder ?? "e.g. 28.4 FIS pts · NR 142"} className={field} required={req("currentRanking")} />
+            </Field>
+          )}
         </Section>
       )}
 
-      <Section title="Background">
-        <Field label="Previous academy / club">
-          <input name="previousClub" placeholder="e.g. Hafjell Ski Club" className={field} />
-        </Field>
-        <Field label="Short motivation">
-          <textarea name="motivation" rows={3} className={`${field} resize-none`} placeholder="Why do you want to join, and what are your goals?" />
-        </Field>
-        <Field label="Video / documents link (optional)">
-          <input name="mediaLink" type="url" inputMode="url" placeholder="https://…" className={field} />
-        </Field>
-      </Section>
+      {(has("previousClub") || has("motivation") || has("mediaLink")) && (
+        <Section title="Background">
+          {has("previousClub") && (
+            <Field label={lbl("previousClub", "Previous academy / club") + star("previousClub")}>
+              <input name="previousClub" placeholder={byKey.get("previousClub")?.placeholder ?? "e.g. Hafjell Ski Club"} className={field} required={req("previousClub")} />
+            </Field>
+          )}
+          {has("motivation") && (
+            <Field label={lbl("motivation", "Short motivation") + star("motivation")}>
+              <textarea name="motivation" rows={3} className={`${field} resize-none`} placeholder={byKey.get("motivation")?.placeholder ?? "Why do you want to join, and what are your goals?"} required={req("motivation")} />
+            </Field>
+          )}
+          {has("mediaLink") && (
+            <Field label={lbl("mediaLink", "Video / documents link") + star("mediaLink")}>
+              <input name="mediaLink" type="url" inputMode="url" placeholder={byKey.get("mediaLink")?.placeholder ?? "https://…"} className={field} required={req("mediaLink")} />
+            </Field>
+          )}
+        </Section>
+      )}
+
+      {/* Academy-defined custom questions */}
+      {customFields.length > 0 && (
+        <Section title="Additional questions">
+          {customFields.map((f) => (
+            <Field key={f.key} label={f.label + (f.required ? " *" : "")}>
+              <CustomFieldInput f={f} />
+            </Field>
+          ))}
+        </Section>
+      )}
 
       {/* Guardian — shown for under-18 manual applicants */}
-      {!hasFis && isMinor && (
+      {showGuardian && (
         <Section title="Parent / guardian (athlete is under 18)">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Guardian name">
-              <input name="guardianName" className={field} />
-            </Field>
-            <Field label="Guardian contact (email / phone)">
-              <input name="guardianContact" className={field} />
-            </Field>
+            {has("guardianName") && (
+              <Field label={lbl("guardianName", "Guardian name") + star("guardianName")}>
+                <input name="guardianName" className={field} required={req("guardianName")} />
+              </Field>
+            )}
+            {has("guardianContact") && (
+              <Field label={lbl("guardianContact", "Guardian contact (email / phone)") + star("guardianContact")}>
+                <input name="guardianContact" className={field} required={req("guardianContact")} />
+              </Field>
+            )}
           </div>
         </Section>
       )}
@@ -176,6 +223,27 @@ export function ApplyForm({
   );
 }
 
+// Renders a custom (academy-defined) field. Its answer is submitted under
+// `custom_<key>` and routed to Application.customFields by the server action.
+function CustomFieldInput({ f }: { f: ApplicationFieldConfig }) {
+  const name = `custom_${f.key}`;
+  if (f.type === "textarea") {
+    return <textarea name={name} rows={3} className={`${field} resize-none`} placeholder={f.placeholder} required={f.required} />;
+  }
+  if (f.type === "select") {
+    return (
+      <select name={name} className={field} defaultValue="" required={f.required}>
+        <option value="" disabled>Select…</option>
+        {(f.options ?? []).map((o) => (
+          <option key={o} value={o}>{o}</option>
+        ))}
+      </select>
+    );
+  }
+  const inputType = f.type === "number" ? "number" : f.type === "date" ? "date" : f.type === "url" ? "url" : f.type === "tel" ? "tel" : f.type === "email" ? "email" : "text";
+  return <input name={name} type={inputType} className={field} placeholder={f.placeholder} required={f.required} />;
+}
+
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-4">
@@ -188,7 +256,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label: l, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className={label}>{l}</label>
+      <label className={labelCls}>{l}</label>
       {children}
     </div>
   );

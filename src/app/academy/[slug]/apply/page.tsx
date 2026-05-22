@@ -7,6 +7,7 @@ import { getSession } from "@/lib/auth";
 import { applyWithMyProfile } from "@/app/apply-actions";
 import { LeafMark } from "@/components/LeafMark";
 import { DISCIPLINE_LABEL, fmtDate, fmtMoney } from "@/lib/domain";
+import { resolveApplicationFields } from "@/lib/applicationForm";
 
 export const dynamic = "force-dynamic";
 
@@ -140,6 +141,7 @@ export default async function ApplyPage({
               packages={academy.packages.map((p) => ({ id: p.id, name: p.name, price: p.price, period: p.period }))}
               defaultPackage={pkg}
               opportunityId={selected?.id}
+              fields={resolveApplicationFields(academy.applicationConfig)}
             />
           </div>
         </div>
