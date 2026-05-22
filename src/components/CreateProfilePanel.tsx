@@ -48,6 +48,13 @@ function CreateProfileModal({ onClose }: { onClose: () => void }) {
             <p className="mt-1.5 text-sm text-[var(--color-muted)]">
               Enter your name and your federation code — FIS for ski, ATP for tennis. LEAF pulls your published results and builds your analysis automatically.
             </p>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {["Verified profile", "AI insights", "One shareable link"].map((t) => (
+                <span key={t} className="inline-flex items-center gap-1 rounded-full bg-[var(--color-surface-2)] px-2.5 py-1 text-[11px] font-medium text-[var(--color-fg)]/80">
+                  <span style={{ color: "var(--color-accent)" }}>✓</span> {t}
+                </span>
+              ))}
+            </div>
           </div>
           <button onClick={onClose} className="absolute right-4 top-4 text-[var(--color-muted)] hover:text-[var(--color-fg)]">✕</button>
         </div>

@@ -77,7 +77,15 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
           </div>
           <div className="flex-1">
             <div className="kicker" style={{ color: "var(--color-accent)" }}>Welcome back</div>
-            <h1 className="display text-3xl font-bold md:text-4xl">{w.firstName} {w.lastName}</h1>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="display text-3xl font-bold md:text-4xl">{w.firstName} {w.lastName}</h1>
+              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                style={w.publicProfileEnabled && w.publicVisibility === "PUBLIC"
+                  ? { background: "#7cff6b1a", color: "var(--color-accent)" }
+                  : { background: "#f59e0b1a", color: "#f59e0b" }}>
+                {w.publicProfileEnabled && w.publicVisibility === "PUBLIC" ? "● Public" : "● Hidden"}
+              </span>
+            </div>
             <div className="mt-1 text-sm text-[var(--color-muted)]">
               {cfg.label} · {cfg.pointsLabel} {fmtPoints(w.fisPoints)} · {cfg.rankLabel} {w.worldRank != null ? `#${w.worldRank}` : "—"}
             </div>
@@ -91,6 +99,13 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
         )}
 
         {/* AI layer — same intelligence the athlete shows publicly */}
+        {w.performance && (
+          <div className="border-t border-[var(--color-border)] pt-8">
+            <div className="kicker" style={{ color: "var(--color-accent)" }}>Your performance · by LEAF AI</div>
+            <h2 className="display mt-1 text-2xl font-bold">What your record says about you</h2>
+            <p className="mt-1 text-sm text-[var(--color-muted)]">The same intelligence academies and scouts see on your profile.</p>
+          </div>
+        )}
         {w.performance && forecast && (
           <section className="space-y-4">
             <ForecastCard forecast={forecast} pointsLabel={cfg.pointsLabel} />
