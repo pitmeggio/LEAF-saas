@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { resolveRequiredDocs, buildPaymentSchedule } from "@/lib/enrollmentLogic";
 import { createInvoiceForPayment } from "@/lib/invoices";
 import { notify } from "@/lib/notifications";
+import { isExternalFinance } from "@/lib/finance";
 
 type EnrollOpts = { packageId?: string | null; groupId?: string | null; coachId?: string | null };
 
@@ -44,9 +45,11 @@ export async function enrollAcceptedApplication(applicationId: string, opts: Enr
     data: { enrollmentId: enrollment.id, type: "created", to: "active", detail: "Active athlete created from accepted application" },
   });
 
-  // Auto-generate the payment schedule from the chosen package.
+  // Auto-generate the payment schedule from the chosen package — but ONLY when LEAF
+  // manages billing. If the academy reads finance from an external gestionale, LEAF is
+  // read-only: invoices/payments are synced from that system, never generated here.
   const pkg = packageId ? await prisma.package.findUnique({ where: { id: packageId } }) : null;
-  if (pkg?.price) {
+  if (pkg?.price && !isExternalFinance(app.academy.financeProvider)) {
     const schedule = buildPaymentSchedule({ price: pkg.price, currency: pkg.currency, billingFreq: pkg.billingFreq, joinDate });
     for (const p of schedule) {
       const payment = await prisma.payment.create({

@@ -41,6 +41,14 @@ model Academy {
   // standard answers still map to Application columns, custom answers to customFields.
   applicationConfig     Json?
 
+  // ── External finance integration (read-only analytics over the academy's own
+  // gestionale / billing software). LEAF does NOT issue invoices; it syncs invoice
+  // + payment data from the provider and analyses it. See lib/finance/.
+  // financeProvider: null = LEAF-managed (legacy/demo) | "mock" | "csv" | "stripe" | …
+  financeProvider       String?
+  financeConfig         Json?     // provider connection settings (non-secret pointers)
+  financeSyncedAt       DateTime? // last successful sync
+
   // ── Public recruiting (surfaced by the profiles.leaf.ai experience) ──
   // Only exposed when recruitingEnabled && status == "active". Read exclusively
   // through src/lib/profiles.ts, which never returns private/financial fields.
@@ -412,6 +420,7 @@ model Enrollment {
   package       Package?          @relation(fields: [packageId], references: [id])
   applicationId String?           @unique
   application   Application?      @relation(fields: [applicationId], references: [id])
+  externalCustomerId String?      // maps this enrollment to a customer in the academy's finance system
   notes         String?
   payments      Payment[]
   documents     Document[]
@@ -449,8 +458,12 @@ model Payment {
   status       String     @default("unpaid") // unpaid | paid | partial  (overdue is derived from dueDate)
   method       String? // bank_transfer | card | cash
   notes        String?
+  source       String     @default("leaf") // leaf | external  (external = synced from a finance provider, read-only)
+  externalId   String? // id of the source record in the external finance system
   invoice      Invoice?
   createdAt    DateTime   @default(now())
+
+  @@index([academyId, externalId])
 }
 
 model Document {
@@ -529,7 +542,12 @@ model Invoice {
   currency     String     @default("EUR")
   status       String     @default("pending") // pending | sent | partial | paid | cancelled  (overdue derived from due date)
   issuedAt     DateTime   @default(now())
+  dueDate      DateTime? // due date (external invoices carry their own; LEAF ones derive it from the payment)
   paidAt       DateTime?
+  source       String     @default("leaf") // leaf | external
+  externalId   String? // id of the source record in the external finance system
+
+  @@index([academyId, externalId])
 }
 
 model Notification {
