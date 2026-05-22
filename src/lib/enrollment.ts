@@ -27,6 +27,9 @@ export async function enrollAcceptedApplication(applicationId: string, opts: Enr
 
   const joinDate = new Date();
   const packageId = opts.packageId !== undefined ? opts.packageId : app.packageId;
+  // Default the group to the auto-placement computed at intake (Smart Group Assignment)
+  // when the accept flow didn't pick one — e.g. a quick drag-to-accept on the board.
+  const groupId = opts.groupId !== undefined ? opts.groupId : (app.suggestedGroupId ?? null);
 
   const enrollment = await prisma.enrollment.create({
     data: {
@@ -34,7 +37,7 @@ export async function enrollAcceptedApplication(applicationId: string, opts: Enr
       athleteId: app.athleteId,
       applicationId: app.id,
       packageId,
-      groupId: opts.groupId ?? null,
+      groupId,
       coachId: opts.coachId ?? null,
       status: "active",
       joinDate,

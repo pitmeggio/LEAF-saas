@@ -27,6 +27,7 @@ export type Card = {
   verified: boolean;
   source: string;
   trend: Trend;
+  suggestedGroup: string | null; // auto-placement (Smart Group Assignment)
 };
 
 export function KanbanBoard({ initial }: { initial: Card[] }) {
@@ -106,6 +107,12 @@ export function KanbanBoard({ initial }: { initial: Card[] }) {
                                 <TrendArrow trend={c.trend} />
                               </div>
                             </div>
+
+                            {c.suggestedGroup && (
+                              <div className="mt-2 inline-flex items-center gap-1 rounded-md bg-[var(--color-surface)] px-2 py-0.5 text-[10px] text-[var(--color-muted)]">
+                                ⟐ Auto-group: <span className="font-medium text-[var(--color-fg)]">{c.suggestedGroup}</span>
+                              </div>
+                            )}
 
                             <div className="mt-2 flex items-center justify-between border-t border-[var(--color-border)] pt-2">
                               <span className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">

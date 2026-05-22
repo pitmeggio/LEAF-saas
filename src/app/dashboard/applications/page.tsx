@@ -2,12 +2,14 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { KanbanBoard, type Card } from "@/components/KanbanBoard";
 import { getApplications, getAcademy } from "@/lib/queries";
+import { getGroupsForAssignment } from "@/lib/ops";
 import { age, type Status } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
 
 export default async function ApplicationsPage() {
-  const [apps, academy] = await Promise.all([getApplications(), getAcademy()]);
+  const [apps, academy, groups] = await Promise.all([getApplications(), getAcademy(), getGroupsForAssignment()]);
+  const groupName = new Map(groups.map((g) => [g.id, g.name]));
 
   const cards: Card[] = apps.map((a) => ({
     id: a.id,
@@ -24,6 +26,7 @@ export default async function ApplicationsPage() {
     verified: a.athlete.verified,
     source: a.source,
     trend: a.trend,
+    suggestedGroup: a.suggestedGroupId ? groupName.get(a.suggestedGroupId) ?? null : null,
   }));
 
   return (

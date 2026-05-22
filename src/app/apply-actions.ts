@@ -9,6 +9,7 @@ import { applicationSchema, firstError } from "@/lib/validation";
 import { notify } from "@/lib/notifications";
 import { requireAthleteId } from "@/lib/auth";
 import { resolveApplicationFields, extractCustomAnswers, firstMissingCustom } from "@/lib/applicationForm";
+import { computeSuggestedGroupId } from "@/lib/autoGroup";
 
 export type ApplyState = { error?: string };
 
@@ -113,6 +114,12 @@ export async function submitApplicationAction(_prev: ApplyState, formData: FormD
   });
   await prisma.statusEvent.create({ data: { applicationId: application.id, from: null, to: "new" } });
 
+  // Smart Group Assignment — auto-place the candidate into the best-matching group on
+  // arrival (overridable later). Analyses points / age / discipline / trend vs the
+  // academy's configured group rules.
+  const suggestedGroupId = await computeSuggestedGroupId(academy.id, athleteId);
+  if (suggestedGroupId) await prisma.application.update({ where: { id: application.id }, data: { suggestedGroupId } });
+
   // Open a communication thread for the application (follows the athlete on enrollment).
   const conversation = await prisma.conversation.create({
     data: {
@@ -188,6 +195,10 @@ export async function applyWithMyProfile(formData: FormData): Promise<void> {
     },
   });
   await prisma.statusEvent.create({ data: { applicationId: application.id, from: null, to: "new" } });
+
+  // Auto-place into the best-matching group on arrival (overridable later).
+  const suggestedGroupId = await computeSuggestedGroupId(academy!.id, athleteId);
+  if (suggestedGroupId) await prisma.application.update({ where: { id: application.id }, data: { suggestedGroupId } });
 
   const conversation = await prisma.conversation.create({
     data: {

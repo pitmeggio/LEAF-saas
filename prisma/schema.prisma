@@ -370,6 +370,7 @@ model Application {
   guardianContact String?
   mediaLink      String?
   customFields   Json? // academy-defined custom question answers ({ [fieldKey]: value })
+  suggestedGroupId String? // auto-placement computed on arrival (Smart Group Assignment); overridable
   submittedAt    DateTime      @default(now())
   notes          Note[]
   events         StatusEvent[]
