@@ -304,13 +304,17 @@ export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName:
 
 // ── Expense (coach) ──
 const EXPENSE_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "NOK", "SEK", "DKK", "CAD", "AUD", "JPY"];
+// Cost lines aligned to the academy's budget model (Marius's Dev Team budget).
 const EXPENSE_CATEGORIES: { value: string; label: string }[] = [
-  { value: "hotel", label: "Hotel" },
+  { value: "coaching", label: "Coaching" },
+  { value: "housing", label: "Housing" },
+  { value: "accommodation", label: "Accommodation" },
+  { value: "lift_pass", label: "Lift passes" },
   { value: "fuel", label: "Fuel" },
-  { value: "lift_pass", label: "Lift pass" },
-  { value: "transport", label: "Transport" },
-  { value: "equipment", label: "Training equipment" },
+  { value: "transport", label: "Transport / cars" },
+  { value: "equipment", label: "Equipment / clothing" },
   { value: "race_cost", label: "Race cost" },
+  { value: "sport_ops", label: "Sport / operations" },
   { value: "other", label: "Other" },
 ];
 export function ExpenseForm({ groups, initial, currency = "EUR" }: { groups: Opt[]; initial?: { id: string; title: string; amount: number; category: string; groupId: string | null; notes: string | null; currency?: string; expenseDate?: string | null; receiptUrl?: string | null }; currency?: string }) {

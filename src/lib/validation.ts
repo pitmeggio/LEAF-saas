@@ -496,7 +496,7 @@ export const expenseInputSchema = z.object({
   amount: z.number().int().min(1, "Amount must be positive"),
   currency: z.string().trim().optional().transform((v) => v || "EUR"),
   category: z
-    .enum(["hotel", "fuel", "lift_pass", "transport", "equipment", "race_cost", "other", "travel", "accommodation"])
+    .enum(["coaching", "housing", "accommodation", "lift_pass", "fuel", "transport", "equipment", "race_cost", "sport_ops", "other", "hotel", "travel"])
     .optional()
     .transform((v) => v ?? "other"),
   groupId: nullableId,

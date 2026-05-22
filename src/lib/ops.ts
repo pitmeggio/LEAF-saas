@@ -256,6 +256,10 @@ export async function getGroupsWithStats(coachId?: string | null) {
     const monthlyBurnRate = approvedExpenses
       .filter((e) => +(e.expenseDate ?? e.createdAt) >= since30)
       .reduce((s, e) => s + e.amount, 0);
+    // Spend broken down by cost line (category) — the "budget per voci" view.
+    const byCat = new Map<string, number>();
+    for (const e of approvedExpenses) byCat.set(e.category, (byCat.get(e.category) ?? 0) + e.amount);
+    const categoryBreakdown = [...byCat.entries()].map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount);
     return {
       ...g,
       count,
@@ -273,6 +277,7 @@ export async function getGroupsWithStats(coachId?: string | null) {
       foreignExpenseCount,
       pctUsed,
       monthlyBurnRate,
+      categoryBreakdown,
       overBudget: usedBudget > budget,
     };
   });

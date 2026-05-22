@@ -80,6 +80,20 @@ export default async function GroupsPage() {
               )}
             </dl>
 
+            {g.categoryBreakdown.length > 0 && (
+              <div className="mt-3 border-t border-[var(--color-border)] pt-3">
+                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Spend by cost line</div>
+                <dl className="space-y-1 text-xs">
+                  {g.categoryBreakdown.map((c) => (
+                    <div key={c.category} className="flex justify-between">
+                      <dt className="capitalize text-[var(--color-muted)]">{c.category.replace(/_/g, " ")}</dt>
+                      <dd className="num">{fmtMoney(c.amount, currency)}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+
             {isAdmin && (
               <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
                 <Modal label="+ Add expense" title={`Add to ${g.name} budget`} className="rounded-lg border border-[#7CFF6B40] px-3 py-1.5 text-xs font-medium text-[var(--color-accent)] hover:bg-[#7cff6b12]">
