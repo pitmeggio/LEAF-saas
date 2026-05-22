@@ -193,8 +193,6 @@ type AcademyConfig = {
   featureRecruiting: boolean; featurePublicProfiles: boolean; featureFinance: boolean; featureChat: boolean;
 };
 
-const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "NOK", "SEK", "DKK", "CAD", "AUD"];
-
 const DOC_OPTIONS: { key: string; label: string }[] = [
   { key: "medical_certificate", label: "Medical certificate" },
   { key: "liability_waiver", label: "Liability waiver" },
@@ -246,7 +244,6 @@ function ConfigureAcademyForm({ academy }: { academy: AcademyConfig }) {
           logoColor: String(fd.get("logoColor") ?? ""),
           maxAthletes: maxRaw === "" ? null : Number(maxRaw),
           requiredDocs: docs.join(","),
-          currency: String(fd.get("currency") ?? ""),
           ...flags,
         }));
       }}
@@ -300,11 +297,10 @@ function ConfigureAcademyForm({ academy }: { academy: AcademyConfig }) {
       <Field label="Max athletes (blank = unlimited)">
         <input name="maxAthletes" type="number" min={0} className={inp} defaultValue={academy.maxAthletes ?? ""} placeholder="Unlimited" />
       </Field>
-      <Field label="Operating currency">
-        <select name="currency" className={inp} defaultValue={academy.currency || "EUR"}>
-          {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </Field>
+      <div className="flex items-center justify-between rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm">
+        <span className="text-[var(--color-muted)]">Operating currency</span>
+        <span className="num font-semibold">{academy.currency || "EUR"} <span className="text-[10px] font-normal text-[var(--color-muted)]">· from country</span></span>
+      </div>
 
       <Footer pending={pending} error={error} />
     </form>

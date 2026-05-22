@@ -273,7 +273,6 @@ export const academyConfigSchema = z.object({
   featureChat: z.boolean(),
   maxAthletes: z.number().int().min(0).max(100000).nullable().optional(),
   requiredDocs: z.string().trim().max(300).optional().transform((v) => (v ? v : null)),
-  currency: z.string().trim().regex(/^[A-Za-z]{3}$/, "3-letter ISO currency code (e.g. EUR, NOK).").optional().transform((v) => (v ? v.toUpperCase() : undefined)),
 });
 
 // Public application form
