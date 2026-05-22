@@ -39,7 +39,7 @@ export default function ExplorePage() {
           </p>
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
             <CreateProfileButton />
-            <a href="#how" className="rounded-xl border border-[var(--color-border)] px-6 py-3 text-sm font-semibold hover:border-[var(--color-accent)]">
+            <a href="#how" className="rounded-full border border-[var(--color-border)] px-7 py-3 text-sm font-semibold hover:border-[var(--color-accent)]">
               How it works
             </a>
           </div>

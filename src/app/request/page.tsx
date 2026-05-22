@@ -35,8 +35,8 @@ export default function RequestAcademyPage() {
             The operating system for elite sports academies — athletes, recruiting, finance and performance intelligence in one place. Request access and we'll set up your workspace.
           </p>
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            <a href="#request" className="rounded-xl bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-[#07080b] hover:bg-[var(--color-accent-dim)]">Request access</a>
-            <a href="#how" className="rounded-xl border border-[var(--color-border)] px-6 py-3 text-sm font-medium hover:border-[var(--color-accent)]">See what you get</a>
+            <a href="#request" className="rounded-full bg-[var(--color-accent)] px-7 py-3 text-sm font-semibold text-[#07080b] hover:bg-[var(--color-accent-dim)]">Request access</a>
+            <a href="#how" className="rounded-full border border-[var(--color-border)] px-7 py-3 text-sm font-medium hover:border-[var(--color-accent)]">See what you get</a>
           </div>
         </div>
       </section>

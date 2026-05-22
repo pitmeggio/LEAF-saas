@@ -13,8 +13,8 @@ export function CreateProfileButton({ variant = "solid" }: { variant?: "solid" |
   const [open, setOpen] = useState(false);
   const cls =
     variant === "solid"
-      ? "rounded-xl bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]"
-      : "rounded-xl border border-[var(--color-border)] px-6 py-3 text-sm font-semibold hover:border-[var(--color-accent)]";
+      ? "rounded-full bg-[var(--color-accent)] px-7 py-3 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]"
+      : "rounded-full border border-[var(--color-border)] px-7 py-3 text-sm font-semibold hover:border-[var(--color-accent)]";
   return (
     <>
       <button onClick={() => setOpen(true)} className={cls}>
