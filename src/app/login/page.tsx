@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -44,10 +45,10 @@ export default async function LoginPage() {
           <polyline points="0,170 90,150 170,158 250,120 330,128 410,80 500,92 600,40" stroke="var(--color-accent)" strokeWidth="2.5" />
         </svg>
 
-        <div className="relative flex items-center gap-3">
+        <Link href="/" className="relative flex items-center gap-3 transition-opacity hover:opacity-80">
           <LeafMark size={34} />
           <span className="text-lg font-bold tracking-tight">LEAF</span>
-        </div>
+        </Link>
 
         <div className="relative">
           <div className="kicker mb-4" style={{ color: "var(--color-accent)" }}>Sports Performance OS</div>
@@ -71,10 +72,10 @@ export default async function LoginPage() {
       <div className="flex items-center justify-center p-8">
         {/* Mobile brand */}
         <div className="w-full max-w-sm">
-          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+          <Link href="/" className="mb-8 flex items-center gap-2.5 lg:hidden">
             <LeafMark size={30} />
             <span className="font-bold tracking-tight">LEAF</span>
-          </div>
+          </Link>
           <LoginChooser demoUsers={demoUsers} />
         </div>
       </div>

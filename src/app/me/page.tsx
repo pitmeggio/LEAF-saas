@@ -35,13 +35,13 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
     <div className="min-h-screen">
       {/* Workspace header */}
       <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-bg)]/85 px-5 py-3.5 backdrop-blur md:px-12">
-        <div className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5 transition-opacity hover:opacity-80">
           <LeafMark size={26} />
           <div className="leading-tight">
             <div className="text-sm font-bold">LEAF</div>
             <div className="text-[11px] text-[var(--color-muted)]">My profile</div>
           </div>
-        </div>
+        </Link>
         <div className="flex items-center gap-2">
           {w.slug && (
             <>
