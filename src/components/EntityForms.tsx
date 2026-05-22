@@ -295,16 +295,20 @@ export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName:
 }
 
 // ── Expense (coach) ──
-export function ExpenseForm({ groups, initial }: { groups: Opt[]; initial?: { id: string; title: string; amount: number; category: string; groupId: string | null; notes: string | null } }) {
-  const [f, set] = useState({ title: initial?.title ?? "", amount: initial?.amount ?? 0, category: initial?.category ?? "travel", groupId: initial?.groupId ?? "", notes: initial?.notes ?? "" });
+const EXPENSE_CURRENCIES = ["EUR", "USD", "GBP", "CHF", "NOK", "SEK", "DKK", "CAD", "AUD", "JPY"];
+export function ExpenseForm({ groups, initial, currency = "EUR" }: { groups: Opt[]; initial?: { id: string; title: string; amount: number; category: string; groupId: string | null; notes: string | null; currency?: string }; currency?: string }) {
+  const [f, set] = useState({ title: initial?.title ?? "", amount: initial?.amount ?? 0, category: initial?.category ?? "travel", groupId: initial?.groupId ?? "", notes: initial?.notes ?? "", currency: initial?.currency ?? currency });
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
-  const payload = (): ExpenseInput => ({ title: f.title, amount: Number(f.amount) || 0, category: f.category as "travel" | "equipment" | "accommodation" | "other", groupId: f.groupId || undefined, notes: f.notes || undefined }) as ExpenseInput;
+  const payload = (): ExpenseInput => ({ title: f.title, amount: Number(f.amount) || 0, category: f.category as "travel" | "equipment" | "accommodation" | "other", groupId: f.groupId || undefined, notes: f.notes || undefined, currency: f.currency }) as ExpenseInput;
+  // Currency options always include the academy's own currency, even if not in the preset list.
+  const currencyOptions = EXPENSE_CURRENCIES.includes(currency) ? EXPENSE_CURRENCIES : [currency, ...EXPENSE_CURRENCIES];
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updateExpense(initial.id, payload()) : createExpense(payload())); }} className="space-y-3">
       <Field label="Title *"><input className={inp} value={f.title} onChange={(e) => upd("title", e.target.value)} required /></Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Amount (EUR) *"><input type="number" min={1} className={inp} value={f.amount} onChange={(e) => upd("amount", e.target.value)} required /></Field>
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Amount *"><input type="number" min={1} className={inp} value={f.amount} onChange={(e) => upd("amount", e.target.value)} required /></Field>
+        <Field label="Currency"><select className={inp} value={f.currency} onChange={(e) => upd("currency", e.target.value)}>{currencyOptions.map((c) => <option key={c} value={c}>{c}</option>)}</select></Field>
         <Field label="Category"><select className={inp} value={f.category} onChange={(e) => upd("category", e.target.value)}><option value="travel">Travel</option><option value="equipment">Equipment</option><option value="accommodation">Accommodation</option><option value="other">Other</option></select></Field>
       </div>
       <Field label="Group"><select className={inp} value={f.groupId} onChange={(e) => upd("groupId", e.target.value)}><option value="">No group</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></Field>

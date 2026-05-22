@@ -222,6 +222,8 @@ export async function getGroupsForAssignment() {
 
 export async function getGroupsWithStats(coachId?: string | null) {
   const academyId = await requireAcademyId();
+  const academy = await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } });
+  const baseCurrency = academy?.currency ?? "EUR";
   const groups = await prisma.group.findMany({
     where: { academyId, ...(coachId ? { coachId } : {}) },
     include: { coach: true, enrollments: { include: { package: true, payments: true } }, expenses: true },
@@ -238,9 +240,14 @@ export async function getGroupsWithStats(coachId?: string | null) {
     const budget = g.budget ?? 0;
     // Margin = package revenue − coach cost − allocated operating budget.
     const margin = revenue - coachCost - budget;
-    // Budget usage from coach expenses.
-    const usedBudget = g.expenses.filter((e) => e.status === "approved" || e.status === "reimbursed").reduce((s, e) => s + e.amount, 0);
-    const pendingExpenses = g.expenses.filter((e) => e.status === "submitted").reduce((s, e) => s + e.amount, 0);
+    // Budget usage from coach expenses — only expenses in the academy's base currency
+    // count against its (national-currency) budget. Foreign-currency expenses (e.g. a
+    // trip abroad) are still tracked + reimbursed, but excluded here to avoid mixing
+    // currencies (converting them would need FX rates we don't hold yet).
+    const baseExpenses = g.expenses.filter((e) => e.currency === baseCurrency);
+    const usedBudget = baseExpenses.filter((e) => e.status === "approved" || e.status === "reimbursed").reduce((s, e) => s + e.amount, 0);
+    const pendingExpenses = baseExpenses.filter((e) => e.status === "submitted").reduce((s, e) => s + e.amount, 0);
+    const foreignExpenseCount = g.expenses.length - baseExpenses.length;
     const remainingBudget = budget - usedBudget;
     return {
       ...g,
@@ -256,6 +263,7 @@ export async function getGroupsWithStats(coachId?: string | null) {
       usedBudget,
       pendingExpenses,
       remainingBudget,
+      foreignExpenseCount,
       overBudget: usedBudget > budget,
     };
   });

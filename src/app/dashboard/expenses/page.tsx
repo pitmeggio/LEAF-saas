@@ -31,7 +31,7 @@ export default async function ExpensesPage() {
       <PageHeader
         title={isAdmin ? "Expenses" : "My Expenses"}
         subtitle={isAdmin ? "Approve, reject and reimburse coach expenses." : "File and track your expense claims."}
-        right={!isAdmin ? <Modal label="+ New expense" title="New expense" className={newBtn}><ExpenseForm groups={groups} /></Modal> : undefined}
+        right={!isAdmin ? <Modal label="+ New expense" title="New expense" className={newBtn}><ExpenseForm groups={groups} currency={currency} /></Modal> : undefined}
       />
       <div className="space-y-6 p-8">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">

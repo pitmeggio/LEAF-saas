@@ -20,13 +20,15 @@ export async function createContract(input: unknown): Promise<Result> {
 
   const enr = await prisma.enrollment.findFirst({ where: { id: d.enrollmentId, academyId } });
   if (!enr) return { ok: false, error: "Enrollment not found." };
+  // Contracts are with the academy → priced in its national currency.
+  const currency = (await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } }))?.currency ?? "EUR";
 
   const c = await prisma.contract.create({
     data: {
       academyId, enrollmentId: d.enrollmentId, title: d.title, status: d.status,
       startDate: d.startDate ? new Date(d.startDate) : null,
       endDate: d.endDate ? new Date(d.endDate) : null,
-      value: d.value ?? null, currency: d.currency, notes: d.notes ?? null,
+      value: d.value ?? null, currency, notes: d.notes ?? null,
       signedAt: d.status === "signed" ? new Date() : null,
     },
   });
@@ -41,13 +43,14 @@ export async function updateContract(input: unknown): Promise<Result> {
   const d = parsed.data;
   const existing = await prisma.contract.findFirst({ where: { id: d.id, academyId } });
   if (!existing) return { ok: false, error: "Contract not found." };
+  const currency = (await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } }))?.currency ?? "EUR";
   await prisma.contract.update({
     where: { id: d.id },
     data: {
       title: d.title, status: d.status,
       startDate: d.startDate ? new Date(d.startDate) : null,
       endDate: d.endDate ? new Date(d.endDate) : null,
-      value: d.value ?? null, currency: d.currency, notes: d.notes ?? null,
+      value: d.value ?? null, currency, notes: d.notes ?? null,
       signedAt: d.status === "signed" ? (existing.signedAt ?? new Date()) : null,
     },
   });

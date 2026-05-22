@@ -96,13 +96,21 @@ export async function deleteGroup(id: string): Promise<Result> {
   return { ok: true };
 }
 
+// The academy's national currency — packages/payments are always priced in it.
+async function academyCurrency(academyId: string): Promise<string> {
+  const a = await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } });
+  return a?.currency ?? "EUR";
+}
+
 // ── Packages ──
 export async function createPackage(input: PackageInput): Promise<Result> {
   const parsed = packageInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const academyId = await requireAcademyId();
+  const currency = await academyCurrency(academyId);
   const count = await prisma.package.count({ where: { academyId } });
-  const p = await prisma.package.create({ data: { ...parsed.data, academyId, order: count + 1 } });
+  // Packages are the academy's own pricing → always in its national currency.
+  const p = await prisma.package.create({ data: { ...parsed.data, currency, academyId, order: count + 1 } });
   revalidateAll();
   return { ok: true, id: p.id };
 }
@@ -113,7 +121,8 @@ export async function updatePackage(id: string, input: PackageInput): Promise<Re
   const academyId = await requireAcademyId();
   const existing = await prisma.package.findFirst({ where: { id, academyId } });
   if (!existing) return { ok: false, error: "Not found" };
-  await prisma.package.update({ where: { id }, data: parsed.data });
+  const currency = await academyCurrency(academyId);
+  await prisma.package.update({ where: { id }, data: { ...parsed.data, currency } });
   revalidateAll();
   return { ok: true };
 }
