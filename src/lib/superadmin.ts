@@ -18,6 +18,7 @@ export type AcademyWithMetrics = {
   featureFinance: boolean;
   featureChat: boolean;
   maxAthletes: number | null;
+  requiredDocs: string | null;
   createdAt: Date;
   metrics: {
     users: number;
@@ -63,6 +64,7 @@ export async function getAcademiesWithMetrics(): Promise<AcademyWithMetrics[]> {
     featureFinance: a.featureFinance,
     featureChat: a.featureChat,
     maxAthletes: a.maxAthletes,
+    requiredDocs: a.requiredDocs,
     createdAt: a.createdAt,
     metrics: {
       users: a._count.users,

@@ -35,6 +35,7 @@ model Academy {
   featureFinance        Boolean @default(true)
   featureChat           Boolean @default(true)
   maxAthletes           Int?    // null = unlimited (plan default)
+  requiredDocs          String? // comma-separated document keys; null = platform default
 
   // ── Public recruiting (surfaced by the profiles.leaf.ai experience) ──
   // Only exposed when recruitingEnabled && status == "active". Read exclusively

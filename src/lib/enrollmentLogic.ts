@@ -11,6 +11,18 @@ export const REQUIRED_DOC_TYPES = [
 
 export const OPTIONAL_DOC_TYPES = ["travel", "parent_approval", "internal"] as const;
 
+export const ALL_DOC_TYPES = [...REQUIRED_DOC_TYPES, ...OPTIONAL_DOC_TYPES] as const;
+
+// Resolve an academy's required-document set from its config string (comma/newline
+// separated keys). Falls back to the platform default when unset. Per-tenant config,
+// not hardcoded — academies choose which documents they require.
+export function resolveRequiredDocs(raw?: string | null): string[] {
+  if (!raw) return [...REQUIRED_DOC_TYPES];
+  const known = new Set<string>(ALL_DOC_TYPES);
+  const picked = raw.split(/[\n,]/).map((s) => s.trim()).filter((t) => known.has(t));
+  return picked.length ? picked : [...REQUIRED_DOC_TYPES];
+}
+
 export const DOC_LABEL: Record<string, string> = {
   medical_certificate: "Medical certificate",
   liability_waiver: "Liability waiver",

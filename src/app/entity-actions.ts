@@ -8,7 +8,7 @@ import {
   manualAthleteSchema, athleteUpdateSchema, applicationUpdateSchema,
   firstError, type CoachInput, type GroupInput, type PackageInput, type ManualAthleteInput,
 } from "@/lib/validation";
-import { REQUIRED_DOC_TYPES, buildPaymentSchedule } from "@/lib/enrollmentLogic";
+import { resolveRequiredDocs, buildPaymentSchedule } from "@/lib/enrollmentLogic";
 import { createInvoiceForPayment } from "@/lib/invoices";
 
 export type Result = { ok: boolean; error?: string; id?: string };
@@ -165,7 +165,8 @@ export async function createAthlete(input: ManualAthleteInput): Promise<Result> 
       }
     }
   }
-  for (const type of REQUIRED_DOC_TYPES) {
+  const docAcademy = await prisma.academy.findUnique({ where: { id: academyId }, select: { requiredDocs: true } });
+  for (const type of resolveRequiredDocs(docAcademy?.requiredDocs)) {
     await prisma.document.create({ data: { academyId, enrollmentId: enrollment.id, type, status: "missing", required: true } });
   }
 

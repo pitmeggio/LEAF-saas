@@ -189,9 +189,19 @@ function EditAcademyForm({ academy }: { academy: Academy }) {
 // ── Configure tenant (branding + feature flags + limit) ─────────────────────
 type AcademyConfig = {
   id: string; name: string; tagline: string | null; description: string | null;
-  contactEmail: string | null; logoColor: string; maxAthletes: number | null;
+  contactEmail: string | null; logoColor: string; maxAthletes: number | null; requiredDocs: string | null;
   featureRecruiting: boolean; featurePublicProfiles: boolean; featureFinance: boolean; featureChat: boolean;
 };
+
+const DOC_OPTIONS: { key: string; label: string }[] = [
+  { key: "medical_certificate", label: "Medical certificate" },
+  { key: "liability_waiver", label: "Liability waiver" },
+  { key: "academy_contract", label: "Academy contract" },
+  { key: "race_license", label: "Race license" },
+  { key: "travel", label: "Travel documents" },
+  { key: "parent_approval", label: "Parent approval" },
+];
+const DEFAULT_DOCS = ["medical_certificate", "liability_waiver", "academy_contract", "race_license"];
 
 const FEATURES: { key: keyof Pick<AcademyConfig, "featureRecruiting" | "featurePublicProfiles" | "featureFinance" | "featureChat">; label: string; desc: string }[] = [
   { key: "featurePublicProfiles", label: "Public profiles", desc: "Athlete profiles + analytics" },
@@ -216,6 +226,9 @@ function ConfigureAcademyForm({ academy }: { academy: AcademyConfig }) {
     featureFinance: academy.featureFinance,
     featureChat: academy.featureChat,
   });
+  const initialDocs = academy.requiredDocs ? academy.requiredDocs.split(",").map((s) => s.trim()).filter(Boolean) : DEFAULT_DOCS;
+  const [docs, setDocs] = useState<string[]>(initialDocs);
+  const toggleDoc = (k: string) => setDocs((d) => (d.includes(k) ? d.filter((x) => x !== k) : [...d, k]));
   return (
     <form
       className="space-y-4"
@@ -230,6 +243,7 @@ function ConfigureAcademyForm({ academy }: { academy: AcademyConfig }) {
           contactEmail: String(fd.get("contactEmail") ?? ""),
           logoColor: String(fd.get("logoColor") ?? ""),
           maxAthletes: maxRaw === "" ? null : Number(maxRaw),
+          requiredDocs: docs.join(","),
           ...flags,
         }));
       }}
@@ -261,6 +275,20 @@ function ConfigureAcademyForm({ academy }: { academy: AcademyConfig }) {
               <span className={`text-xs ${flags[f.key] ? "text-[var(--color-accent)]" : "text-[var(--color-muted)]"}`}>{flags[f.key] ? "On" : "Off"}</span>
             </div>
             <div className="mt-0.5 text-[11px] text-[var(--color-muted)]">{f.desc}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="kicker pt-2" style={{ color: "var(--color-accent)" }}>Required documents</div>
+      <div className="grid grid-cols-2 gap-2">
+        {DOC_OPTIONS.map((d) => (
+          <button
+            key={d.key}
+            type="button"
+            onClick={() => toggleDoc(d.key)}
+            className={`rounded-lg border px-3 py-2 text-left text-sm transition-colors ${docs.includes(d.key) ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10" : "border-[var(--color-border)] text-[var(--color-muted)]"}`}
+          >
+            {docs.includes(d.key) ? "✓ " : ""}{d.label}
           </button>
         ))}
       </div>

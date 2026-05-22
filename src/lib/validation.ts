@@ -272,6 +272,7 @@ export const academyConfigSchema = z.object({
   featureFinance: z.boolean(),
   featureChat: z.boolean(),
   maxAthletes: z.number().int().min(0).max(100000).nullable().optional(),
+  requiredDocs: z.string().trim().max(300).optional().transform((v) => (v ? v : null)),
 });
 
 // Public application form

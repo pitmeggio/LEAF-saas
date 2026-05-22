@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { REQUIRED_DOC_TYPES, buildPaymentSchedule } from "@/lib/enrollmentLogic";
+import { resolveRequiredDocs, buildPaymentSchedule } from "@/lib/enrollmentLogic";
 import { createInvoiceForPayment } from "@/lib/invoices";
 import { notify } from "@/lib/notifications";
 
@@ -57,8 +57,8 @@ export async function enrollAcceptedApplication(applicationId: string, opts: Enr
     await prisma.enrollmentEvent.create({ data: { enrollmentId: enrollment.id, type: "payment", detail: `Payment schedule + invoices created (${schedule.length})` } });
   }
 
-  // Auto-detect required documents — created as "missing" so they surface as alerts.
-  for (const type of REQUIRED_DOC_TYPES) {
+  // Required documents — per-academy config (falls back to the platform default).
+  for (const type of resolveRequiredDocs(app.academy.requiredDocs)) {
     await prisma.document.create({ data: { academyId: app.academyId, enrollmentId: enrollment.id, type, status: "missing", required: true } });
   }
 
