@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { LoginForm } from "@/components/LoginForm";
+import { LoginChooser } from "@/components/LoginChooser";
 import { LeafMark } from "@/components/LeafMark";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +64,7 @@ export default async function LoginPage() {
           </div>
         </div>
 
-        <div className="relative kicker">For academies · clubs · federations</div>
+        <div className="relative kicker">For athletes · academies · clubs · federations</div>
       </div>
 
       {/* Right — sign in */}
@@ -75,7 +75,7 @@ export default async function LoginPage() {
             <LeafMark size={30} />
             <span className="font-bold tracking-tight">LEAF</span>
           </div>
-          <LoginForm demoUsers={demoUsers} />
+          <LoginChooser demoUsers={demoUsers} />
         </div>
       </div>
     </div>
