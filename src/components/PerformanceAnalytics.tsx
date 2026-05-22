@@ -1,12 +1,13 @@
 import type { PerformanceStats } from "@/lib/performance";
 import { DISCIPLINE_LABEL } from "@/lib/domain";
 
-function Metric({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) {
+function Metric({ label, value, sub, hint, accent }: { label: string; value: string; sub?: string; hint?: string; accent?: boolean }) {
   return (
     <div className="card p-5">
       <div className="text-xs text-[var(--color-muted)]">{label}</div>
       <div className="num mt-1 text-3xl font-bold" style={accent ? { color: "var(--color-accent)" } : undefined}>{value}</div>
       {sub && <div className="mt-0.5 text-xs text-[var(--color-muted)]">{sub}</div>}
+      {hint && <div className="mt-1 text-[11px] italic text-[var(--color-muted)]/80">{hint}</div>}
     </div>
   );
 }
@@ -40,12 +41,12 @@ export function PerformanceAnalytics({ stats, locked }: { stats: PerformanceStat
       <div className="relative">
         <div className={locked ? "pointer-events-none select-none blur-sm" : ""}>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            <Metric label="Races (12 months)" value={String(stats.raceFrequency.last12Months)} sub={`${stats.totalRaces} total`} accent />
-            <Metric label="Podium rate" value={`${stats.podiumPct}%`} sub={`${stats.podiumCount} of ${stats.finishes} finishes`} />
-            <Metric label="DNF / DSQ rate" value={`${stats.dnfPct}%`} sub={`${stats.dnfCount} of ${stats.totalRaces} starts`} />
-            <Metric label="Consistency" value={stats.consistency.score != null ? `${stats.consistency.score}/100` : "—"} sub={stats.consistency.avgFinish != null ? `avg finish ${stats.consistency.avgFinish}` : undefined} />
-            <Metric label="Best finish" value={stats.bestFinish != null ? `#${stats.bestFinish}` : "—"} />
-            <Metric label="Finishes" value={`${stats.finishes}/${stats.totalRaces}`} sub="completed races" />
+            <Metric label="Races (12 months)" value={String(stats.raceFrequency.last12Months)} sub={`${stats.totalRaces} total`} hint="how active recently" accent />
+            <Metric label="Podium rate" value={`${stats.podiumPct}%`} sub={`${stats.podiumCount} of ${stats.finishes} finishes`} hint="finishes in the top 3" />
+            <Metric label="Did-not-finish rate" value={`${stats.dnfPct}%`} sub={`${stats.dnfCount} of ${stats.totalRaces} starts`} hint="races not completed (DNF/DSQ)" />
+            <Metric label="Consistency" value={stats.consistency.score != null ? `${stats.consistency.score}/100` : "—"} sub={stats.consistency.avgFinish != null ? `avg finish ${stats.consistency.avgFinish}` : undefined} hint="how steady the results are" />
+            <Metric label="Best finish" value={stats.bestFinish != null ? `#${stats.bestFinish}` : "—"} hint="highest placing so far" />
+            <Metric label="Finishes" value={`${stats.finishes}/${stats.totalRaces}`} sub="completed races" hint="started and finished" />
           </div>
 
           {/* Discipline split */}
