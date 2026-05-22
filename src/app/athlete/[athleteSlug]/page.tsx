@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { resolvePublicProfile, type PublicProfile } from "@/lib/profiles";
+import { resolvePublicProfile } from "@/lib/profiles";
 import { AcademyRecruitingBanner } from "@/components/Recruiting";
 import { PublicNav } from "@/components/PublicNav";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -52,6 +52,17 @@ export default async function PublicProfilePage({
   const initials = `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase();
   const sport = sportConfig(p.sport);
   const forecast = p.pointsEvolution ? forecastTrajectory(p.pointsEvolution, p.sport) : null;
+
+  // The public profile never exposes a private email (privacy boundary), so a
+  // contact request is routed "through their academy" — to the academy's apply
+  // flow when it's recruiting, otherwise to its public page.
+  const recruit = p.recruiting;
+  const contactHref = recruit?.applyEnabled && recruit.applyHref
+    ? recruit.applyHref
+    : recruit
+      ? `/academy/${recruit.academySlug}`
+      : null;
+  const contactExternal = !!(recruit?.applyEnabled && recruit.applyExternal);
 
   return (
     <div className="min-h-screen">
@@ -239,11 +250,23 @@ export default async function PublicProfilePage({
           <section id="contact" className="card flex flex-col items-center gap-4 p-10 text-center">
             <h2 className="text-2xl font-bold">Interested in {p.firstName}?</h2>
             <p className="max-w-md text-sm text-[var(--color-muted)]">
-              This athlete is open to recruiting conversations. Reach out through their academy to start a verified introduction.
+              This athlete is open to recruiting conversations.{" "}
+              {recruit
+                ? `Start a verified introduction through ${recruit.academyName}.`
+                : "Reach out through their academy to start a verified introduction."}
             </p>
-            <a href={`mailto:?subject=${encodeURIComponent(`Recruiting interest — ${p.firstName} ${p.lastName}`)}`} className="rounded-xl bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]">
-              Request introduction
-            </a>
+            {contactHref ? (
+              <a
+                href={contactHref}
+                target={contactExternal ? "_blank" : undefined}
+                rel={contactExternal ? "noopener noreferrer" : undefined}
+                className="rounded-xl bg-[var(--color-accent)] px-6 py-3 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]"
+              >
+                {recruit?.applyEnabled ? `Apply through ${recruit.academyName}` : `View ${recruit?.academyName ?? "academy"}`}
+              </a>
+            ) : (
+              <p className="text-xs text-[var(--color-muted)]">Reach out through this athlete&apos;s academy for a verified introduction.</p>
+            )}
           </section>
         )}
       </div>
