@@ -30,8 +30,9 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
   if (!m) notFound();
   const [opts, notifications] = await Promise.all([getAssignmentOptions(), getNotifications({ enrollmentId: id })]);
   const a = m.athlete;
-  const academy = s?.academyId ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { financeProvider: true } }) : null;
+  const academy = s?.academyId ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { financeProvider: true, currency: true } }) : null;
   const externalFinance = isExternalFinance(academy?.financeProvider);
+  const currency = academy?.currency ?? "EUR";
   const chart: Point[] = a.rankings.map((r) => ({ label: new Date(r.date).toLocaleDateString("en-GB", { month: "short" }), fisPoints: r.fisPoints }));
   const perf = perfFromTrend(m.trend);
 
@@ -114,7 +115,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
           <div className="card overflow-hidden">
             <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
               <h3 className="text-sm font-semibold">Payments</h3>
-              <span className="text-xs text-[var(--color-muted)]">{fmtMoney(m.paidTotal)} / {fmtMoney(m.paymentsTotal)} paid · <span style={{ color: m.outstanding > 0 ? "#f59e0b" : undefined }}>{fmtMoney(m.outstanding)} outstanding</span></span>
+              <span className="text-xs text-[var(--color-muted)]">{fmtMoney(m.paidTotal, currency)} / {fmtMoney(m.paymentsTotal, currency)} paid · <span style={{ color: m.outstanding > 0 ? "#f59e0b" : undefined }}>{fmtMoney(m.outstanding, currency)} outstanding</span></span>
             </div>
             <table className="w-full text-sm">
               <tbody>

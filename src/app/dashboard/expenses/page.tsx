@@ -2,7 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { Modal, ExpenseForm } from "@/components/EntityForms";
 import { ExpenseCoachActions, ExpenseAdminActions } from "@/components/EntityActions";
-import { getExpenses, getAssignmentOptions } from "@/lib/ops";
+import { getExpenses, getAssignmentOptions, getAcademyCurrency } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { fmtMoney, fmtDate } from "@/lib/domain";
@@ -16,7 +16,7 @@ export default async function ExpensesPage() {
   const s = await getSession();
   const isAdmin = s?.isAdmin ?? false;
   const coachId = isAdmin ? null : s?.coachId ?? null;
-  const data = await getExpenses(coachId);
+  const [data, currency] = await Promise.all([getExpenses(coachId), getAcademyCurrency()]);
 
   // Coach can only file against their own groups; admin sees all groups.
   const academyId = s?.academyId ?? "";
@@ -35,9 +35,9 @@ export default async function ExpensesPage() {
       />
       <div className="space-y-6 p-8">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard label="Pending approval" value={String(data.pendingCount)} hint={fmtMoney(data.submittedTotal)} danger={data.pendingCount > 0} />
-          <StatCard label="Approved" value={fmtMoney(data.approvedTotal)} accent />
-          <StatCard label="Reimbursed" value={fmtMoney(data.reimbursedTotal)} />
+          <StatCard label="Pending approval" value={String(data.pendingCount)} hint={fmtMoney(data.submittedTotal, currency)} danger={data.pendingCount > 0} />
+          <StatCard label="Approved" value={fmtMoney(data.approvedTotal, currency)} accent />
+          <StatCard label="Reimbursed" value={fmtMoney(data.reimbursedTotal, currency)} />
           <StatCard label="Total claims" value={String(data.expenses.length)} />
         </div>
 

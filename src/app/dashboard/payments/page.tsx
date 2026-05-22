@@ -32,12 +32,12 @@ export default async function PaymentsPage() {
           syncedAt={academy?.financeSyncedAt ? academy.financeSyncedAt.toLocaleString() : null}
         />
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="Collected" value={fmtMoney(f.collected)} hint="paid to date" accent />
-          <StatCard label="Outstanding" value={fmtMoney(f.outstandingTotal)} hint="billed, not yet paid" danger={f.outstandingTotal > 0} />
-          <StatCard label="Overdue" value={fmtMoney(f.overdueTotal)} hint={`past due · ${f.unpaidAthletes} athlete(s)`} danger={f.overdueTotal > 0} />
-          <StatCard label="Paid this month" value={fmtMoney(f.paidThisMonth)} hint="collected this month" />
+          <StatCard label="Collected" value={fmtMoney(f.collected, f.currency)} hint="paid to date" accent />
+          <StatCard label="Outstanding" value={fmtMoney(f.outstandingTotal, f.currency)} hint="billed, not yet paid" danger={f.outstandingTotal > 0} />
+          <StatCard label="Overdue" value={fmtMoney(f.overdueTotal, f.currency)} hint={`past due · ${f.unpaidAthletes} athlete(s)`} danger={f.overdueTotal > 0} />
+          <StatCard label="Paid this month" value={fmtMoney(f.paidThisMonth, f.currency)} hint="collected this month" />
           <StatCard label="Active subscriptions" value={String(f.activeSubscriptions)} hint="athletes on a package" />
-          <StatCard label="Monthly recurring" value={fmtMoney(f.monthlyRecurringEstimate)} hint="expected income / month" />
+          <StatCard label="Monthly recurring" value={fmtMoney(f.monthlyRecurring, f.currency)} hint="avg/mo · last 3 months" />
         </div>
 
         <div className="card p-5">

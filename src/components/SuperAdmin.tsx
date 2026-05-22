@@ -189,9 +189,11 @@ function EditAcademyForm({ academy }: { academy: Academy }) {
 // ── Configure tenant (branding + feature flags + limit) ─────────────────────
 type AcademyConfig = {
   id: string; name: string; tagline: string | null; description: string | null;
-  contactEmail: string | null; logoColor: string; maxAthletes: number | null; requiredDocs: string | null;
+  contactEmail: string | null; logoColor: string; maxAthletes: number | null; requiredDocs: string | null; currency: string;
   featureRecruiting: boolean; featurePublicProfiles: boolean; featureFinance: boolean; featureChat: boolean;
 };
+
+const CURRENCIES = ["EUR", "USD", "GBP", "CHF", "NOK", "SEK", "DKK", "CAD", "AUD"];
 
 const DOC_OPTIONS: { key: string; label: string }[] = [
   { key: "medical_certificate", label: "Medical certificate" },
@@ -244,6 +246,7 @@ function ConfigureAcademyForm({ academy }: { academy: AcademyConfig }) {
           logoColor: String(fd.get("logoColor") ?? ""),
           maxAthletes: maxRaw === "" ? null : Number(maxRaw),
           requiredDocs: docs.join(","),
+          currency: String(fd.get("currency") ?? ""),
           ...flags,
         }));
       }}
@@ -293,9 +296,14 @@ function ConfigureAcademyForm({ academy }: { academy: AcademyConfig }) {
         ))}
       </div>
 
-      <div className="kicker pt-2" style={{ color: "var(--color-accent)" }}>Limits</div>
+      <div className="kicker pt-2" style={{ color: "var(--color-accent)" }}>Limits & currency</div>
       <Field label="Max athletes (blank = unlimited)">
         <input name="maxAthletes" type="number" min={0} className={inp} defaultValue={academy.maxAthletes ?? ""} placeholder="Unlimited" />
+      </Field>
+      <Field label="Operating currency">
+        <select name="currency" className={inp} defaultValue={academy.currency || "EUR"}>
+          {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
       </Field>
 
       <Footer pending={pending} error={error} />

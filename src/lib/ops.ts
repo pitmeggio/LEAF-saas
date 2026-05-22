@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireAcademyId } from "@/lib/auth";
 import { computeTrend } from "@/lib/queries";
 import { perfFromTrend, isOverdue, isThisMonth, type PerfStatus, type Trend } from "@/lib/domain";
+import { aggregateFinance } from "@/lib/financeMath";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Operational data + automation. Everything here is COMPUTED from the database —
@@ -23,6 +24,13 @@ const ENROLLMENT_INCLUDE = {
   documents: true,
   invoices: { orderBy: { issuedAt: "desc" as const } },
 };
+
+// The academy's base/operating currency — drives all money formatting.
+export async function getAcademyCurrency(): Promise<string> {
+  const academyId = await requireAcademyId();
+  const a = await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } });
+  return a?.currency ?? "EUR";
+}
 
 // Notifications (outbox) for an application or enrollment.
 export async function getNotifications(where: { applicationId?: string; enrollmentId?: string }) {
@@ -293,20 +301,27 @@ export type FinanceData = Awaited<ReturnType<typeof getFinance>>;
 
 export async function getFinance() {
   const academyId = await requireAcademyId();
+  const academy = await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } });
+  const baseCurrency = academy?.currency ?? "EUR";
   const payments = await prisma.payment.findMany({
     where: { academyId },
     include: { enrollment: { include: { athlete: true, package: true, group: true } }, invoice: true },
     orderBy: { dueDate: "asc" },
   });
 
-  const outstandingOf = (p: { amount: number; paidAmount: number }) => p.amount - p.paidAmount;
-  const expectedThisMonth = payments.filter((p) => isThisMonth(p.dueDate)).reduce((s, p) => s + p.amount, 0);
-  // Use paidAmount, not amount — a partial payment must contribute only what was collected.
-  const paidThisMonth = payments.filter((p) => p.paidDate && isThisMonth(p.paidDate)).reduce((s, p) => s + p.paidAmount, 0);
-  const collected = payments.reduce((s, p) => s + p.paidAmount, 0);
-  const outstandingTotal = payments.filter((p) => p.status !== "paid").reduce((s, p) => s + outstandingOf(p), 0);
+  // Currency-correct aggregation: amounts are summed per currency, headline in base.
+  const agg = aggregateFinance(
+    payments.map((p) => ({ amount: p.amount, paidAmount: p.paidAmount, currency: p.currency, dueDate: p.dueDate, paidDate: p.paidDate, status: p.status })),
+    { baseCurrency },
+  );
+  const collected = agg.collected;
+  const outstandingTotal = agg.outstandingTotal;
+  const overdueTotal = agg.overdueTotal;
+  const paidThisMonth = agg.paidThisMonth;
+  const monthlyRecurring = agg.monthlyRecurring;
+
+  const expectedThisMonth = payments.filter((p) => p.currency === baseCurrency && isThisMonth(p.dueDate)).reduce((s, p) => s + p.amount, 0);
   const overdue = payments.filter((p) => isOverdue(p));
-  const overdueTotal = overdue.reduce((s, p) => s + outstandingOf(p), 0);
   const unpaidEnrollmentIds = new Set(overdue.map((p) => p.enrollmentId));
 
   // Invoice state counts (overdue derived from the linked payment due date).
@@ -330,12 +345,12 @@ export async function getFinance() {
     .filter((p) => p.activeCount > 0)
     .map((p) => ({ id: p.id, name: p.name, count: p.activeCount, revenue: p.contractValue, currency: p.currency }));
 
-  // monthly recurring estimate: total contract value of active enrollments / 6 months
-  const totalContract = pkgs.reduce((s, p) => s + p.contractValue, 0);
-  const monthlyRecurringEstimate = Math.round(totalContract / 6);
+  // Total contract value — base currency only (don't sum across currencies).
+  const totalContract = pkgs.filter((p) => p.currency === baseCurrency).reduce((s, p) => s + p.contractValue, 0);
 
   return {
     payments,
+    currency: baseCurrency,
     expectedThisMonth,
     paidThisMonth,
     collected,
@@ -345,8 +360,12 @@ export async function getFinance() {
     unpaidAthletes: unpaidEnrollmentIds.size,
     activeSubscriptions: activeSubs,
     packageBreakdown,
-    monthlyRecurringEstimate,
+    monthlyRecurring,
+    monthlyRecurringEstimate: monthlyRecurring, // back-compat alias
     totalContract,
+    byCurrency: agg.byCurrency,
+    otherCurrencies: agg.otherCurrencies,
+    collectionRate: agg.collectionRate,
     invoiceStates,
   };
 }

@@ -44,10 +44,10 @@ export default async function ReportsPage() {
         </Section>
 
         <Section title="Financial summary" subtitle="the season's money at a glance">
-          <Line label="Total contract value" hint="all active deals combined" value={fmtMoney(finance.totalContract)} />
-          <Line label="Monthly recurring" hint="expected income / month" value={fmtMoney(finance.monthlyRecurringEstimate)} />
-          <Line label="Paid this month" hint="collected so far" value={fmtMoney(finance.paidThisMonth)} />
-          <Line label="Overdue" hint="past due date" value={fmtMoney(finance.overdueTotal)} danger />
+          <Line label="Total contract value" hint="all active deals combined" value={fmtMoney(finance.totalContract, finance.currency)} />
+          <Line label="Monthly recurring" hint="avg/mo · last 3 months" value={fmtMoney(finance.monthlyRecurring, finance.currency)} />
+          <Line label="Paid this month" hint="collected so far" value={fmtMoney(finance.paidThisMonth, finance.currency)} />
+          <Line label="Overdue" hint="past due date" value={fmtMoney(finance.overdueTotal, finance.currency)} danger />
           <Line label="Active subscriptions" hint="athletes on a package" value={String(finance.activeSubscriptions)} />
         </Section>
 
@@ -81,10 +81,10 @@ export default async function ReportsPage() {
                   <tr key={g.id} className="border-t border-[var(--color-border)]">
                     <td className="py-2">{g.name}{g.overCapacity && <span className="ml-2 text-[10px] font-semibold text-[#f87171]">OVER</span>}</td>
                     <td className="num py-2">{g.count}/{g.capacity}</td>
-                    <td className="num py-2">{fmtMoney(g.revenue)}</td>
-                    <td className="num py-2 text-[var(--color-muted)]">{fmtMoney(g.coachCost)}</td>
-                    <td className="num py-2 text-[var(--color-muted)]">{fmtMoney(g.budget)}</td>
-                    <td className="num py-2 font-semibold" style={{ color: g.marginPositive ? "var(--color-accent)" : "#f87171" }}>{fmtMoney(g.margin)}</td>
+                    <td className="num py-2">{fmtMoney(g.revenue, finance.currency)}</td>
+                    <td className="num py-2 text-[var(--color-muted)]">{fmtMoney(g.coachCost, finance.currency)}</td>
+                    <td className="num py-2 text-[var(--color-muted)]">{fmtMoney(g.budget, finance.currency)}</td>
+                    <td className="num py-2 font-semibold" style={{ color: g.marginPositive ? "var(--color-accent)" : "#f87171" }}>{fmtMoney(g.margin, finance.currency)}</td>
                   </tr>
                 ))}
               </tbody>

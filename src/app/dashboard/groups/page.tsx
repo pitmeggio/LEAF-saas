@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { PercentBar } from "@/components/StatCard";
 import { Modal, GroupForm, DeleteButton } from "@/components/EntityForms";
-import { getGroupsWithStats, getAssignmentOptions } from "@/lib/ops";
+import { getGroupsWithStats, getAssignmentOptions, getAcademyCurrency } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
 
@@ -13,7 +13,7 @@ export default async function GroupsPage() {
   const s = await getSession();
   const isAdmin = s?.isAdmin ?? false;
   const coachScope = isAdmin ? null : s?.coachId ?? null;
-  const [groups, opts] = await Promise.all([getGroupsWithStats(coachScope), getAssignmentOptions()]);
+  const [groups, opts, currency] = await Promise.all([getGroupsWithStats(coachScope), getAssignmentOptions(), getAcademyCurrency()]);
 
   const Row = ({ label, value, color }: { label: string; value: string; color?: string }) => (
     <div className="flex justify-between"><dt className="text-[var(--color-muted)]">{label}</dt><dd className="num" style={color ? { color } : undefined}>{value}</dd></div>
@@ -51,17 +51,17 @@ export default async function GroupsPage() {
 
             <dl className="mt-4 space-y-1.5 border-t border-[var(--color-border)] pt-3 text-sm">
               <Row label="Athletes" value={String(g.count)} />
-              <Row label="Contract revenue" value={fmtMoney(g.revenue)} />
-              <Row label="Collected" value={fmtMoney(g.collectedRevenue)} color="var(--color-accent)" />
-              {isAdmin && <Row label="Coach cost" value={fmtMoney(g.coachCost)} />}
-              <Row label="Budget allocation" value={fmtMoney(g.budget)} />
-              <Row label="Used budget" value={fmtMoney(g.usedBudget)} />
-              <Row label="Remaining" value={fmtMoney(g.remainingBudget)} color={g.remainingBudget < 0 ? "#f87171" : undefined} />
-              <Row label="Pending expenses" value={fmtMoney(g.pendingExpenses)} />
+              <Row label="Contract revenue" value={fmtMoney(g.revenue, currency)} />
+              <Row label="Collected" value={fmtMoney(g.collectedRevenue, currency)} color="var(--color-accent)" />
+              {isAdmin && <Row label="Coach cost" value={fmtMoney(g.coachCost, currency)} />}
+              <Row label="Budget allocation" value={fmtMoney(g.budget, currency)} />
+              <Row label="Used budget" value={fmtMoney(g.usedBudget, currency)} />
+              <Row label="Remaining" value={fmtMoney(g.remainingBudget, currency)} color={g.remainingBudget < 0 ? "#f87171" : undefined} />
+              <Row label="Pending expenses" value={fmtMoney(g.pendingExpenses, currency)} />
               {isAdmin && (
                 <div className="flex justify-between border-t border-[var(--color-border)] pt-1.5">
                   <dt className="font-medium">Est. margin</dt>
-                  <dd className="num font-semibold" style={{ color: g.marginPositive ? "var(--color-accent)" : "#f87171" }}>{fmtMoney(g.margin)}</dd>
+                  <dd className="num font-semibold" style={{ color: g.marginPositive ? "var(--color-accent)" : "#f87171" }}>{fmtMoney(g.margin, currency)}</dd>
                 </div>
               )}
             </dl>

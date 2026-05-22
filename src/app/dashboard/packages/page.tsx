@@ -1,7 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { PercentBar } from "@/components/StatCard";
 import { Modal, PackageForm, DeleteButton } from "@/components/EntityForms";
-import { getPackagesWithStats } from "@/lib/ops";
+import { getPackagesWithStats, getAcademyCurrency } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
 
@@ -12,8 +12,9 @@ const newBtn = "rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semib
 
 export default async function PackagesPage() {
   await requireAdmin();
-  const packages = await getPackagesWithStats();
-  const totalForecast = packages.reduce((s, p) => s + p.contractValue, 0);
+  const [packages, currency] = await Promise.all([getPackagesWithStats(), getAcademyCurrency()]);
+  // Forecast in the academy's base currency only (don't sum across currencies).
+  const totalForecast = packages.filter((p) => p.currency === currency).reduce((s, p) => s + p.contractValue, 0);
 
   return (
     <>
@@ -22,7 +23,7 @@ export default async function PackagesPage() {
         subtitle="Occupancy, active subscriptions and revenue forecast update automatically."
         right={
           <div className="flex items-center gap-3">
-            <span className="num text-sm text-[var(--color-muted)]">Forecast {fmtMoney(totalForecast)}</span>
+            <span className="num text-sm text-[var(--color-muted)]">Forecast {fmtMoney(totalForecast, currency)}</span>
             <Modal label="+ New package" title="New package" className={newBtn}><PackageForm /></Modal>
           </div>
         }

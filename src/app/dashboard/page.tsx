@@ -27,11 +27,11 @@ export default async function OverviewPage() {
     collected: f.collected,
     outstandingTotal: f.outstandingTotal,
     overdueTotal: f.overdueTotal,
-    mrr: f.monthlyRecurringEstimate,
+    mrr: f.monthlyRecurring,
     unpaidAthletes: f.unpaidAthletes,
     occupancyPct: d.occupancyPct,
     statuses: d.enrollments.map((e) => e.status),
-    fmt: (n) => fmtMoney(n),
+    fmt: (n) => fmtMoney(n, f.currency),
   });
 
   return (
@@ -94,9 +94,9 @@ export default async function OverviewPage() {
 
         {/* Finance */}
         <KpiGroup title="Finance">
-          <StatCard label="Monthly recurring" value={fmtMoney(f.monthlyRecurringEstimate)} hint="expected income / month" href="/dashboard/payments" />
-          <StatCard label="Paid this month" value={fmtMoney(f.paidThisMonth)} hint="collected so far" href="/dashboard/payments" />
-          <StatCard label="Overdue payments" value={fmtMoney(f.overdueTotal)} hint={`${f.unpaidAthletes} athlete(s) to chase`} danger={f.overdueTotal > 0} href="/dashboard/payments" />
+          <StatCard label="Monthly recurring" value={fmtMoney(f.monthlyRecurring, f.currency)} hint="avg/mo · last 3 months" href="/dashboard/payments" />
+          <StatCard label="Paid this month" value={fmtMoney(f.paidThisMonth, f.currency)} hint="collected so far" href="/dashboard/payments" />
+          <StatCard label="Overdue payments" value={fmtMoney(f.overdueTotal, f.currency)} hint={`${f.unpaidAthletes} athlete(s) to chase`} danger={f.overdueTotal > 0} href="/dashboard/payments" />
           <StatCard label="Active subscriptions" value={String(f.activeSubscriptions)} hint="athletes on a package" href="/dashboard/packages" />
         </KpiGroup>
 
@@ -128,7 +128,7 @@ export default async function OverviewPage() {
               })}
             </div>
             <div className="mt-4 border-t border-[var(--color-border)] pt-3 text-xs text-[var(--color-muted)]">
-              Total contract value <span className="num font-semibold text-[var(--color-fg)]">{fmtMoney(f.totalContract)}</span>
+              Total contract value <span className="num font-semibold text-[var(--color-fg)]">{fmtMoney(f.totalContract, f.currency)}</span>
             </div>
           </div>
         </div>

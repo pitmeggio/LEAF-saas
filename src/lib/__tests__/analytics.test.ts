@@ -7,6 +7,7 @@ import { academyHealth } from "@/lib/ai/academyHealth";
 import { suggestGroups, type GroupInput } from "@/lib/ai/groupAssignment";
 import { reviewApplication } from "@/lib/ai/applicationReview";
 import { buildPaymentSchedule, resolveRequiredDocs } from "@/lib/enrollmentLogic";
+import { aggregateFinance, type PaymentLike } from "@/lib/financeMath";
 
 // ── Performance analytics (athlete results) ──────────────────────────────────
 test("computePerformance: empty input is safe (no divide-by-zero)", () => {
@@ -119,4 +120,38 @@ test("resolveRequiredDocs: falls back to default, filters junk", () => {
   assert.equal(resolveRequiredDocs(null).length, 4);
   assert.deepEqual(resolveRequiredDocs("medical_certificate, travel"), ["medical_certificate", "travel"]);
   assert.equal(resolveRequiredDocs("nonsense, garbage").length, 4); // unknown keys → default
+});
+
+// ── Finance aggregation (multi-currency, partials, overdue, real MRR) ─────────
+test("aggregateFinance: never mixes currencies; base headline + partials + overdue + MRR", () => {
+  const now = new Date("2025-06-15");
+  const d = (s: string) => new Date(s);
+  const payments: PaymentLike[] = [
+    { amount: 1000, paidAmount: 1000, currency: "EUR", dueDate: d("2025-05-01"), paidDate: d("2025-06-10"), status: "paid" },
+    { amount: 1000, paidAmount: 0, currency: "EUR", dueDate: d("2025-05-01"), paidDate: null, status: "unpaid" }, // overdue
+    { amount: 500, paidAmount: 200, currency: "EUR", dueDate: d("2025-12-01"), paidDate: d("2025-06-12"), status: "partial" }, // not overdue (future due)
+    { amount: 2000, paidAmount: 2000, currency: "USD", dueDate: d("2025-05-01"), paidDate: d("2025-06-01"), status: "paid" }, // other currency
+  ];
+  const a = aggregateFinance(payments, { baseCurrency: "EUR", now });
+
+  assert.equal(a.currency, "EUR");
+  assert.equal(a.collected, 1200); // 1000 + 200 (USD excluded)
+  assert.equal(a.billed, 2500);
+  assert.equal(a.outstandingTotal, 1300); // 1000 unpaid + 300 partial
+  assert.equal(a.overdueTotal, 1000); // only the past-due unpaid one
+  assert.equal(a.paidThisMonth, 1200); // both June collections
+  assert.equal(a.collectionRate, 48); // 1200 / 2500
+  assert.equal(a.monthlyRecurring, 400); // 1200 collected in last 90d / 3
+  // The USD money is segregated, never summed into the EUR headline.
+  assert.equal(a.otherCurrencies.length, 1);
+  assert.equal(a.otherCurrencies[0].currency, "USD");
+  assert.equal(a.otherCurrencies[0].collected, 2000);
+});
+
+test("aggregateFinance: base currency with no payments yields zeroed headline", () => {
+  const a = aggregateFinance([{ amount: 100, paidAmount: 100, currency: "USD", dueDate: new Date(), paidDate: new Date(), status: "paid" }], { baseCurrency: "NOK", now: new Date() });
+  assert.equal(a.currency, "NOK");
+  assert.equal(a.collected, 0);
+  assert.equal(a.collectionRate, 100);
+  assert.equal(a.otherCurrencies[0].currency, "USD");
 });

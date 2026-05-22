@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar, Dot } from "@/components/StatCard";
 import { Avatar, TrendArrow } from "@/components/ui";
-import { getActiveAthletes, getGroupsWithStats, computeAlerts, getExpenses } from "@/lib/ops";
+import { getActiveAthletes, getGroupsWithStats, computeAlerts, getExpenses, getAcademyCurrency } from "@/lib/ops";
 import { getInboxStats } from "@/lib/chat";
 import { getSession } from "@/lib/auth";
 import { fmtMoney, DISCIPLINE_LABEL, age } from "@/lib/domain";
@@ -14,12 +14,13 @@ const KIND_COLOR = { strength: "var(--color-accent)", watch: "#f59e0b", info: "v
 export async function CoachDashboard() {
   const s = await getSession();
   const coachId = s?.coachId ?? null;
-  const [members, groups, alerts, exp, inbox] = await Promise.all([
+  const [members, groups, alerts, exp, inbox, currency] = await Promise.all([
     getActiveAthletes(coachId),
     getGroupsWithStats(coachId),
     computeAlerts(coachId),
     getExpenses(coachId),
     getInboxStats(),
+    getAcademyCurrency(),
   ]);
 
   const improving = members.filter((m) => m.perf === "improving").length;
@@ -70,7 +71,7 @@ export async function CoachDashboard() {
           <StatCard label="My groups" value={String(groups.length)} href="/dashboard/groups" />
           <StatCard label="Improving" value={`${improving}/${members.length}`} hint="positive FIS trend" href="/dashboard/members" />
           <StatCard label="Group occupancy" value={`${occupancy}%`} hint={`${inGroups}/${totalCap}`} href="/dashboard/groups" />
-          <StatCard label="Budget remaining" value={fmtMoney(remainingBudget)} danger={remainingBudget < 0} href="/dashboard/groups" />
+          <StatCard label="Budget remaining" value={fmtMoney(remainingBudget, currency)} danger={remainingBudget < 0} href="/dashboard/groups" />
           <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} waiting`} danger={inbox.unreadTotal > 0} href="/dashboard/inbox" />
         </div>
 
@@ -84,7 +85,7 @@ export async function CoachDashboard() {
                 <div key={g.id}>
                   <div className="mb-1 flex items-center justify-between text-sm">
                     <span className="font-medium">{g.name} {g.overCapacity && <span className="text-[10px] text-[#f87171]">OVER</span>}</span>
-                    <span className="num text-xs text-[var(--color-muted)]">{g.count}/{g.capacity} · budget {fmtMoney(g.remainingBudget)} left</span>
+                    <span className="num text-xs text-[var(--color-muted)]">{g.count}/{g.capacity} · budget {fmtMoney(g.remainingBudget, currency)} left</span>
                   </div>
                   <PercentBar value={g.occupancyPct} color={g.overCapacity ? "#f87171" : "var(--color-accent)"} />
                 </div>

@@ -96,7 +96,7 @@ export async function updateAcademyConfig(input: unknown): Promise<Result> {
   await requireSuperAdmin();
   const parsed = academyConfigSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
-  const { id, tagline, description, contactEmail, logoColor, featureRecruiting, featurePublicProfiles, featureFinance, featureChat, maxAthletes, requiredDocs } = parsed.data;
+  const { id, tagline, description, contactEmail, logoColor, featureRecruiting, featurePublicProfiles, featureFinance, featureChat, maxAthletes, requiredDocs, currency } = parsed.data;
   const existing = await prisma.academy.findUnique({ where: { id } });
   if (!existing) return { ok: false, error: "Academy not found." };
   await prisma.academy.update({
@@ -112,6 +112,7 @@ export async function updateAcademyConfig(input: unknown): Promise<Result> {
       featureChat,
       maxAthletes: maxAthletes ?? null,
       requiredDocs: requiredDocs ?? null,
+      ...(currency ? { currency } : {}),
     },
   });
   revalidate();

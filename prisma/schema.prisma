@@ -25,6 +25,7 @@ model Academy {
   description  String?
   requirements String? // newline-separated bullet points
   logoColor    String        @default("#7CFF6B")
+  currency     String        @default("EUR") // academy's base/operating currency (ISO 4217) — drives display + finance aggregation
   status       String        @default("active") // active | inactive  (deactivated tenants are locked out)
   plan         String        @default("BASIC") // BASIC | PRO | ELITE  (subscription tier)
 
