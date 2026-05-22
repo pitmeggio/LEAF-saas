@@ -48,17 +48,17 @@ export default function ExplorePage() {
       </section>
 
       {/* What we analyze */}
-      <section className="mx-auto max-w-5xl px-5 py-20 md:px-12">
-        <div className="mb-12 max-w-2xl">
-          <div className="kicker mb-2" style={{ color: "var(--color-accent)" }}>What we analyze</div>
-          <h2 className="display text-3xl font-bold md:text-4xl">Everything a points list leaves out.</h2>
-          <p className="mt-3 text-base text-[var(--color-muted)]">
-            A ranking number tells you where you stand today. LEAF tells you where you're going, how reliably you get there, and what your record really says about you.
+      <section className="py-24 md:py-32">
+        <div className="mx-auto max-w-3xl px-5 text-center md:px-12">
+          <div className="kicker" style={{ color: "var(--color-accent)" }}>What we analyze</div>
+          <h2 className="display mx-auto mt-3 max-w-2xl text-balance text-4xl font-bold md:text-6xl">Everything a points list leaves out.</h2>
+          <p className="mx-auto mt-5 max-w-xl text-lg text-[var(--color-muted)]">
+            A ranking number tells you where you stand today. LEAF tells you where you&apos;re going — and what your record really says.
           </p>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto mt-14 grid max-w-5xl gap-4 px-5 sm:grid-cols-2 lg:grid-cols-3 md:px-12">
           {ANALYSIS.map((a) => (
-            <div key={a.metric} className="card group p-6 transition-colors hover:border-[var(--color-accent)]">
+            <div key={a.metric} className="card pop p-6 text-left">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold" style={{ background: "var(--color-surface-2)", color: "var(--color-accent)" }}>
                 {a.icon}
               </div>
@@ -70,11 +70,11 @@ export default function ExplorePage() {
       </section>
 
       {/* How it works */}
-      <section id="how" className="border-y border-[var(--color-border)] bg-[var(--color-surface)]/30">
-        <div className="mx-auto max-w-5xl px-5 py-20 md:px-12">
-          <div className="mb-12 max-w-2xl">
-            <div className="kicker mb-2" style={{ color: "var(--color-accent)" }}>How it works</div>
-            <h2 className="display text-3xl font-bold md:text-4xl">From federation code to verified profile in seconds.</h2>
+      <section id="how" className="border-y border-[var(--color-border)] bg-[var(--color-surface)]/30 py-24 md:py-32">
+        <div className="mx-auto max-w-5xl px-5 md:px-12">
+          <div className="mx-auto mb-14 max-w-2xl text-center">
+            <div className="kicker" style={{ color: "var(--color-accent)" }}>How it works</div>
+            <h2 className="display mt-3 text-balance text-4xl font-bold md:text-6xl">Federation code to verified profile in seconds.</h2>
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             {STEPS.map((s) => (
@@ -89,7 +89,7 @@ export default function ExplorePage() {
       </section>
 
       {/* Privacy / ownership */}
-      <section className="mx-auto max-w-5xl px-5 py-20 md:px-12">
+      <section className="mx-auto max-w-5xl px-5 py-24 md:px-12 md:py-32">
         <div className="grid items-center gap-10 md:grid-cols-2">
           <div>
             <div className="kicker mb-2" style={{ color: "var(--color-accent)" }}>Your profile, your rules</div>
@@ -119,11 +119,11 @@ export default function ExplorePage() {
 
       {/* CTA */}
       <section className="border-t border-[var(--color-border)]">
-        <div className="relative mx-auto max-w-4xl overflow-hidden px-5 py-20 text-center md:px-12">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[300px] w-[500px] -translate-x-1/2 -translate-y-1/2 glow-accent" />
+        <div className="relative mx-auto max-w-3xl overflow-hidden px-5 py-28 text-center md:px-12 md:py-36">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[320px] w-[560px] -translate-x-1/2 -translate-y-1/2 glow-accent" />
           <div className="relative">
-            <h2 className="display text-3xl font-bold md:text-4xl">Build your verified profile.</h2>
-            <p className="mx-auto mt-3 max-w-md text-base text-[var(--color-muted)]">
+            <h2 className="display text-balance text-4xl font-bold md:text-6xl">Build your verified profile.</h2>
+            <p className="mx-auto mt-4 max-w-md text-lg text-[var(--color-muted)]">
               It takes one federation code. Free, and yours to keep.
             </p>
             <div className="mt-8 flex justify-center">
