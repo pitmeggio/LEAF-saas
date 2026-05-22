@@ -56,7 +56,7 @@ function CreateProfileModal({ onClose }: { onClose: () => void }) {
               ))}
             </div>
           </div>
-          <button onClick={onClose} className="absolute right-4 top-4 text-[var(--color-muted)] hover:text-[var(--color-fg)]">✕</button>
+          <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 text-[var(--color-muted)] hover:text-[var(--color-fg)]">✕</button>
         </div>
 
         <form action={formAction} className="space-y-4 p-6">

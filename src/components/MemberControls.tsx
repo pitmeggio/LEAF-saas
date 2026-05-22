@@ -135,7 +135,7 @@ export function PaymentControl({ paymentId, status, amount, paidAmount, currency
             className="num w-20 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2 py-1 text-xs outline-none focus:border-[var(--color-accent)]" />
           <button disabled={pending} onClick={() => run(() => setPaymentStatus(paymentId, "partial", { amount: Number(partial) || 0 }))}
             className="rounded-md bg-[var(--color-accent)] px-2 py-1 text-xs font-semibold text-[#0a0c10] disabled:opacity-50">Save</button>
-          <button onClick={() => setShowPartial(false)} className="text-xs text-[var(--color-muted)]">✕</button>
+          <button onClick={() => setShowPartial(false)} aria-label="Cancel partial payment" className="text-xs text-[var(--color-muted)]">✕</button>
         </>
       ) : (
         <>
