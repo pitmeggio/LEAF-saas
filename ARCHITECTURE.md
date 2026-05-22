@@ -39,13 +39,27 @@ not allowed.
 
 ## Still to make config-driven (next, in this order)
 
-- [ ] **Required documents** per academy (today `REQUIRED_DOC_TYPES` is a global
-      constant — move to per-tenant config).
-- [ ] **Application form fields** per academy (which fields are shown/required).
-- [ ] **Payment flow / schedule** rules per academy/package.
+- [x] **Required documents** per academy — `Academy.requiredDocs` + `resolveRequiredDocs`
+      (config string; falls back to the platform default).
+- [x] **Application form fields** per academy — `Academy.applicationConfig` (JSON) +
+      `lib/applicationForm.ts`. Standard fields toggle/require + custom questions;
+      public form + dashboard builder both read the resolver. Answers split between
+      real columns (standard) and `Application.customFields` (custom). Locked
+      identity fields (name/email/dob/nationality/discipline) can't be disabled.
+- [ ] **Payment flow / schedule** rules per academy/package (today the installment
+      count + cadence in `buildPaymentSchedule` are hardcoded magic numbers — move
+      to `Package` config: installments + interval).
 - [ ] **Role permissions** beyond admin/coach (owner/staff, granular).
 - [ ] **Clean demo↔real separation** — provision Trysil as a real tenant distinct
       from seed/demo academies; never show demo data to a real tenant.
+
+## Operational note — schema changes use `prisma db push`
+
+There is no migrations dir; schema changes are applied with `npm run db:push`.
+New columns are therefore **additive + nullable** so a push is non-destructive.
+After pulling a schema change, run `npm run db:push` against the database BEFORE
+deploying — the generated Prisma client selects all scalar columns, so the app
+errors until the new columns exist.
 
 ## Rule of thumb for every new feature
 
