@@ -39,12 +39,12 @@ function CreateProfileModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-labelledby="create-profile-title" className="relative w-full max-w-md overflow-hidden rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg)] shadow-2xl">
         <div className="relative border-b border-[var(--color-border)] p-6">
           <div className="pointer-events-none absolute inset-0 grid-bg opacity-60" />
           <div className="relative">
             <div className="kicker mb-1.5" style={{ color: "var(--color-accent)" }}>Create your profile</div>
-            <h2 className="display text-xl font-bold">Import your verified record</h2>
+            <h2 id="create-profile-title" className="display text-xl font-bold">Import your verified record</h2>
             <p className="mt-1.5 text-sm text-[var(--color-muted)]">
               Enter your name and your federation code — FIS for ski, ATP for tennis. LEAF pulls your published results and builds your analysis automatically.
             </p>
