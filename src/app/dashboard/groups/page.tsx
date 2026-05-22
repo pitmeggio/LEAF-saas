@@ -72,12 +72,6 @@ export default async function GroupsPage() {
               {g.foreignExpenseCount > 0 && (
                 <div className="pt-0.5 text-[10px] text-[var(--color-muted)]">+{g.foreignExpenseCount} foreign-currency expense(s) tracked separately</div>
               )}
-              {isAdmin && (
-                <div className="flex justify-between border-t border-[var(--color-border)] pt-1.5">
-                  <dt className="font-medium">Est. margin</dt>
-                  <dd className="num font-semibold" style={{ color: g.marginPositive ? "var(--color-accent)" : "#f87171" }}>{fmtMoney(g.margin, currency)}</dd>
-                </div>
-              )}
             </dl>
 
             {g.categoryBreakdown.length > 0 && (
@@ -93,6 +87,22 @@ export default async function GroupsPage() {
                 </dl>
               </div>
             )}
+
+            {isAdmin && (() => {
+              const costs = g.coachCost + g.usedBudget;
+              const result = g.revenue - costs;
+              return (
+                <div className="mt-3 border-t border-[var(--color-border)] pt-3 text-sm">
+                  <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Team P&amp;L</div>
+                  <Row label="Income (contracts)" value={fmtMoney(g.revenue, currency)} />
+                  <Row label="Costs (coach + spend)" value={fmtMoney(costs, currency)} />
+                  <div className="mt-1 flex justify-between border-t border-[var(--color-border)] pt-1.5">
+                    <dt className="font-medium">Result</dt>
+                    <dd className="num font-semibold" style={{ color: result >= 0 ? "var(--color-accent)" : "#f87171" }}>{fmtMoney(result, currency)}</dd>
+                  </div>
+                </div>
+              );
+            })()}
 
             {isAdmin && (
               <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
