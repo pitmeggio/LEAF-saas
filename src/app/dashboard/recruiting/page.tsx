@@ -2,8 +2,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { RecruitingSettings, type RecruitingValues } from "@/components/RecruitingSettings";
 import { OpportunityManager, type OpportunityRow } from "@/components/OpportunityManager";
 import { ApplyWithLeafEmbed } from "@/components/ApplyWithLeafEmbed";
+import { ApplicationFormBuilder } from "@/components/ApplicationFormBuilder";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { resolveApplicationFields } from "@/lib/applicationForm";
 import type { RecruitingStatus } from "@/lib/profiles";
 
 export const dynamic = "force-dynamic";
@@ -64,6 +66,7 @@ export default async function RecruitingPage() {
       <div className="max-w-3xl space-y-8 p-8">
         <ApplyWithLeafEmbed applyUrl={`${process.env.NEXT_PUBLIC_APP_URL ?? "https://leaf-saas-gbf8.vercel.app"}/academy/${academy.slug}/apply`} />
         <OpportunityManager opportunities={opportunities} />
+        <ApplicationFormBuilder initial={resolveApplicationFields(academy.applicationConfig)} />
         <RecruitingSettings initial={initial} />
       </div>
     </>

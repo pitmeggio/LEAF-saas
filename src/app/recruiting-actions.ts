@@ -1,11 +1,33 @@
 "use server";
 
 import { prisma } from "@/lib/db";
+import { Prisma } from "@/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { recruitingSettingsSchema, firstError, type RecruitingSettingsInput } from "@/lib/validation";
+import { resolveApplicationFields, toApplicationConfig } from "@/lib/applicationForm";
 
 export type Result = { ok: boolean; error?: string };
+
+// Persist the academy's config-driven application form. Untrusted input is run
+// through resolveApplicationFields, which sanitizes every entry, drops unsafe
+// custom keys and force-enables locked identity fields — so a malformed payload
+// can never break athlete creation. Academy-admin only, tenant-scoped.
+export async function updateApplicationForm(fields: unknown): Promise<Result> {
+  const session = await requireAdmin();
+  const academyId = session.academyId;
+  if (!academyId) return { ok: false, error: "No academy in session." };
+
+  const list = Array.isArray(fields) ? fields.slice(0, 50) : [];
+  const resolved = resolveApplicationFields({ fields: list });
+  await prisma.academy.update({
+    where: { id: academyId },
+    data: { applicationConfig: toApplicationConfig(resolved) as unknown as Prisma.InputJsonValue },
+  });
+
+  revalidatePath("/dashboard/recruiting");
+  return { ok: true };
+}
 
 // Update the current academy's public recruiting settings. Academy-admin only and
 // tenant-scoped: writes only to the caller's own academy (requireAdmin resolves it).
