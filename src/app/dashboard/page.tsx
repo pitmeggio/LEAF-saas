@@ -84,22 +84,29 @@ export default async function OverviewPage() {
         {/* Academy AI — business health */}
         <AcademyHealthPanel health={health} mrrLabel="Monthly recurring" />
 
-        {/* Operational KPIs */}
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+        {/* People */}
+        <KpiGroup title="People">
           <StatCard label="Active athletes" value={String(d.activeAthletes)} hint="enrolled members" accent href="/dashboard/members" />
-          <StatCard label="Applicants this month" value={String(d.applicantsThisMonth)} hint={`${d.accepted} accepted total`} href="/dashboard/applications" />
-          <StatCard label="Active groups" value={String(d.activeGroups)} hint={`${d.occupancyPct}% occupancy`} href="/dashboard/groups" />
-          <StatCard label="Coaches" value={String(d.coaches)} href="/dashboard/coaches" />
-          <StatCard label="Monthly recurring est." value={fmtMoney(f.monthlyRecurringEstimate)} hint="from active contracts" href="/dashboard/payments" />
-          <StatCard label="Active subscriptions" value={String(f.activeSubscriptions)} href="/dashboard/packages" />
-          <StatCard label="Overdue payments" value={fmtMoney(f.overdueTotal)} hint={`${f.unpaidAthletes} athlete(s)`} danger={f.overdueTotal > 0} href="/dashboard/payments" />
-          <StatCard label="Improving athletes" value={`${d.improving}/${d.totalActive}`} hint="positive FIS trend" href="/dashboard/members" />
-          <StatCard label="Paid this month" value={fmtMoney(f.paidThisMonth)} href="/dashboard/payments" />
-          <StatCard label="Missing documents" value={String(d.missingDocs)} danger={d.missingDocs > 0} href="/dashboard/documents" />
-          <StatCard label="Expired documents" value={String(d.expiredDocs)} danger={d.expiredDocs > 0} href="/dashboard/documents" />
-          <StatCard label="Open alerts" value={String(d.alerts.length)} danger={d.alerts.some((a) => a.severity === "high")} href="/dashboard/alerts" />
-          <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} waiting`} danger={inbox.unreadTotal > 0} href="/dashboard/inbox" />
-        </div>
+          <StatCard label="Applicants this month" value={String(d.applicantsThisMonth)} hint={`${d.accepted} accepted so far`} href="/dashboard/applications" />
+          <StatCard label="Active groups" value={String(d.activeGroups)} hint={`${d.occupancyPct}% of spots filled`} href="/dashboard/groups" />
+          <StatCard label="Coaches" value={String(d.coaches)} hint="on staff" href="/dashboard/coaches" />
+        </KpiGroup>
+
+        {/* Finance */}
+        <KpiGroup title="Finance">
+          <StatCard label="Monthly recurring" value={fmtMoney(f.monthlyRecurringEstimate)} hint="expected income / month" href="/dashboard/payments" />
+          <StatCard label="Paid this month" value={fmtMoney(f.paidThisMonth)} hint="collected so far" href="/dashboard/payments" />
+          <StatCard label="Overdue payments" value={fmtMoney(f.overdueTotal)} hint={`${f.unpaidAthletes} athlete(s) to chase`} danger={f.overdueTotal > 0} href="/dashboard/payments" />
+          <StatCard label="Active subscriptions" value={String(f.activeSubscriptions)} hint="athletes on a package" href="/dashboard/packages" />
+        </KpiGroup>
+
+        {/* Needs attention */}
+        <KpiGroup title="Performance & to-do">
+          <StatCard label="Improving athletes" value={`${d.improving}/${d.totalActive}`} hint="ranking trending up" href="/dashboard/members" />
+          <StatCard label="Missing documents" value={String(d.missingDocs)} hint="need uploading" danger={d.missingDocs > 0} href="/dashboard/documents" />
+          <StatCard label="Expired documents" value={String(d.expiredDocs)} hint="need renewing" danger={d.expiredDocs > 0} href="/dashboard/documents" />
+          <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} awaiting reply`} danger={inbox.unreadTotal > 0} href="/dashboard/inbox" />
+        </KpiGroup>
 
         <div className="grid gap-6">
           {/* Package revenue breakdown */}
@@ -127,5 +134,14 @@ export default async function OverviewPage() {
         </div>
       </div>
     </>
+  );
+}
+
+function KpiGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="kicker mb-3">{title}</div>
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">{children}</div>
+    </div>
   );
 }

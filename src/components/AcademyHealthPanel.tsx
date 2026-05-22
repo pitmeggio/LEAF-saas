@@ -16,10 +16,10 @@ export function AcademyHealthPanel({ health, mrrLabel }: { health: AcademyHealth
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Metric label="Collection rate" value={`${health.collectionRate}%`} good={health.collectionRate >= 90} warn={health.collectionRate < 75} />
-        <Metric label="Occupancy" value={`${health.occupancyPct}%`} good={health.occupancyPct >= 85} warn={health.occupancyPct <= 50} />
-        <Metric label="Retention" value={`${health.retentionRate}%`} good={health.retentionRate >= 95} warn={health.retentionRate < 85} />
-        <Metric label={mrrLabel} value={`€${health.mrr.toLocaleString("en-US")}`} />
+        <Metric label="Collection rate" hint="fees collected vs billed" value={`${health.collectionRate}%`} good={health.collectionRate >= 90} warn={health.collectionRate < 75} />
+        <Metric label="Occupancy" hint="group spots filled" value={`${health.occupancyPct}%`} good={health.occupancyPct >= 85} warn={health.occupancyPct <= 50} />
+        <Metric label="Retention" hint="athletes still active" value={`${health.retentionRate}%`} good={health.retentionRate >= 95} warn={health.retentionRate < 85} />
+        <Metric label={mrrLabel} hint="expected monthly income" value={`€${health.mrr.toLocaleString("en-US")}`} />
       </div>
 
       {health.insights.length > 0 && (
@@ -42,12 +42,13 @@ export function AcademyHealthPanel({ health, mrrLabel }: { health: AcademyHealth
   );
 }
 
-function Metric({ label, value, good, warn }: { label: string; value: string; good?: boolean; warn?: boolean }) {
+function Metric({ label, value, hint, good, warn }: { label: string; value: string; hint?: string; good?: boolean; warn?: boolean }) {
   const color = warn ? "#f87171" : good ? "var(--color-accent)" : undefined;
   return (
     <div>
       <div className="kicker">{label}</div>
       <div className="num mt-1 text-2xl font-bold tracking-tight" style={color ? { color } : undefined}>{value}</div>
+      {hint && <div className="mt-0.5 text-[11px] text-[var(--color-muted)]">{hint}</div>}
     </div>
   );
 }
