@@ -8,6 +8,12 @@ import { perfFromTrend, isOverdue, isThisMonth, type PerfStatus, type Trend } fr
 // occupancy, workload, revenue, overdue, missing docs, performance status, alerts.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// "Current roster" statuses — the athletes that count toward live occupancy,
+// revenue, workload and capacity. Churned/finished athletes are excluded so the
+// analytics reflect the academy as it is now, not its entire history.
+const ACTIVE_ENROLLMENT_STATUSES = new Set(["active", "injured", "paused"]);
+const isActiveEnrollment = (status: string) => ACTIVE_ENROLLMENT_STATUSES.has(status);
+
 const ENROLLMENT_INCLUDE = {
   athlete: { include: { rankings: { orderBy: { date: "asc" as const } } } },
   coach: true,
@@ -214,10 +220,12 @@ export async function getGroupsWithStats(coachId?: string | null) {
     orderBy: { name: "asc" },
   });
   return groups.map((g) => {
-    const count = g.enrollments.length;
-    const revenue = g.enrollments.reduce((s, e) => s + (e.package?.price ?? 0), 0);
-    // Collected revenue = amounts actually paid (incl. partials) across the group's payments.
-    const collectedRevenue = g.enrollments.reduce((s, e) => s + e.payments.reduce((a, p) => a + p.paidAmount, 0), 0);
+    // Live roster only — churned/finished athletes don't count toward occupancy or revenue.
+    const roster = g.enrollments.filter((e) => isActiveEnrollment(e.status));
+    const count = roster.length;
+    const revenue = roster.reduce((s, e) => s + (e.package?.price ?? 0), 0);
+    // Collected revenue = amounts actually paid (incl. partials) across the roster's payments.
+    const collectedRevenue = roster.reduce((s, e) => s + e.payments.reduce((a, p) => a + p.paidAmount, 0), 0);
     const coachCost = g.coach?.cost ?? 0;
     const budget = g.budget ?? 0;
     // Margin = package revenue − coach cost − allocated operating budget.
@@ -253,7 +261,7 @@ export async function getCoachesWithStats() {
     orderBy: { name: "asc" },
   });
   return coaches.map((c) => {
-    const athletes = c.enrollments.length;
+    const athletes = c.enrollments.filter((e) => isActiveEnrollment(e.status)).length;
     const groups = c.groups.length;
     // simple workload score: athletes weighted + groups
     const workload = athletes + groups * 2;
@@ -269,7 +277,7 @@ export async function getPackagesWithStats() {
     orderBy: { order: "asc" },
   });
   return packages.map((p) => {
-    const active = p.enrollments.length;
+    const active = p.enrollments.filter((e) => isActiveEnrollment(e.status)).length;
     const contractValue = active * (p.price ?? 0);
     return {
       ...p,
@@ -293,7 +301,8 @@ export async function getFinance() {
 
   const outstandingOf = (p: { amount: number; paidAmount: number }) => p.amount - p.paidAmount;
   const expectedThisMonth = payments.filter((p) => isThisMonth(p.dueDate)).reduce((s, p) => s + p.amount, 0);
-  const paidThisMonth = payments.filter((p) => p.paidDate && isThisMonth(p.paidDate)).reduce((s, p) => s + p.amount, 0);
+  // Use paidAmount, not amount — a partial payment must contribute only what was collected.
+  const paidThisMonth = payments.filter((p) => p.paidDate && isThisMonth(p.paidDate)).reduce((s, p) => s + p.paidAmount, 0);
   const collected = payments.reduce((s, p) => s + p.paidAmount, 0);
   const outstandingTotal = payments.filter((p) => p.status !== "paid").reduce((s, p) => s + outstandingOf(p), 0);
   const overdue = payments.filter((p) => isOverdue(p));
