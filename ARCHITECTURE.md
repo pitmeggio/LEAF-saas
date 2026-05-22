@@ -46,9 +46,16 @@ not allowed.
       public form + dashboard builder both read the resolver. Answers split between
       real columns (standard) and `Application.customFields` (custom). Locked
       identity fields (name/email/dob/nationality/discipline) can't be disabled.
-- [ ] **Payment flow / schedule** rules per academy/package (today the installment
-      count + cadence in `buildPaymentSchedule` are hardcoded magic numbers — move
-      to `Package` config: installments + interval).
+- [x] **Finance = read-only over external systems.** LEAF does NOT issue invoices.
+      It connects to the academy's existing billing/gestionale software, syncs
+      invoice + payment data and analyses it. Provider seam in `lib/finance/`
+      (mirrors `lib/fis/`): `FinanceProvider` + mock connector now; Fatture in
+      Cloud / TeamSystem / Stripe / QuickBooks / Xero on the roadmap. Matched to
+      athletes by `Enrollment.externalCustomerId`. `syncAcademyFinance` mirrors data
+      into Payment/Invoice rows tagged `source="external"` so existing analytics work.
+      LEAF-managed auto-generation is skipped when a provider is connected.
+      - [ ] Remaining: per-enrollment external-customer-ID mapping UI; real
+        connectors; clear/repoint synced rows on disconnect.
 - [ ] **Role permissions** beyond admin/coach (owner/staff, granular).
 - [ ] **Clean demo↔real separation** — provision Trysil as a real tenant distinct
       from seed/demo academies; never show demo data to a real tenant.
