@@ -12,7 +12,7 @@ import {
   type Result,
 } from "@/app/entity-actions";
 import { confirmAcceptance } from "@/app/ops-actions";
-import { createExpense, updateExpense } from "@/app/expense-actions";
+import { createExpense, updateExpense, addGroupExpense } from "@/app/expense-actions";
 import type { CoachInput, GroupInput, PackageInput, ManualAthleteInput, ExpenseInput } from "@/lib/validation";
 import { COUNTRY, DISCIPLINE_LABEL, fmtMoney } from "@/lib/domain";
 import { buildPaymentSchedule, REQUIRED_DOC_TYPES, DOC_LABEL } from "@/lib/enrollmentLogic";
@@ -334,6 +334,25 @@ export function ExpenseForm({ groups, initial, currency = "EUR" }: { groups: Opt
       </div>
       <Field label="Receipt link"><input type="url" className={inp} value={f.receiptUrl} placeholder="https://… (upload to Drive/Dropbox and paste the link)" onChange={(e) => upd("receiptUrl", e.target.value)} /></Field>
       <Field label="Description"><textarea className={`${inp} resize-none`} rows={2} value={f.notes} onChange={(e) => upd("notes", e.target.value)} /></Field>
+      <Footer pending={pending} error={error} />
+    </form>
+  );
+}
+
+// ── Admin: add a budget line item directly to a group (auto-approved) ──
+export function GroupExpenseForm({ groupId, currency = "EUR" }: { groupId: string; currency?: string }) {
+  const [f, set] = useState({ title: "", amount: 0, category: "other", expenseDate: "" });
+  const { pending, error, submit } = useSubmit();
+  const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); submit(() => addGroupExpense({ groupId, title: f.title, amount: Number(f.amount) || 0, category: f.category, expenseDate: f.expenseDate || undefined })); }} className="space-y-3">
+      <p className="text-xs text-[var(--color-muted)]">Adds an approved cost to this group&apos;s budget — remaining updates instantly.</p>
+      <Field label="What *"><input className={inp} value={f.title} placeholder="e.g. Cars, Lift passes…" onChange={(e) => upd("title", e.target.value)} required /></Field>
+      <div className="grid grid-cols-3 gap-3">
+        <Field label={`Amount (${currency}) *`}><input type="number" min={1} className={inp} value={f.amount} onChange={(e) => upd("amount", e.target.value)} required /></Field>
+        <Field label="Category"><select className={inp} value={f.category} onChange={(e) => upd("category", e.target.value)}>{EXPENSE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></Field>
+        <Field label="Date"><input type="date" className={inp} value={f.expenseDate} onChange={(e) => upd("expenseDate", e.target.value)} /></Field>
+      </div>
       <Footer pending={pending} error={error} />
     </form>
   );

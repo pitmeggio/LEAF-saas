@@ -69,7 +69,7 @@ export default async function ExpensesPage() {
                       <div className="text-[10px] text-[var(--color-muted)]">{e.status === "rejected" ? "Rejected" : "Approved"} by {e.approvedBy.name}{e.approvedAt ? ` · ${fmtDate(e.approvedAt)}` : ""}</div>
                     )}
                   </td>
-                  {isAdmin && <td className="px-3 py-3 text-[var(--color-muted)]">{e.coach.name}</td>}
+                  {isAdmin && <td className="px-3 py-3 text-[var(--color-muted)]">{e.coach?.name ?? "Academy"}</td>}
                   <td className="px-3 py-3 text-[var(--color-muted)]">{e.group?.name ?? "—"}</td>
                   <td className="num px-3 py-3 font-semibold">{fmtMoney(e.amount, e.currency)}</td>
                   <td className="px-3 py-3"><span className="text-xs font-medium capitalize" style={{ color: STATUS_COLOR[e.status] }}>{e.status}</span></td>

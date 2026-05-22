@@ -74,6 +74,36 @@ export async function createExpense(input: ExpenseInput & { coachId?: string }):
   return { ok: true };
 }
 
+// Academy admin adds a budget line item directly against a group (e.g. "Cars: 252,000").
+// It's recorded as an already-approved expense in the academy's currency, so the group's
+// spent/remaining update immediately. Not tied to a coach (coaches can't edit the budget).
+export async function addGroupExpense(input: { groupId: string; title: string; amount: number; category?: string; expenseDate?: string; receiptUrl?: string }): Promise<Result> {
+  const s = await getSession();
+  if (!s?.isAdmin) return { ok: false, error: "Admin only" };
+  const academyId = await requireAcademyId();
+  const group = await prisma.group.findFirst({ where: { id: input.groupId, academyId }, select: { id: true } });
+  if (!group) return { ok: false, error: "Group not found." };
+  const title = (input.title ?? "").trim();
+  const amount = Math.round(Number(input.amount) || 0);
+  if (!title) return { ok: false, error: "Title is required." };
+  if (amount <= 0) return { ok: false, error: "Amount must be positive." };
+
+  const academy = await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } });
+  const currency = academy?.currency ?? "EUR";
+  const exp = await prisma.expense.create({
+    data: {
+      academyId, groupId: group.id, coachId: null, title, amount, currency,
+      category: input.category ?? "other", status: "approved",
+      approvedById: s.userId, approvedAt: new Date(),
+      expenseDate: input.expenseDate ? new Date(input.expenseDate) : new Date(),
+      receiptUrl: input.receiptUrl ?? null,
+    },
+  });
+  await logEvent(exp.id, "created", s, { to: "approved", note: "Added directly to group budget by admin" });
+  revalidateExpenses();
+  return { ok: true };
+}
+
 export async function updateExpense(id: string, input: ExpenseInput): Promise<Result> {
   const parsed = expenseInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };

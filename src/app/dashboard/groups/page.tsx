@@ -1,6 +1,6 @@
 import { PageHeader } from "@/components/PageHeader";
 import { PercentBar } from "@/components/StatCard";
-import { Modal, GroupForm, DeleteButton } from "@/components/EntityForms";
+import { Modal, GroupForm, GroupExpenseForm, DeleteButton } from "@/components/EntityForms";
 import { getGroupsWithStats, getAssignmentOptions, getAcademyCurrency } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
@@ -82,6 +82,9 @@ export default async function GroupsPage() {
 
             {isAdmin && (
               <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
+                <Modal label="+ Add expense" title={`Add to ${g.name} budget`} className="rounded-lg border border-[#7CFF6B40] px-3 py-1.5 text-xs font-medium text-[var(--color-accent)] hover:bg-[#7cff6b12]">
+                  <GroupExpenseForm groupId={g.id} currency={currency} />
+                </Modal>
                 <Modal label="Edit" title="Edit group" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
                   <GroupForm coaches={opts.coaches} currency={currency} initial={{ id: g.id, name: g.name, season: g.season, coachId: g.coachId, capacity: g.capacity, notes: g.notes, active: g.active, budget: g.budget, budgetHardStop: g.budgetHardStop, pointsMin: g.pointsMin, pointsMax: g.pointsMax, ageMin: g.ageMin, ageMax: g.ageMax, level: g.level, discipline: g.discipline }} />
                 </Modal>

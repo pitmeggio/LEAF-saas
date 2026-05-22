@@ -199,8 +199,8 @@ model Expense {
   id          String   @id @default(cuid())
   academyId   String
   academy     Academy  @relation(fields: [academyId], references: [id])
-  coachId     String
-  coach       Coach    @relation(fields: [coachId], references: [id])
+  coachId     String? // null = entered directly by the academy admin (a group budget line)
+  coach       Coach?   @relation(fields: [coachId], references: [id])
   groupId     String?
   group       Group?   @relation(fields: [groupId], references: [id])
   title       String
