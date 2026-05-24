@@ -8,6 +8,7 @@ import { suggestGroups, type GroupInput } from "@/lib/ai/groupAssignment";
 import { reviewApplication } from "@/lib/ai/applicationReview";
 import { buildPaymentSchedule, resolveRequiredDocs } from "@/lib/enrollmentLogic";
 import { aggregateFinance, type PaymentLike } from "@/lib/financeMath";
+import { seasonKpis, seasonHints, eventTotalCost, eventCoversDay, type EventLite } from "@/lib/planning";
 
 // ── Performance analytics (athlete results) ──────────────────────────────────
 test("computePerformance: empty input is safe (no divide-by-zero)", () => {
@@ -146,6 +147,52 @@ test("aggregateFinance: never mixes currencies; base headline + partials + overd
   assert.equal(a.otherCurrencies.length, 1);
   assert.equal(a.otherCurrencies[0].currency, "USD");
   assert.equal(a.otherCurrencies[0].collected, 2000);
+});
+
+// ── Season planner KPIs + AI hints + event cost rules ───────────────────────
+const ev = (over: Partial<EventLite> = {}): EventLite => ({
+  id: "x", title: "t", type: "camp", season: "all",
+  startDate: "2026-09-01T00:00:00Z", endDate: "2026-09-05T00:00:00Z",
+  location: null, planBLocation: null, discipline: null, coachesNote: null, notes: null,
+  groupId: null, groupName: null, estimatedCost: null, actualCost: null,
+  costHotel: 0, costFlights: 0, costVan: 0, costFuel: 0, costLiftPass: 0,
+  costCoach: 0, costAccommodation: 0, costRaceFees: 0, costMisc: 0,
+  ...over,
+});
+
+test("eventTotalCost: actual > estimate > breakdown precedence", () => {
+  assert.equal(eventTotalCost(ev({ costHotel: 1000, costFuel: 500 })), 1500); // breakdown
+  assert.equal(eventTotalCost(ev({ costHotel: 1000, estimatedCost: 2000 })), 2000); // override
+  assert.equal(eventTotalCost(ev({ costHotel: 1000, estimatedCost: 2000, actualCost: 1800 })), 1800); // actual wins
+});
+
+test("eventCoversDay: inclusive across the event window", () => {
+  const e = ev({ startDate: "2026-09-01T00:00:00Z", endDate: "2026-09-03T00:00:00Z" });
+  assert.equal(eventCoversDay(e, new Date("2026-09-01")), true);
+  assert.equal(eventCoversDay(e, new Date("2026-09-02")), true);
+  assert.equal(eventCoversDay(e, new Date("2026-09-03")), true);
+  assert.equal(eventCoversDay(e, new Date("2026-08-31")), false);
+  assert.equal(eventCoversDay(e, new Date("2026-09-04")), false);
+});
+
+test("seasonKpis + hints: forecast over remaining triggers a warning", () => {
+  const now = new Date("2026-08-15");
+  const events = [
+    ev({ startDate: "2026-09-01", endDate: "2026-09-05", type: "camp", estimatedCost: 60000 }),
+    ev({ startDate: "2026-08-20", endDate: "2026-08-22", type: "travel", estimatedCost: 5000 }),
+    ev({ startDate: "2025-07-01", endDate: "2025-07-05", type: "camp", estimatedCost: 99999 }), // past → excluded
+  ];
+  const k = seasonKpis({ totalBudget: 100000, spent: 20000, events, now });
+  assert.equal(k.remaining, 80000);
+  assert.equal(k.forecasted, 65000);
+  assert.equal(k.upcomingTravel, 65000); // travel + camp + race within 30 days
+  assert.equal(k.budgetRiskPct, Math.round((65000 / 80000) * 100)); // 81
+
+  const overEvents = [...events, ev({ startDate: "2026-09-10", type: "camp", estimatedCost: 50000 })];
+  const k2 = seasonKpis({ totalBudget: 100000, spent: 20000, events: overEvents, now });
+  assert.ok(k2.budgetRiskPct >= 100);
+  const hints = seasonHints(k2, (n) => `${n} EUR`);
+  assert.ok(hints.some((h) => h.kind === "warn" && /exceeds remaining/.test(h.text)));
 });
 
 test("aggregateFinance: base currency with no payments yields zeroed headline", () => {

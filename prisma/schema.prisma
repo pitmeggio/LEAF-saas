@@ -100,12 +100,28 @@ model CalendarEvent {
   coachId     String?
   coach       Coach?    @relation(fields: [coachId], references: [id])
   title       String
-  type        String    @default("training") // training | camp | race | travel | meeting | other
+  type        String    @default("training") // training | camp | race | travel | meeting | off | other
   season      String    @default("all") // summer | autumn | winter | spring | all
   startDate   DateTime
   endDate     DateTime?
-  location    String?
+  location    String?       // Plan A — primary location (e.g. "Saas-Fee", "Hintertux")
+  planBLocation String?     // Plan B — alternative location
+  discipline  String?       // SL | GS | SG | DH | Speed block | …
   notes       String?
+  coachesNote String?       // free text for assigned coaches (Excel "Trenere" column)
+  currency    String    @default("EUR")
+  // Cost breakdown — coach inputs these; estimatedCost / actualCost are headline totals.
+  costHotel       Int @default(0)
+  costFlights     Int @default(0)
+  costVan         Int @default(0)
+  costFuel        Int @default(0)
+  costLiftPass    Int @default(0)
+  costCoach       Int @default(0)
+  costAccommodation Int @default(0)
+  costRaceFees    Int @default(0)
+  costMisc        Int @default(0)
+  estimatedCost   Int?      // override; else sum of breakdown
+  actualCost      Int?      // what was actually spent
   createdById String?
   createdBy   User?     @relation("CalendarCreator", fields: [createdById], references: [id])
   createdAt   DateTime  @default(now())

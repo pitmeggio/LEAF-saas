@@ -3,9 +3,42 @@
 import { prisma } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import { getSession, requireAcademyId } from "@/lib/auth";
-import { calendarEventSchema, firstError } from "@/lib/validation";
+import { calendarEventSchema, firstError, type CalendarEventInput } from "@/lib/validation";
 
 export type Result = { ok: boolean; error?: string; id?: string };
+
+// Sum the breakdown — used when the coach doesn't override the estimate.
+function sumBreakdown(d: CalendarEventInput): number {
+  return (d.costHotel ?? 0) + (d.costFlights ?? 0) + (d.costVan ?? 0) + (d.costFuel ?? 0) +
+         (d.costLiftPass ?? 0) + (d.costCoach ?? 0) + (d.costAccommodation ?? 0) +
+         (d.costRaceFees ?? 0) + (d.costMisc ?? 0);
+}
+function eventDataFromInput(d: CalendarEventInput) {
+  const breakdown = sumBreakdown(d);
+  return {
+    title: d.title,
+    type: d.type,
+    season: d.season,
+    startDate: new Date(d.startDate),
+    endDate: d.endDate ? new Date(d.endDate) : null,
+    location: d.location ?? null,
+    planBLocation: d.planBLocation ?? null,
+    discipline: d.discipline ?? null,
+    coachesNote: d.coachesNote ?? null,
+    notes: d.notes ?? null,
+    costHotel: d.costHotel ?? 0,
+    costFlights: d.costFlights ?? 0,
+    costVan: d.costVan ?? 0,
+    costFuel: d.costFuel ?? 0,
+    costLiftPass: d.costLiftPass ?? 0,
+    costCoach: d.costCoach ?? 0,
+    costAccommodation: d.costAccommodation ?? 0,
+    costRaceFees: d.costRaceFees ?? 0,
+    costMisc: d.costMisc ?? 0,
+    estimatedCost: d.estimatedCost ?? (breakdown > 0 ? breakdown : null),
+    actualCost: d.actualCost ?? null,
+  };
+}
 
 function rev() {
   revalidatePath("/dashboard/calendar");
@@ -33,19 +66,15 @@ export async function createCalendarEvent(input: unknown): Promise<Result> {
   const guard = await canManage(s, academyId, d.groupId);
   if (!guard.ok) return guard;
 
+  const academy = await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } });
   const ev = await prisma.calendarEvent.create({
     data: {
       academyId,
       groupId: d.groupId,
       coachId: s.coachId ?? null,
-      title: d.title,
-      type: d.type,
-      season: d.season,
-      startDate: new Date(d.startDate),
-      endDate: d.endDate ? new Date(d.endDate) : null,
-      location: d.location ?? null,
-      notes: d.notes ?? null,
+      currency: academy?.currency ?? "EUR",
       createdById: s.userId,
+      ...eventDataFromInput(d),
     },
   });
   rev();
@@ -68,16 +97,7 @@ export async function updateCalendarEvent(id: string, input: unknown): Promise<R
 
   await prisma.calendarEvent.update({
     where: { id },
-    data: {
-      groupId: d.groupId,
-      title: d.title,
-      type: d.type,
-      season: d.season,
-      startDate: new Date(d.startDate),
-      endDate: d.endDate ? new Date(d.endDate) : null,
-      location: d.location ?? null,
-      notes: d.notes ?? null,
-    },
+    data: { groupId: d.groupId, ...eventDataFromInput(d) },
   });
   rev();
   return { ok: true, id };

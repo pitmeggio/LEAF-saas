@@ -506,16 +506,32 @@ export const expenseInputSchema = z.object({
 });
 export type ExpenseInput = z.infer<typeof expenseInputSchema>;
 
-// ── Calendar events (training / camp / race / travel / meeting) ──────────────
+// ── Calendar events (training / camp / race / travel / meeting / off) ───────
+const optMoney = z.number().int().min(0).max(100_000_000).nullable().optional().transform((v) => v ?? null);
 export const calendarEventSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
-  type: z.enum(["training", "camp", "race", "travel", "meeting", "other"]).optional().transform((v) => v ?? "training"),
+  type: z.enum(["training", "camp", "race", "travel", "meeting", "off", "other"]).optional().transform((v) => v ?? "training"),
   season: z.enum(["summer", "autumn", "winter", "spring", "all"]).optional().transform((v) => v ?? "all"),
   startDate: z.string().trim().min(1, "Start date is required"),
   endDate: z.string().trim().optional().transform((v) => (v ? v : undefined)),
   groupId: z.string().trim().optional().transform((v) => (v ? v : null)),
   location: optText(160),
+  planBLocation: optText(160),
+  discipline: optText(40),
+  coachesNote: optText(200),
   notes: optText(2000),
+  // Cost breakdown — all optional, default to 0 in the action.
+  costHotel: optMoney,
+  costFlights: optMoney,
+  costVan: optMoney,
+  costFuel: optMoney,
+  costLiftPass: optMoney,
+  costCoach: optMoney,
+  costAccommodation: optMoney,
+  costRaceFees: optMoney,
+  costMisc: optMoney,
+  estimatedCost: optMoney,
+  actualCost: optMoney,
 })
 .refine((d) => !Number.isNaN(Date.parse(d.startDate)), { message: "Invalid start date.", path: ["startDate"] })
 .refine((d) => !d.endDate || !Number.isNaN(Date.parse(d.endDate)), { message: "Invalid end date.", path: ["endDate"] })
