@@ -25,12 +25,13 @@ export default async function CalendarPage() {
     getCalendarEvents(scope),
   ]);
 
-  // Group options shown in the planner.
+  // Group options + per-group budget/spent so the KPI bar can refocus on a
+  // single team when the admin filters by it.
   const groups: GroupOpt[] = groupsStats
     .filter((g) => g.active)
-    .map((g) => ({ id: g.id, name: g.name, budget: g.budget }));
+    .map((g) => ({ id: g.id, name: g.name, budget: g.budget, used: g.usedBudget }));
 
-  // KPI inputs (in base currency): sum allocated budgets + sum used budgets across visible groups.
+  // Academy-wide defaults (used when no team is selected).
   const totalBudget = groupsStats.reduce((s, g) => s + (g.budget ?? 0), 0);
   const spent = groupsStats.reduce((s, g) => s + g.usedBudget, 0);
 
