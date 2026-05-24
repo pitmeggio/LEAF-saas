@@ -84,7 +84,33 @@ model Academy {
   users         User[]
   trainingSessions TrainingSession[]
   contracts     Contract[]
+  calendarEvents CalendarEvent[]
   createdAt     DateTime       @default(now())
+}
+
+// Academy-wide calendar (summer / autumn / winter / spring programmes).
+// Academy admin can manage any event; coaches manage events for their own groups;
+// athletes see events for the groups they are enrolled in (+ academy-wide).
+model CalendarEvent {
+  id          String    @id @default(cuid())
+  academyId   String
+  academy     Academy   @relation(fields: [academyId], references: [id])
+  groupId     String?   // null = academy-wide event
+  group       Group?    @relation(fields: [groupId], references: [id])
+  coachId     String?
+  coach       Coach?    @relation(fields: [coachId], references: [id])
+  title       String
+  type        String    @default("training") // training | camp | race | travel | meeting | other
+  season      String    @default("all") // summer | autumn | winter | spring | all
+  startDate   DateTime
+  endDate     DateTime?
+  location    String?
+  notes       String?
+  createdById String?
+  createdBy   User?     @relation("CalendarCreator", fields: [createdById], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@index([academyId, startDate])
 }
 
 // A training session for a group on a date. Attendance is recorded per athlete.
@@ -172,6 +198,7 @@ model User {
   assignedConversations Conversation[] @relation("AssignedConversations")
   approvedExpenses Expense[] @relation("ExpenseApprover")
   expenseEvents ExpenseEvent[]
+  createdCalendarEvents CalendarEvent[] @relation("CalendarCreator")
   createdAt DateTime @default(now())
 }
 
@@ -192,6 +219,7 @@ model Coach {
   users          User[]
   expenses       Expense[]
   sessions       TrainingSession[]
+  calendarEvents CalendarEvent[]
   createdAt      DateTime     @default(now())
 }
 
@@ -552,6 +580,7 @@ model Group {
   expenses      Expense[]
   conversations Conversation[]
   sessions      TrainingSession[]
+  calendarEvents CalendarEvent[]
   createdAt     DateTime     @default(now())
 }
 

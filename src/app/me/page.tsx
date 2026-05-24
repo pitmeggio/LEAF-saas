@@ -14,6 +14,8 @@ import { deriveRecommendations } from "@/lib/ai/recommendations";
 import { RecommendationsCard } from "@/components/RecommendationsCard";
 import { MyProfileEditForm } from "@/components/MyProfileEditForm";
 import { ShareButton } from "@/components/ShareButton";
+import { getCalendarEvents } from "@/lib/calendar";
+import { prisma } from "@/lib/db";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://leaf-saas-gbf8.vercel.app";
 
@@ -30,6 +32,12 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
   const cfg = sportConfig(w.sport);
   const initials = `${w.firstName[0] ?? ""}${w.lastName[0] ?? ""}`.toUpperCase();
   const forecast = w.pointsEvolution.length ? forecastTrajectory(w.pointsEvolution, w.sport) : null;
+
+  // Calendar — upcoming events for this athlete's groups + academy-wide.
+  const enr = await prisma.enrollment.findFirst({ where: { athleteId }, select: { academyId: true } });
+  const upcoming = enr
+    ? (await getCalendarEvents({ kind: "athlete", academyId: enr.academyId, athleteId }, { upcomingOnly: true })).slice(0, 6)
+    : [];
 
   return (
     <div className="min-h-screen">
@@ -116,6 +124,39 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
         )}
         {w.performance && forecast && (
           <RecommendationsCard recommendations={deriveRecommendations(w.performance, forecast, w.sport)} />
+        )}
+
+        {/* My calendar — events from my groups + academy-wide */}
+        {upcoming.length > 0 && (
+          <div className="border-t border-[var(--color-border)] pt-8">
+            <div className="kicker" style={{ color: "var(--color-accent)" }}>My calendar</div>
+            <h2 className="display mt-1 text-2xl font-bold">What&apos;s coming up</h2>
+            <div className="card mt-4 divide-y divide-[var(--color-border)] overflow-hidden">
+              {upcoming.map((e) => {
+                const start = new Date(e.startDate);
+                const end = e.endDate ? new Date(e.endDate) : null;
+                const sameDay = !end || start.toDateString() === end.toDateString();
+                const dateLabel = sameDay
+                  ? start.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
+                  : `${start.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })} – ${end!.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`;
+                return (
+                  <div key={e.id} className="flex items-start gap-4 px-4 py-3">
+                    <div className="w-32 shrink-0 text-xs font-semibold">{dateLabel}</div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                        <span className="font-medium">{e.title}</span>
+                        <span className="rounded-md bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted)]">{e.type}</span>
+                      </div>
+                      <div className="mt-0.5 text-xs text-[var(--color-muted)]">
+                        {e.group ? e.group.name : "Academy-wide"}
+                        {e.location ? ` · ${e.location}` : ""}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
 
         {/* Editable fields */}

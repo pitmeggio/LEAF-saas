@@ -506,6 +506,22 @@ export const expenseInputSchema = z.object({
 });
 export type ExpenseInput = z.infer<typeof expenseInputSchema>;
 
+// ── Calendar events (training / camp / race / travel / meeting) ──────────────
+export const calendarEventSchema = z.object({
+  title: z.string().trim().min(1, "Title is required").max(120),
+  type: z.enum(["training", "camp", "race", "travel", "meeting", "other"]).optional().transform((v) => v ?? "training"),
+  season: z.enum(["summer", "autumn", "winter", "spring", "all"]).optional().transform((v) => v ?? "all"),
+  startDate: z.string().trim().min(1, "Start date is required"),
+  endDate: z.string().trim().optional().transform((v) => (v ? v : undefined)),
+  groupId: z.string().trim().optional().transform((v) => (v ? v : null)),
+  location: optText(160),
+  notes: optText(2000),
+})
+.refine((d) => !Number.isNaN(Date.parse(d.startDate)), { message: "Invalid start date.", path: ["startDate"] })
+.refine((d) => !d.endDate || !Number.isNaN(Date.parse(d.endDate)), { message: "Invalid end date.", path: ["endDate"] })
+.refine((d) => !d.endDate || +new Date(d.endDate) >= +new Date(d.startDate), { message: "End date is before start.", path: ["endDate"] });
+export type CalendarEventInput = z.infer<typeof calendarEventSchema>;
+
 export type CoachInput = z.infer<typeof coachInputSchema>;
 export type GroupInput = z.infer<typeof groupInputSchema>;
 export type PackageInput = z.infer<typeof packageInputSchema>;

@@ -1,0 +1,97 @@
+"use server";
+
+import { prisma } from "@/lib/db";
+import { revalidatePath } from "next/cache";
+import { getSession, requireAcademyId } from "@/lib/auth";
+import { calendarEventSchema, firstError } from "@/lib/validation";
+
+export type Result = { ok: boolean; error?: string; id?: string };
+
+function rev() {
+  revalidatePath("/dashboard/calendar");
+  revalidatePath("/me");
+}
+
+// Coaches can only manage events tied to their own groups (or that they organise).
+// Academy admins can manage anything, including academy-wide events (groupId null).
+async function canManage(s: { isAdmin: boolean; coachId: string | null }, academyId: string, groupId: string | null): Promise<{ ok: boolean; error?: string }> {
+  if (s.isAdmin) return { ok: true };
+  if (!s.coachId) return { ok: false, error: "Not authorised." };
+  if (!groupId) return { ok: false, error: "Only an admin can create academy-wide events." };
+  const g = await prisma.group.findFirst({ where: { id: groupId, academyId, coachId: s.coachId }, select: { id: true } });
+  if (!g) return { ok: false, error: "You can only manage events for your own groups." };
+  return { ok: true };
+}
+
+export async function createCalendarEvent(input: unknown): Promise<Result> {
+  const s = await getSession();
+  if (!s) return { ok: false, error: "Not signed in" };
+  const academyId = await requireAcademyId();
+  const parsed = calendarEventSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const d = parsed.data;
+  const guard = await canManage(s, academyId, d.groupId);
+  if (!guard.ok) return guard;
+
+  const ev = await prisma.calendarEvent.create({
+    data: {
+      academyId,
+      groupId: d.groupId,
+      coachId: s.coachId ?? null,
+      title: d.title,
+      type: d.type,
+      season: d.season,
+      startDate: new Date(d.startDate),
+      endDate: d.endDate ? new Date(d.endDate) : null,
+      location: d.location ?? null,
+      notes: d.notes ?? null,
+      createdById: s.userId,
+    },
+  });
+  rev();
+  return { ok: true, id: ev.id };
+}
+
+export async function updateCalendarEvent(id: string, input: unknown): Promise<Result> {
+  const s = await getSession();
+  if (!s) return { ok: false, error: "Not signed in" };
+  const academyId = await requireAcademyId();
+  const parsed = calendarEventSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const d = parsed.data;
+  const existing = await prisma.calendarEvent.findFirst({ where: { id, academyId } });
+  if (!existing) return { ok: false, error: "Event not found." };
+  const guardOld = await canManage(s, academyId, existing.groupId);
+  if (!guardOld.ok) return guardOld;
+  const guardNew = await canManage(s, academyId, d.groupId);
+  if (!guardNew.ok) return guardNew;
+
+  await prisma.calendarEvent.update({
+    where: { id },
+    data: {
+      groupId: d.groupId,
+      title: d.title,
+      type: d.type,
+      season: d.season,
+      startDate: new Date(d.startDate),
+      endDate: d.endDate ? new Date(d.endDate) : null,
+      location: d.location ?? null,
+      notes: d.notes ?? null,
+    },
+  });
+  rev();
+  return { ok: true, id };
+}
+
+export async function deleteCalendarEvent(id: string): Promise<Result> {
+  const s = await getSession();
+  if (!s) return { ok: false, error: "Not signed in" };
+  const academyId = await requireAcademyId();
+  const existing = await prisma.calendarEvent.findFirst({ where: { id, academyId } });
+  if (!existing) return { ok: false, error: "Event not found." };
+  const guard = await canManage(s, academyId, existing.groupId);
+  if (!guard.ok) return guard;
+  await prisma.calendarEvent.delete({ where: { id } });
+  rev();
+  return { ok: true };
+}
