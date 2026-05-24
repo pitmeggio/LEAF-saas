@@ -27,12 +27,14 @@ const ADMIN_SECTIONS: NavSection[] = [
   ] },
   { label: "Program", items: [
     { href: "/dashboard/groups", label: "Groups", icon: "⬡" },
+    { href: "/dashboard/calendar", label: "Calendar", icon: "▣" },
     { href: "/dashboard/coaches", label: "Coaches", icon: "◎" },
     { href: "/dashboard/packages", label: "Packages", icon: "▥" },
     { href: "/dashboard/recruiting", label: "Recruiting", icon: "✦", feature: "featureRecruiting" },
   ] },
   { label: "Finance", items: [
     { href: "/dashboard/payments", label: "Payments", icon: "€", feature: "featureFinance" },
+    { href: "/dashboard/budgets", label: "Budgets", icon: "◧", feature: "featureFinance" },
     { href: "/dashboard/expenses", label: "Expenses", icon: "⊟", feature: "featureFinance" },
     { href: "/dashboard/reports", label: "Reports", icon: "▧", feature: "featureFinance" },
   ] },
@@ -52,6 +54,7 @@ const COACH_SECTIONS: NavSection[] = [
   ] },
   { label: "Program", items: [
     { href: "/dashboard/groups", label: "My Groups", icon: "⬡" },
+    { href: "/dashboard/calendar", label: "Calendar", icon: "▣" },
     { href: "/dashboard/expenses", label: "My Expenses", icon: "⊟", feature: "featureFinance" },
   ] },
 ];

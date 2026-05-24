@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { PercentBar } from "@/components/StatCard";
-import { Modal, GroupForm, GroupExpenseForm, DeleteButton } from "@/components/EntityForms";
+import Link from "next/link";
+import { Modal, GroupForm, DeleteButton } from "@/components/EntityForms";
 import { getGroupsWithStats, getAssignmentOptions, getAcademyCurrency } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
@@ -59,56 +60,22 @@ export default async function GroupsPage() {
               </div>
             )}
 
+            {/* Compact budget summary — visible to coaches too. Full breakdown + P&L + add expense live in Finance → Budgets. */}
             <dl className="mt-4 space-y-1.5 border-t border-[var(--color-border)] pt-3 text-sm">
-              <Row label="Athletes" value={String(g.count)} />
+              <Row label="Athletes" value={`${g.count}/${g.capacity}`} />
               <Row label="Contract revenue" value={fmtMoney(g.revenue, currency)} />
-              <Row label="Collected" value={fmtMoney(g.collectedRevenue, currency)} color="var(--color-accent)" />
-              {isAdmin && <Row label="Coach cost" value={fmtMoney(g.coachCost, currency)} />}
               <Row label="Budget allocation" value={fmtMoney(g.budget, currency)} />
-              <Row label="Used budget" value={fmtMoney(g.usedBudget, currency)} />
               <Row label="Remaining" value={fmtMoney(g.remainingBudget, currency)} color={g.remainingBudget < 0 ? "#f87171" : undefined} />
-              <Row label="Pending expenses" value={fmtMoney(g.pendingExpenses, currency)} />
-              <Row label="Monthly burn" value={fmtMoney(g.monthlyBurnRate, currency)} />
-              {g.foreignExpenseCount > 0 && (
-                <div className="pt-0.5 text-[10px] text-[var(--color-muted)]">+{g.foreignExpenseCount} foreign-currency expense(s) tracked separately</div>
-              )}
             </dl>
 
-            {g.categoryBreakdown.length > 0 && (
+            {isAdmin && (
               <div className="mt-3 border-t border-[var(--color-border)] pt-3">
-                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Spend by cost line</div>
-                <dl className="space-y-1 text-xs">
-                  {g.categoryBreakdown.map((c) => (
-                    <div key={c.category} className="flex justify-between">
-                      <dt className="capitalize text-[var(--color-muted)]">{c.category.replace(/_/g, " ")}</dt>
-                      <dd className="num">{fmtMoney(c.amount, currency)}</dd>
-                    </div>
-                  ))}
-                </dl>
+                <Link href="/dashboard/budgets" className="text-xs font-medium text-[var(--color-accent)] hover:underline">See full budget · spend by cost line · P&amp;L →</Link>
               </div>
             )}
 
-            {isAdmin && (() => {
-              const costs = g.coachCost + g.usedBudget;
-              const result = g.revenue - costs;
-              return (
-                <div className="mt-3 border-t border-[var(--color-border)] pt-3 text-sm">
-                  <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Team P&amp;L</div>
-                  <Row label="Income (contracts)" value={fmtMoney(g.revenue, currency)} />
-                  <Row label="Costs (coach + spend)" value={fmtMoney(costs, currency)} />
-                  <div className="mt-1 flex justify-between border-t border-[var(--color-border)] pt-1.5">
-                    <dt className="font-medium">Result</dt>
-                    <dd className="num font-semibold" style={{ color: result >= 0 ? "var(--color-accent)" : "#f87171" }}>{fmtMoney(result, currency)}</dd>
-                  </div>
-                </div>
-              );
-            })()}
-
             {isAdmin && (
               <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
-                <Modal label="+ Add expense" title={`Add to ${g.name} budget`} className="rounded-lg border border-[#7CFF6B40] px-3 py-1.5 text-xs font-medium text-[var(--color-accent)] hover:bg-[#7cff6b12]">
-                  <GroupExpenseForm groupId={g.id} currency={currency} />
-                </Modal>
                 <Modal label="Edit" title="Edit group" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
                   <GroupForm coaches={opts.coaches} currency={currency} initial={{ id: g.id, name: g.name, season: g.season, coachId: g.coachId, capacity: g.capacity, notes: g.notes, active: g.active, budget: g.budget, budgetHardStop: g.budgetHardStop, pointsMin: g.pointsMin, pointsMax: g.pointsMax, ageMin: g.ageMin, ageMax: g.ageMax, level: g.level, discipline: g.discipline }} />
                 </Modal>
