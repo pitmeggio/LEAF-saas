@@ -17,6 +17,15 @@ export type AthleteWorkspace = {
   publicBio: string | null;
   publicPhotoUrl: string | null;
   publicContactEnabled: boolean;
+  // privacy toggles — surfaced so /me can show the athlete a "what's
+  // visible to scouts" checklist. Mutating these is academy-side today
+  // (admin manages publicShow* flags on members/[id]); the workspace
+  // only reads them so the athlete is never confused about what's exposed.
+  publicShowAcademy: boolean;
+  publicShowRanking: boolean;
+  publicShowResults: boolean;
+  publicShowMedia: boolean;
+  publicShowExternalProfiles: boolean;
   // performance
   fisPoints: number | null;
   worldRank: number | null;
@@ -53,6 +62,11 @@ export async function getAthleteWorkspace(athleteId: string): Promise<AthleteWor
     publicBio: a.publicBio,
     publicPhotoUrl: a.publicPhotoUrl,
     publicContactEnabled: a.publicContactEnabled,
+    publicShowAcademy: a.publicShowAcademy,
+    publicShowRanking: a.publicShowRanking,
+    publicShowResults: a.publicShowResults,
+    publicShowMedia: a.publicShowMedia,
+    publicShowExternalProfiles: a.publicShowExternalProfiles,
     fisPoints: a.fisPoints,
     worldRank: a.worldRank,
     fisCode: a.fisCode,

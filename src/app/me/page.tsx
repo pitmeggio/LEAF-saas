@@ -56,8 +56,13 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
               {/* Copy link works on mobile too — sharing is the whole point of
                   the workspace, no reason to hide it below sm:. */}
               <ShareButton url={`${baseUrl}/athlete/${w.slug}`} label="Copy link" className="inline-flex rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:border-[var(--color-accent)]" />
-              <Link href={`/athlete/${w.slug}`} target="_blank" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface)]">
-                View public profile ↗
+              <Link
+                href={`/athlete/${w.slug}`}
+                target="_blank"
+                title="Opens the filtered view that scouts and academies see when you share your link"
+                className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface)]"
+              >
+                Preview as a scout sees it ↗
               </Link>
             </>
           )}
@@ -108,30 +113,54 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
           </div>
         )}
 
-        {/* Share your profile — the single most useful action for the athlete:
-            grab the link and send it to scouts / academies. Surface it as a
-            prominent card right after the identity. */}
+        {/* "What scouts & academies see" — same underlying athlete, filtered
+            view. Explicit visibility checklist so the athlete is never
+            confused about what's exposed vs what stays private. */}
         {w.publicProfileEnabled && w.slug && (
           <div className="card p-5">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>
-                <div className="kicker" style={{ color: "var(--color-accent)" }}>Your public link</div>
-                <h2 className="mt-1 text-lg font-semibold">Share your profile with academies & scouts</h2>
-                <p className="mt-1 text-xs text-[var(--color-muted)]">Anyone with the link sees your verified profile — ranking, growth trend and AI insights.</p>
+                <div className="kicker" style={{ color: "var(--color-accent)" }}>What scouts &amp; academies see</div>
+                <h2 className="mt-1 text-lg font-semibold">Your public profile — a filtered view of you</h2>
+                <p className="mt-1 text-xs text-[var(--color-muted)]">
+                  This is the same profile as below, with only the fields you allowed.
+                  Share the link with scouts and they see exactly the preview.
+                </p>
               </div>
               <Link
                 href={`/athlete/${w.slug}`}
                 target="_blank"
                 className="shrink-0 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]"
               >
-                Open ↗
+                Preview ↗
               </Link>
             </div>
+
+            {/* Share link row */}
             <div className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2">
               <span className="num truncate text-xs text-[var(--color-muted)]">{baseUrl}/athlete/{w.slug}</span>
               <div className="ml-auto shrink-0">
                 <ShareButton url={`${baseUrl}/athlete/${w.slug}`} label="Copy link" className="rounded-md bg-[var(--color-accent)] px-3 py-1 text-xs font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]" />
               </div>
+            </div>
+
+            {/* Visibility checklist — what's on the public view vs hidden */}
+            <div className="mt-4 border-t border-[var(--color-border)] pt-4">
+              <div className="mb-2 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">What&apos;s visible</div>
+              <ul className="grid gap-1.5 text-xs sm:grid-cols-2">
+                <VisibilityRow on={true} label="Name, sport, nationality" hint="always public" />
+                <VisibilityRow on={!!w.publicPhotoUrl} label="Photo" hint={w.publicPhotoUrl ? "shown" : "add a photo below"} />
+                <VisibilityRow on={!!w.publicBio} label="Bio" hint={w.publicBio ? "shown" : "add a bio below"} />
+                <VisibilityRow on={w.publicShowRanking} label={`${cfg.pointsLabel} & ${cfg.rankLabel.toLowerCase()}`} />
+                <VisibilityRow on={w.publicShowResults} label="Recent results" />
+                <VisibilityRow on={w.publicShowMedia} label="Media gallery" />
+                <VisibilityRow on={w.publicShowAcademy} label="Academy name" />
+                <VisibilityRow on={w.publicShowExternalProfiles} label={cfg.profileLinkLabel} />
+                <VisibilityRow on={w.publicContactEnabled} label="Contact button" hint="you can toggle below" />
+              </ul>
+              <p className="mt-3 text-[10px] text-[var(--color-muted)]">
+                Most toggles are managed by your academy. You can change <span className="text-[var(--color-fg)]">Photo</span>, <span className="text-[var(--color-fg)]">Bio</span> and <span className="text-[var(--color-fg)]">Contact button</span> yourself below; ask your academy to adjust the rest.
+              </p>
             </div>
           </div>
         )}
@@ -195,5 +224,29 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
         <p className="text-center text-xs text-[var(--color-muted)]">Signed in as {s?.name}</p>
       </div>
     </div>
+  );
+}
+
+// One row in the "What's visible" checklist. Green when the field is publicly
+// visible, muted when it's hidden. Optional hint surfaces the next action
+// the athlete can take (add a photo, ask their academy, ...).
+function VisibilityRow({ on, label, hint }: { on: boolean; label: string; hint?: string }) {
+  return (
+    <li className="flex items-start gap-2">
+      <span
+        aria-hidden
+        className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold"
+        style={{
+          background: on ? "color-mix(in srgb, var(--color-accent) 22%, transparent)" : "var(--color-surface-2)",
+          color: on ? "var(--color-accent)" : "var(--color-muted)",
+        }}
+      >
+        {on ? "✓" : "✕"}
+      </span>
+      <span className="min-w-0">
+        <span className={on ? "" : "text-[var(--color-muted)] line-through decoration-[var(--color-muted)]/40"}>{label}</span>
+        {hint && <span className="ml-1 text-[10px] text-[var(--color-muted)]">· {hint}</span>}
+      </span>
+    </li>
   );
 }
