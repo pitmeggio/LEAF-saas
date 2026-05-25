@@ -35,8 +35,14 @@ export default async function ApplicationsPage() {
         title="Applications"
         subtitle="Drag candidates across the pipeline. Status changes are saved automatically."
         right={
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <span className="num text-sm text-[var(--color-muted)]">{cards.length} candidates</span>
+            <Link
+              href="/dashboard/recruiting"
+              className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)]"
+            >
+              Form &amp; openings
+            </Link>
             {academy && (
               <Link
                 href={`/academy/${academy.slug}`}

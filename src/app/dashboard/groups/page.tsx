@@ -1,45 +1,42 @@
 import { PageHeader } from "@/components/PageHeader";
 import { PercentBar } from "@/components/StatCard";
-import Link from "next/link";
 import { Modal, GroupForm, DeleteButton } from "@/components/EntityForms";
 import { getGroupsWithStats, getAssignmentOptions, getAcademyCurrency } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
-import { fmtMoney } from "@/lib/domain";
+import { LEVEL_LABEL } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
 
 const newBtn = "rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]";
 
+// Groups is now an OPERATIONAL view only — roster, coach, capacity, discipline
+// split, training category. Anything financial lives in Finance → Budgets.
 export default async function GroupsPage() {
   const s = await getSession();
   const isAdmin = s?.isAdmin ?? false;
   const coachScope = isAdmin ? null : s?.coachId ?? null;
   const [groups, opts, currency] = await Promise.all([getGroupsWithStats(coachScope), getAssignmentOptions(), getAcademyCurrency()]);
 
-  const Row = ({ label, value, color }: { label: string; value: string; color?: string }) => (
-    <div className="flex justify-between"><dt className="text-[var(--color-muted)]">{label}</dt><dd className="num" style={color ? { color } : undefined}>{value}</dd></div>
-  );
-
   return (
     <>
       <PageHeader
         title={isAdmin ? "Groups / Teams" : "My Groups"}
-        subtitle={isAdmin ? "Occupancy, revenue and budget per team." : "Your teams — occupancy and budget usage."}
+        subtitle="Roster, coaches, capacity and discipline composition."
         right={isAdmin ? <Modal label="+ New group" title="New group" className={newBtn}><GroupForm coaches={opts.coaches} currency={currency} /></Modal> : undefined}
       />
       <div className="grid gap-4 p-8 sm:grid-cols-2 lg:grid-cols-3">
         {groups.length === 0 && <p className="text-sm text-[var(--color-muted)]">No groups assigned.</p>}
         {groups.map((g) => (
-          <div key={g.id} className="card p-5" style={g.overCapacity || g.overBudget ? { borderColor: "#f87171" } : undefined}>
+          <div key={g.id} className="card p-5" style={g.overCapacity ? { borderColor: "#f87171" } : undefined}>
             <div className="flex items-start justify-between">
               <div>
                 <div className="text-base font-semibold">{g.name}</div>
-                <div className="text-xs text-[var(--color-muted)]">{g.coach?.name ?? "No coach"} · Season {g.season}</div>
+                <div className="text-xs text-[var(--color-muted)]">
+                  {g.coach?.name ?? "No coach"} · Season {g.season}
+                  {g.level ? ` · ${LEVEL_LABEL[g.level] ?? g.level}` : ""}
+                </div>
               </div>
-              <div className="flex flex-col items-end gap-1">
-                {g.overCapacity && <span className="rounded-md bg-[#f8717120] px-2 py-0.5 text-[10px] font-semibold text-[#f87171]">OVER CAPACITY</span>}
-                {g.overBudget && <span className="rounded-md bg-[#f8717120] px-2 py-0.5 text-[10px] font-semibold text-[#f87171]">OVER BUDGET</span>}
-              </div>
+              {g.overCapacity && <span className="rounded-md bg-[#f8717120] px-2 py-0.5 text-[10px] font-semibold text-[#f87171]">OVER CAPACITY</span>}
             </div>
 
             <div className="mt-4">
@@ -50,27 +47,31 @@ export default async function GroupsPage() {
               <PercentBar value={g.occupancyPct} color={g.overCapacity ? "#f87171" : g.occupancyPct > 85 ? "#f59e0b" : "var(--color-accent)"} />
             </div>
 
-            {g.budget != null && g.budget > 0 && (
-              <div className="mt-3">
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="text-[var(--color-muted)]">Budget used</span>
-                  <span className="num">{g.pctUsed}%{g.budgetHardStop ? " · hard stop" : ""}</span>
+            {/* Discipline split — operational composition (SL / GS / Speed / …) */}
+            {g.disciplineSplit.length > 0 && (
+              <div className="mt-4 border-t border-[var(--color-border)] pt-3">
+                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Discipline split</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {g.disciplineSplit.map((d) => (
+                    <span key={d.discipline} className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-surface-2)] px-2 py-1 text-[11px]">
+                      <span className="font-semibold">{d.discipline}</span>
+                      <span className="num text-[var(--color-muted)]">· {d.count}</span>
+                      <span className="num text-[10px] text-[var(--color-muted)]/70">({d.pct}%)</span>
+                    </span>
+                  ))}
                 </div>
-                <PercentBar value={Math.min(100, g.pctUsed)} color={g.overBudget ? "#f87171" : g.pctUsed > 85 ? "#f59e0b" : "var(--color-accent)"} />
               </div>
             )}
 
-            {/* Compact budget summary — visible to coaches too. Full breakdown + P&L + add expense live in Finance → Budgets. */}
-            <dl className="mt-4 space-y-1.5 border-t border-[var(--color-border)] pt-3 text-sm">
-              <Row label="Athletes" value={`${g.count}/${g.capacity}`} />
-              <Row label="Contract revenue" value={fmtMoney(g.revenue, currency)} />
-              <Row label="Budget allocation" value={fmtMoney(g.budget, currency)} />
-              <Row label="Remaining" value={fmtMoney(g.remainingBudget, currency)} color={g.remainingBudget < 0 ? "#f87171" : undefined} />
-            </dl>
-
-            {isAdmin && (
-              <div className="mt-3 border-t border-[var(--color-border)] pt-3">
-                <Link href="/dashboard/budgets" className="text-xs font-medium text-[var(--color-accent)] hover:underline">See full budget · spend by cost line · P&amp;L →</Link>
+            {/* Group assignment rules (Smart Group Assignment) — read-only summary */}
+            {(g.pointsMin != null || g.pointsMax != null || g.ageMin != null || g.ageMax != null || g.discipline) && (
+              <div className="mt-3 border-t border-[var(--color-border)] pt-3 text-xs text-[var(--color-muted)]">
+                <div className="mb-1 text-[10px] uppercase tracking-wide">Assignment rules</div>
+                <div className="flex flex-wrap gap-x-3 gap-y-1">
+                  {(g.pointsMin != null || g.pointsMax != null) && <span>Points <span className="num text-[var(--color-fg)]">{g.pointsMin ?? "–"}–{g.pointsMax ?? "–"}</span></span>}
+                  {(g.ageMin != null || g.ageMax != null) && <span>Age <span className="num text-[var(--color-fg)]">{g.ageMin ?? "–"}–{g.ageMax ?? "–"}</span></span>}
+                  {g.discipline && <span>Discipline <span className="text-[var(--color-fg)]">{g.discipline}</span></span>}
+                </div>
               </div>
             )}
 

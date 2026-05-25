@@ -13,47 +13,65 @@ export type SidebarFeatures = Record<FeatureKey, boolean>;
 
 // Grouped navigation — 4 labelled sections instead of one long flat list, so the
 // workspace reads as blocks. Items keep their per-tenant feature gating.
+// LEAF's 7 modules: Overview + Applications → Athletes → Groups → Finance →
+// Performance → Reports → Admin. Recruiting tools (opportunities, form builder,
+// publishing) sit inside Applications. Calendar / Season Planner sits under
+// Performance since it drives the season-level planning + cost forecast.
 const ADMIN_SECTIONS: NavSection[] = [
-  { label: "Workspace", items: [
+  { label: "Overview", items: [
     { href: "/dashboard", label: "Overview", icon: "▦" },
-    { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
-    { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
+  ] },
+  { label: "Applications", items: [
+    { href: "/dashboard/applications", label: "Pipeline", icon: "▤", feature: "featureRecruiting" },
+    { href: "/dashboard/recruiting", label: "Form & openings", icon: "✦", feature: "featureRecruiting" },
   ] },
   { label: "Athletes", items: [
-    { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
     { href: "/dashboard/members", label: "Active Athletes", icon: "⛷" },
     { href: "/dashboard/documents", label: "Documents", icon: "▢" },
   ] },
-  { label: "Program", items: [
+  { label: "Groups", items: [
     { href: "/dashboard/groups", label: "Groups", icon: "⬡" },
-    { href: "/dashboard/calendar", label: "Calendar", icon: "▣" },
     { href: "/dashboard/coaches", label: "Coaches", icon: "◎" },
-    { href: "/dashboard/packages", label: "Packages", icon: "▥" },
-    { href: "/dashboard/recruiting", label: "Recruiting", icon: "✦", feature: "featureRecruiting" },
   ] },
   { label: "Finance", items: [
     { href: "/dashboard/payments", label: "Payments", icon: "€", feature: "featureFinance" },
     { href: "/dashboard/budgets", label: "Budgets", icon: "◧", feature: "featureFinance" },
     { href: "/dashboard/expenses", label: "Expenses", icon: "⊟", feature: "featureFinance" },
+    { href: "/dashboard/packages", label: "Packages", icon: "▥" },
+  ] },
+  { label: "Performance", items: [
+    { href: "/dashboard/calendar", label: "Season Planner", icon: "▣" },
+  ] },
+  { label: "Reports", items: [
     { href: "/dashboard/reports", label: "Reports", icon: "▧", feature: "featureFinance" },
+  ] },
+  { label: "Admin", items: [
+    { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
+    { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
   ] },
 ];
 
 const COACH_SECTIONS: NavSection[] = [
-  { label: "Workspace", items: [
+  { label: "Overview", items: [
     { href: "/dashboard", label: "My Dashboard", icon: "▦" },
-    { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
-    { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
   ] },
   { label: "Athletes", items: [
     { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
     { href: "/dashboard/members", label: "My Athletes", icon: "⛷" },
     { href: "/dashboard/documents", label: "Documents", icon: "▢" },
   ] },
-  { label: "Program", items: [
+  { label: "Groups", items: [
     { href: "/dashboard/groups", label: "My Groups", icon: "⬡" },
-    { href: "/dashboard/calendar", label: "Calendar", icon: "▣" },
+  ] },
+  { label: "Performance", items: [
+    { href: "/dashboard/calendar", label: "Season Planner", icon: "▣" },
+  ] },
+  { label: "Finance", items: [
     { href: "/dashboard/expenses", label: "My Expenses", icon: "⊟", feature: "featureFinance" },
+  ] },
+  { label: "Admin", items: [
+    { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
+    { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
   ] },
 ];
 

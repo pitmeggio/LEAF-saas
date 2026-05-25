@@ -167,7 +167,7 @@ export async function getGroupsWithStats(coachId?: string | null) {
   const baseCurrency = academy?.currency ?? "EUR";
   const groups = await prisma.group.findMany({
     where: { academyId, ...(coachId ? { coachId } : {}) },
-    include: { coach: true, enrollments: { include: { package: true, payments: true } }, expenses: true },
+    include: { coach: true, enrollments: { include: { package: true, payments: true, athlete: { select: { discipline: true } } } }, expenses: true },
     orderBy: { name: "asc" },
   });
   return groups.map((g) => {
@@ -175,6 +175,15 @@ export async function getGroupsWithStats(coachId?: string | null) {
     const roster = g.enrollments.filter((e) => isActiveEnrollment(e.status));
     const count = roster.length;
     const revenue = roster.reduce((s, e) => s + (e.package?.price ?? 0), 0);
+    // Discipline split — how the live roster is composed (SL / GS / SG / DH …).
+    const discMap = new Map<string, number>();
+    for (const e of roster) {
+      const d = e.athlete?.discipline?.toUpperCase() || "—";
+      discMap.set(d, (discMap.get(d) ?? 0) + 1);
+    }
+    const disciplineSplit = [...discMap.entries()]
+      .map(([discipline, n]) => ({ discipline, count: n, pct: count > 0 ? Math.round((n / count) * 100) : 0 }))
+      .sort((a, b) => b.count - a.count);
     // Collected revenue = amounts actually paid (incl. partials) across the roster's payments.
     const collectedRevenue = roster.reduce((s, e) => s + e.payments.reduce((a, p) => a + p.paidAmount, 0), 0);
     const coachCost = g.coach?.cost ?? 0;
@@ -219,6 +228,7 @@ export async function getGroupsWithStats(coachId?: string | null) {
       pctUsed,
       monthlyBurnRate,
       categoryBreakdown,
+      disciplineSplit,
       overBudget: usedBudget > budget,
     };
   });
