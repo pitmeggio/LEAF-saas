@@ -511,6 +511,179 @@ export async function getDashboard(opts: SeasonScope = {}) {
   };
 }
 
+// ── Coach Intelligence: roster-level summary for the Coach dashboard ──────
+// Aggregates everything the coach needs to see at a glance about their own
+// athletes' adaptive AI profiles + recent notes. Pure-ish on top of Prisma —
+// shape is tailored for the My Dashboard surface (no Coach role guard here;
+// callers pass the coachId they want to scope to, or null for academy-wide).
+export type CoachIntelligenceSummary = {
+  totalNotes: number;
+  // Athletes the coach should look at first — sorted: injury flags > weaknesses > priorities.
+  watchlist: {
+    enrollmentId: string;
+    athleteId: string;
+    firstName: string;
+    lastName: string;
+    photoColor: string;
+    injuryFlags: string[];     // capped at 3 for the card
+    topWeakness: string | null;
+    topPriority: string | null;
+  }[];
+  // Most recent coach notes across the coach's roster — links back to the
+  // athlete's enrollment page.
+  recentNotes: {
+    id: string;
+    enrollmentId: string;
+    athleteName: string;
+    athleteFirstName: string;
+    athleteLastName: string;
+    athletePhotoColor: string;
+    createdAt: Date;
+    rawText: string;
+    kind: string | null;
+    engine: string | null;
+    sport: string;
+    themes: string[];          // from aiSummary.themes (or [] if not structured)
+  }[];
+  // The coach's lens — aggregated theme frequency across roster aiProfiles.
+  // Top entries advertise where the coach has been spending their attention.
+  themeBalance: { theme: string; count: number }[];
+};
+
+export async function getCoachIntelligenceSummary(coachId: string | null): Promise<CoachIntelligenceSummary> {
+  const academyId = await requireAcademyId();
+
+  // Resolve the roster the coach actually works with: enrollments coached by
+  // them OR whose group they coach. Admin scope (coachId === null) → entire
+  // academy.
+  const rosterEnrollments = await prisma.enrollment.findMany({
+    where: {
+      academyId,
+      ...(coachId
+        ? { OR: [{ coachId }, { group: { coachId } }] }
+        : {}),
+    },
+    select: {
+      id: true,
+      athleteId: true,
+      athlete: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          photoColor: true,
+          aiProfile: true,
+        },
+      },
+    },
+  });
+
+  // Dedup by athleteId — an athlete with multiple enrollments still appears
+  // once in the watchlist, keyed to the most recent enrollment we saw.
+  const athleteToEnrollment = new Map<string, { enrollmentId: string }>();
+  for (const e of rosterEnrollments) {
+    if (!athleteToEnrollment.has(e.athleteId)) athleteToEnrollment.set(e.athleteId, { enrollmentId: e.id });
+  }
+  const athleteIds = [...athleteToEnrollment.keys()];
+
+  // Build the watchlist from aiProfile data already on each athlete row.
+  const watchlist: CoachIntelligenceSummary["watchlist"] = [];
+  const themeAccumulator = new Map<string, number>();
+
+  for (const e of rosterEnrollments) {
+    // Only add once per athlete (the first row we saw wins).
+    if (athleteToEnrollment.get(e.athleteId)?.enrollmentId !== e.id) continue;
+
+    type AiProfile = {
+      themeFrequency?: Record<string, number>;
+      injuryFlags?: { text: string }[];
+      recurringWeaknesses?: { text: string }[];
+      priorities?: { text: string }[];
+    };
+    const ai = (e.athlete.aiProfile as unknown as AiProfile | null) ?? null;
+    if (!ai) continue;
+
+    // Roll theme counters into the academy-wide balance.
+    for (const [theme, count] of Object.entries(ai.themeFrequency ?? {})) {
+      themeAccumulator.set(theme, (themeAccumulator.get(theme) ?? 0) + count);
+    }
+
+    const injuryFlags = (ai.injuryFlags ?? []).slice(0, 3).map((f) => f.text);
+    const topWeakness = ai.recurringWeaknesses?.[0]?.text ?? null;
+    const topPriority = ai.priorities?.[0]?.text ?? null;
+
+    // Only surface athletes that actually have something worth flagging.
+    if (injuryFlags.length === 0 && !topWeakness && !topPriority) continue;
+    watchlist.push({
+      enrollmentId: e.id,
+      athleteId: e.athlete.id,
+      firstName: e.athlete.firstName,
+      lastName: e.athlete.lastName,
+      photoColor: e.athlete.photoColor,
+      injuryFlags,
+      topWeakness,
+      topPriority,
+    });
+  }
+  // Sort: injury flags first, then weaknesses, then priorities — most urgent first.
+  watchlist.sort((a, b) => {
+    const sev = (w: typeof a) => (w.injuryFlags.length > 0 ? 3 : 0) + (w.topWeakness ? 2 : 0) + (w.topPriority ? 1 : 0);
+    return sev(b) - sev(a);
+  });
+
+  // Recent notes across the roster. Limit to athletes the coach actually
+  // covers (athleteIds) — important even in admin scope so the query doesn't
+  // pull every note in the academy when there are thousands.
+  const recentRaw = athleteIds.length === 0
+    ? []
+    : await prisma.coachNote.findMany({
+        where: { academyId, athleteId: { in: athleteIds } },
+        select: {
+          id: true,
+          athleteId: true,
+          rawText: true,
+          kind: true,
+          engine: true,
+          sport: true,
+          aiSummary: true,
+          createdAt: true,
+          athlete: { select: { firstName: true, lastName: true, photoColor: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 6,
+      });
+
+  const recentNotes: CoachIntelligenceSummary["recentNotes"] = recentRaw.map((n) => {
+    const summary = (n.aiSummary as unknown as { themes?: string[] } | null) ?? null;
+    const enrollment = athleteToEnrollment.get(n.athleteId)?.enrollmentId ?? "";
+    return {
+      id: n.id,
+      enrollmentId: enrollment,
+      athleteName: `${n.athlete.firstName} ${n.athlete.lastName}`,
+      athleteFirstName: n.athlete.firstName,
+      athleteLastName: n.athlete.lastName,
+      athletePhotoColor: n.athlete.photoColor,
+      createdAt: n.createdAt,
+      rawText: n.rawText,
+      kind: n.kind,
+      engine: n.engine,
+      sport: n.sport,
+      themes: Array.isArray(summary?.themes) ? summary!.themes.slice(0, 4) : [],
+    };
+  });
+
+  const totalNotes = athleteIds.length === 0
+    ? 0
+    : await prisma.coachNote.count({ where: { academyId, athleteId: { in: athleteIds } } });
+
+  const themeBalance = [...themeAccumulator.entries()]
+    .map(([theme, count]) => ({ theme, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 6);
+
+  return { totalNotes, watchlist, recentNotes, themeBalance };
+}
+
 // ── Reports: season-aware aggregations ─────────────────────────────────────
 // One season-of-data, computed from base tables filtered by season bounds.
 // Pure-ish on top of Prisma — same shape regardless of season, so the caller

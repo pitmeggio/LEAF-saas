@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar, Dot } from "@/components/StatCard";
 import { Avatar, TrendArrow } from "@/components/ui";
-import { getActiveAthletes, getGroupsWithStats, computeAlerts, getExpenses, getAcademyCurrency } from "@/lib/ops";
+import { getActiveAthletes, getGroupsWithStats, computeAlerts, getExpenses, getAcademyCurrency, getCoachIntelligenceSummary } from "@/lib/ops";
 import { getInboxStats } from "@/lib/chat";
 import { getSession } from "@/lib/auth";
 import { fmtMoney, DISCIPLINE_LABEL, age } from "@/lib/domain";
@@ -14,13 +14,14 @@ const KIND_COLOR = { strength: "var(--color-accent)", watch: "#f59e0b", info: "v
 export async function CoachDashboard() {
   const s = await getSession();
   const coachId = s?.coachId ?? null;
-  const [members, groups, alerts, exp, inbox, currency] = await Promise.all([
+  const [members, groups, alerts, exp, inbox, currency, intel] = await Promise.all([
     getActiveAthletes(coachId),
     getGroupsWithStats(coachId),
     computeAlerts(coachId),
     getExpenses(coachId),
     getInboxStats(),
     getAcademyCurrency(),
+    getCoachIntelligenceSummary(coachId),
   ]);
 
   const improving = members.filter((m) => m.perf === "improving").length;
@@ -64,6 +65,109 @@ export async function CoachDashboard() {
             </ul>
           )}
         </div>
+
+        {/* Coach Intelligence — adaptive notes + AI profile rollup across the roster */}
+        {(intel.totalNotes > 0 || intel.watchlist.length > 0) && (
+          <div className="card p-5">
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+                <h2 className="text-sm font-semibold">Coach intelligence</h2>
+              </div>
+              <span className="text-[11px] text-[var(--color-muted)]">
+                {intel.totalNotes} note{intel.totalNotes === 1 ? "" : "s"} on file
+              </span>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-3">
+              {/* Watchlist — athletes whose AI profile flags something */}
+              <div className="lg:col-span-2">
+                <div className="mb-2 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Watchlist — athletes that need a look</div>
+                {intel.watchlist.length === 0 ? (
+                  <p className="text-xs text-[var(--color-muted)]">No active flags across your roster.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {intel.watchlist.slice(0, 4).map((w) => (
+                      <Link
+                        key={w.enrollmentId}
+                        href={`/dashboard/members/${w.enrollmentId}`}
+                        className="flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 hover:border-[var(--color-accent)]"
+                      >
+                        <Avatar first={w.firstName} last={w.lastName} color={w.photoColor} size={32} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-baseline gap-2">
+                            <span className="truncate text-sm font-medium">{w.firstName} {w.lastName}</span>
+                            {w.injuryFlags.length > 0 && (
+                              <span className="rounded-md bg-[#f8717120] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#f87171]">Injury</span>
+                            )}
+                          </div>
+                          {w.injuryFlags.length > 0 && (
+                            <div className="mt-0.5 truncate text-[11px] text-[#f87171]">{w.injuryFlags[0]}</div>
+                          )}
+                          {w.topWeakness && w.injuryFlags.length === 0 && (
+                            <div className="mt-0.5 truncate text-[11px] text-[#f59e0b]">Weakness: {w.topWeakness}</div>
+                          )}
+                          {w.topPriority && (
+                            <div className="mt-0.5 truncate text-[11px] text-[var(--color-muted)]">Next focus: {w.topPriority}</div>
+                          )}
+                        </div>
+                        <span className="text-[var(--color-muted)]">→</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Coach lens — theme balance across the roster */}
+              <div>
+                <div className="mb-2 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Your coaching lens</div>
+                {intel.themeBalance.length === 0 ? (
+                  <p className="text-xs text-[var(--color-muted)]">Add a note to start building your lens.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {(() => {
+                      const max = Math.max(1, ...intel.themeBalance.map((t) => t.count));
+                      return intel.themeBalance.map((t) => (
+                        <div key={t.theme}>
+                          <div className="mb-0.5 flex items-center justify-between text-[11px]">
+                            <span className="capitalize">{t.theme}</span>
+                            <span className="num text-[var(--color-muted)]">{t.count}</span>
+                          </div>
+                          <PercentBar value={(t.count / max) * 100} />
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Recent notes — last activity across the roster */}
+            {intel.recentNotes.length > 0 && (
+              <div className="mt-5 border-t border-[var(--color-border)] pt-4">
+                <div className="mb-2 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Recent notes</div>
+                <ul className="space-y-1.5">
+                  {intel.recentNotes.slice(0, 5).map((n) => (
+                    <li key={n.id}>
+                      <Link
+                        href={`/dashboard/members/${n.enrollmentId}`}
+                        className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-[var(--color-surface-2)]"
+                      >
+                        <Avatar first={n.athleteFirstName} last={n.athleteLastName} color={n.athletePhotoColor} size={22} />
+                        <span className="text-xs font-medium">{n.athleteName}</span>
+                        {n.kind && (
+                          <span className="rounded-full bg-[var(--color-surface-2)] px-2 py-0.5 text-[9px] uppercase tracking-wide text-[var(--color-muted)]">{n.kind.replace(/_/g, " ")}</span>
+                        )}
+                        <span className="min-w-0 flex-1 truncate text-[11px] text-[var(--color-muted)]">{n.rawText}</span>
+                        <span className="shrink-0 text-[10px] text-[var(--color-muted)]">{new Date(n.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <StatCard label="My athletes" value={String(members.length)} accent href="/dashboard/members" />
