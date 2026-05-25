@@ -371,15 +371,45 @@ export async function getDashboard() {
   const activeAthletes = enrollments.filter((e) => e.status === "active" || e.status === "injured" || e.status === "paused").length;
   const applicantsThisMonth = applications.filter((a) => isThisMonth(a.submittedAt)).length;
   const accepted = applications.filter((a) => a.status === "accepted").length;
+  // "Active applications" = anything still in the pipeline (not accepted / rejected).
+  const pipelineCount = applications.filter((a) => a.status === "new" || a.status === "reviewing" || a.status === "shortlisted").length;
   const improving = enrollments.filter((e) => e.perf === "improving").length;
   const totalCapacity = groups.reduce((s, g) => s + g.capacity, 0);
   const totalInGroups = groups.reduce((s, g) => s + g.count, 0);
   const occupancyPct = totalCapacity ? Math.round((totalInGroups / totalCapacity) * 100) : 0;
 
+  // Academy-wide budget rollup (base currency only — Groups.budget is in academy currency).
+  const totalBudget = groups.reduce((s, g) => s + (g.budget ?? 0), 0);
+  const usedBudget = groups.reduce((s, g) => s + g.usedBudget, 0);
+  const budgetPctUsed = totalBudget > 0 ? Math.round((usedBudget / totalBudget) * 100) : 0;
+
+  // Compact group distribution for the overview side panel.
+  const groupDistribution = groups
+    .filter((g) => g.active)
+    .map((g) => ({ id: g.id, name: g.name, count: g.count, capacity: g.capacity, pct: g.occupancyPct }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
+  // Recent activity feed (most recent application status changes).
+  const recentStatusEvents = await prisma.statusEvent.findMany({
+    where: { application: { academyId } },
+    include: { application: { include: { athlete: { select: { firstName: true, lastName: true } } } } },
+    orderBy: { createdAt: "desc" },
+    take: 8,
+  });
+  const recentActivity = recentStatusEvents.map((e) => ({
+    id: e.id,
+    when: e.createdAt,
+    title: `${e.application.athlete.firstName} ${e.application.athlete.lastName}`,
+    detail: e.from ? `${e.from} → ${e.to}` : `Application ${e.to}`,
+    href: `/dashboard/applications/${e.applicationId}`,
+  }));
+
   return {
     activeAthletes,
     applicantsThisMonth,
     accepted,
+    pipelineCount,
     activeGroups: groups.filter((g) => g.active).length,
     coaches: coaches.length,
     occupancyPct,
@@ -388,6 +418,11 @@ export async function getDashboard() {
     finance,
     missingDocs: docs.missing.length,
     expiredDocs: docs.expired.length,
+    totalBudget,
+    usedBudget,
+    budgetPctUsed,
+    groupDistribution,
+    recentActivity,
     alerts,
     enrollments,
   };
