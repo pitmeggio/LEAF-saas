@@ -51,7 +51,7 @@ export async function createTennisMatch(input: TennisMatchCreateInput): Promise<
       notes: d.notes ?? null,
     },
   });
-  revalidatePath(`/dashboard/members`);
+  revalidatePath(`/dashboard/athletes`);
   return { ok: true, id: created.id };
 }
 
@@ -70,6 +70,6 @@ export async function deleteTennisMatch(input: TennisMatchDeleteInput): Promise<
     if (ownsEnrollment === 0) return { ok: false, error: "Only the athlete's coach or an admin can delete this match." };
   }
   await prisma.tennisMatch.delete({ where: { id: match.id } });
-  revalidatePath(`/dashboard/members`);
+  revalidatePath(`/dashboard/athletes`);
   return { ok: true };
 }

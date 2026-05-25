@@ -36,7 +36,7 @@ export default async function DocumentsPage() {
               {rows.map((d) => (
                 <tr key={d.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]">
                   <td className="px-5 py-3">
-                    <Link href={`/dashboard/members/${d.enrollmentId}`} className="font-medium hover:underline">{d.enrollment.athlete.firstName} {d.enrollment.athlete.lastName}</Link>
+                    <Link href={`/dashboard/athletes/${d.enrollmentId}`} className="font-medium hover:underline">{d.enrollment.athlete.firstName} {d.enrollment.athlete.lastName}</Link>
                   </td>
                   <td className="px-3 py-3 text-[var(--color-muted)]">{DOC_LABEL[d.type] ?? d.type}</td>
                   <td className="px-3 py-3 text-xs text-[var(--color-muted)]">{d.expiresAt ? fmtDate(d.expiresAt) : "—"}</td>

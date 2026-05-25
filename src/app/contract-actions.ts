@@ -8,8 +8,8 @@ import { contractCreateSchema, contractUpdateSchema, contractStatusUpdateSchema,
 export type Result = { ok: boolean; error?: string; id?: string };
 
 function rev(enrollmentId?: string) {
-  revalidatePath("/dashboard/members");
-  if (enrollmentId) revalidatePath(`/dashboard/members/${enrollmentId}`);
+  revalidatePath("/dashboard/athletes");
+  if (enrollmentId) revalidatePath(`/dashboard/athletes/${enrollmentId}`);
 }
 
 export async function createContract(input: unknown): Promise<Result> {

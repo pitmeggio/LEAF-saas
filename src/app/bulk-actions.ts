@@ -98,7 +98,7 @@ export async function bulkImportAthletes(_prev: BulkState, formData: FormData): 
     }
   }
 
-  revalidatePath("/dashboard/members");
+  revalidatePath("/dashboard/athletes");
   revalidatePath("/dashboard");
   return { done: true, created, linked, skipped, errors };
 }

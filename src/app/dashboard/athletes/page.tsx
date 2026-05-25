@@ -46,7 +46,7 @@ export default async function MembersPage() {
                 sports the value is auto-built verified CV from a FIS code; for
                 others (tennis) the import is still useful as a manual entry. */}
             <Link
-              href="/dashboard/members/import"
+              href="/dashboard/athletes/import"
               className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)]"
             >
               Import from FIS
@@ -94,7 +94,7 @@ export default async function MembersPage() {
               {sorted.map(({ m, needs }) => (
                 <tr key={m.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]" style={needs ? { boxShadow: "inset 2px 0 0 #f59e0b" } : undefined}>
                   <td className="px-5 py-3">
-                    <Link href={`/dashboard/members/${m.id}`} className="flex items-center gap-3">
+                    <Link href={`/dashboard/athletes/${m.id}`} className="flex items-center gap-3">
                       <Avatar first={m.athlete.firstName} last={m.athlete.lastName} color={m.athlete.photoColor} size={34} />
                       <span>
                         <span className="flex items-center gap-2 font-medium">

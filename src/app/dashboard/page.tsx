@@ -177,7 +177,7 @@ function kpiCardProps(kpi: DashboardKpi, d: KpiData) {
   const base = { label: kpi.label, hint: kpi.hint } as { label: string; value: string; hint?: string; accent?: boolean; danger?: boolean; href?: string };
   switch (kpi.source) {
     case "totalAthletes":
-      return { ...base, value: String(d.activeAthletes), hint: kpi.hint ?? "enrolled members", accent: true, href: "/dashboard/members" };
+      return { ...base, value: String(d.activeAthletes), hint: kpi.hint ?? "enrolled members", accent: true, href: "/dashboard/athletes" };
     case "activeApplications":
       return { ...base, value: String(d.pipelineCount), hint: kpi.hint ?? `${d.accepted} accepted this season`, href: "/dashboard/applications" };
     case "seasonRevenue":
@@ -189,9 +189,9 @@ function kpiCardProps(kpi: DashboardKpi, d: KpiData) {
     case "performanceAlerts":
       return { ...base, value: String(d.perfAlertCount), hint: kpi.hint ?? "athletes trending down", danger: d.perfAlertCount > 0, href: "/dashboard/alerts" };
     case "matchesThisSeason":
-      return { ...base, value: String(d.tennisStats?.matchesThisSeason ?? 0), hint: kpi.hint ?? `recorded · ${d.season}`, href: "/dashboard/members" };
+      return { ...base, value: String(d.tennisStats?.matchesThisSeason ?? 0), hint: kpi.hint ?? `recorded · ${d.season}`, href: "/dashboard/athletes" };
     case "avgWinRate":
-      return { ...base, value: `${d.tennisStats?.avgWinRate ?? 0}%`, hint: kpi.hint ?? "across all logged matches", accent: (d.tennisStats?.avgWinRate ?? 0) >= 50, href: "/dashboard/members" };
+      return { ...base, value: `${d.tennisStats?.avgWinRate ?? 0}%`, hint: kpi.hint ?? "across all logged matches", accent: (d.tennisStats?.avgWinRate ?? 0) >= 50, href: "/dashboard/athletes" };
     case "avgFisProgression":
       // Reserved for a future ski-specific aggregate; falls back gracefully.
       return { ...base, value: "—", hint: kpi.hint ?? "season progression (coming)" };

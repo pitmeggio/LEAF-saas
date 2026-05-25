@@ -90,7 +90,7 @@ export async function CoachDashboard() {
                     {intel.watchlist.slice(0, 4).map((w) => (
                       <Link
                         key={w.enrollmentId}
-                        href={`/dashboard/members/${w.enrollmentId}`}
+                        href={`/dashboard/athletes/${w.enrollmentId}`}
                         className="flex items-start gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 hover:border-[var(--color-accent)]"
                       >
                         <Avatar first={w.firstName} last={w.lastName} color={w.photoColor} size={32} />
@@ -150,7 +150,7 @@ export async function CoachDashboard() {
                   {intel.recentNotes.slice(0, 5).map((n) => (
                     <li key={n.id}>
                       <Link
-                        href={`/dashboard/members/${n.enrollmentId}`}
+                        href={`/dashboard/athletes/${n.enrollmentId}`}
                         className="flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-[var(--color-surface-2)]"
                       >
                         <Avatar first={n.athleteFirstName} last={n.athleteLastName} color={n.athletePhotoColor} size={22} />
@@ -170,9 +170,9 @@ export async function CoachDashboard() {
         )}
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="My athletes" value={String(members.length)} accent href="/dashboard/members" />
+          <StatCard label="My athletes" value={String(members.length)} accent href="/dashboard/athletes" />
           <StatCard label="My groups" value={String(groups.length)} href="/dashboard/groups" />
-          <StatCard label="Improving" value={`${improving}/${members.length}`} hint="positive FIS trend" href="/dashboard/members" />
+          <StatCard label="Improving" value={`${improving}/${members.length}`} hint="positive FIS trend" href="/dashboard/athletes" />
           <StatCard label="Group occupancy" value={`${occupancy}%`} hint={`${inGroups}/${totalCap}`} href="/dashboard/groups" />
           <StatCard label="Budget remaining" value={fmtMoney(remainingBudget, currency)} danger={remainingBudget < 0} href="/dashboard/groups" />
           <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} waiting`} danger={inbox.unreadTotal > 0} href="/dashboard/inbox" />
@@ -219,7 +219,7 @@ export async function CoachDashboard() {
               {members.map((m) => (
                 <tr key={m.id} className="border-t border-[var(--color-border)] first:border-t-0 hover:bg-[var(--color-surface-2)]">
                   <td className="px-5 py-3">
-                    <Link href={`/dashboard/members/${m.id}`} className="flex items-center gap-3">
+                    <Link href={`/dashboard/athletes/${m.id}`} className="flex items-center gap-3">
                       <Avatar first={m.athlete.firstName} last={m.athlete.lastName} color={m.athlete.photoColor} size={32} />
                       <span className="font-medium">{m.athlete.firstName} {m.athlete.lastName}</span>
                       <span className="text-xs text-[var(--color-muted)]">{age(m.athlete.dob)}y · {DISCIPLINE_LABEL[m.athlete.discipline]}</span>

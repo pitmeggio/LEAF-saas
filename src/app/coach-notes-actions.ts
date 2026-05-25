@@ -143,7 +143,7 @@ export async function createCoachNote(input: CoachNoteCreateInput): Promise<Resu
 
   // Members detail page reads the note list + AI profile; coach dashboard
   // surfaces the latest activity.
-  revalidatePath(`/dashboard/members/${enr?.id ?? ""}`);
+  revalidatePath(`/dashboard/athletes/${enr?.id ?? ""}`);
   revalidatePath(`/dashboard`);
   return { ok: true, id: created.id };
 }
@@ -169,7 +169,7 @@ export async function deleteCoachNote(input: CoachNoteDeleteInput): Promise<Resu
   await prisma.coachNote.delete({ where: { id: note.id } });
 
   // Best-effort revalidation — we don't have the enrollment id at hand.
-  revalidatePath(`/dashboard/members`);
+  revalidatePath(`/dashboard/athletes`);
   revalidatePath(`/dashboard`);
   return { ok: true };
 }

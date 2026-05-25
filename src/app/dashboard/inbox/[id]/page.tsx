@@ -58,7 +58,7 @@ export default async function ThreadPage({ params }: { params: Promise<{ id: str
                 </div>
               </div>
               <div className="mt-4 flex flex-col gap-2">
-                {conv.enrollmentId && <Link href={`/dashboard/members/${conv.enrollmentId}`} className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-center text-xs font-medium hover:bg-[var(--color-surface-2)]">Open athlete profile →</Link>}
+                {conv.enrollmentId && <Link href={`/dashboard/athletes/${conv.enrollmentId}`} className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-center text-xs font-medium hover:bg-[var(--color-surface-2)]">Open athlete profile →</Link>}
                 {conv.applicationId && <Link href={`/dashboard/applications/${conv.applicationId}`} className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-center text-xs font-medium hover:bg-[var(--color-surface-2)]">Open application →</Link>}
               </div>
             </div>

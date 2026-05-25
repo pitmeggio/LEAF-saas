@@ -42,7 +42,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
       <PageHeader
         title="Active athlete"
         subtitle={`Joined ${fmtDate(m.joinDate)} · ${m.level ? LEVEL_LABEL[m.level] : "—"}`}
-        right={<Link href="/dashboard/members" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">← Active athletes</Link>}
+        right={<Link href="/dashboard/athletes" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">← Active athletes</Link>}
       />
 
       <div className="grid gap-6 p-8 lg:grid-cols-3">
