@@ -197,6 +197,14 @@ export async function updateAthlete(input: unknown): Promise<Result> {
       firstName: d.firstName, lastName: d.lastName, email: d.email, phone: d.phone,
       nationality: d.nationality, discipline: d.discipline,
       emergencyContact: d.emergencyContact, guardianName: d.guardianName, guardianContact: d.guardianContact,
+      // Tennis profile — pass-through; null for ski athletes never touches them.
+      dominantHand: d.dominantHand,
+      playingStyle: d.playingStyle,
+      technicalLevel: d.technicalLevel,
+      tacticalLevel: d.tacticalLevel,
+      physicalLevel: d.physicalLevel,
+      mentalLevel: d.mentalLevel,
+      developmentGoals: d.developmentGoals,
     },
   });
   revalidatePath(`/members`);

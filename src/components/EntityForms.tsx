@@ -274,12 +274,37 @@ export function AthleteForm({ groups, coaches, packages }: { groups: Opt[]; coac
 }
 
 // ── Athlete identity edit ──
-export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName: string; lastName: string; email: string | null; phone: string | null; nationality: string; discipline: string; emergencyContact: string | null; guardianName: string | null; guardianContact: string | null } }) {
-  const [f, set] = useState({ firstName: athlete.firstName, lastName: athlete.lastName, email: athlete.email ?? "", phone: athlete.phone ?? "", nationality: athlete.nationality, discipline: athlete.discipline, emergencyContact: athlete.emergencyContact ?? "", guardianName: athlete.guardianName ?? "", guardianContact: athlete.guardianContact ?? "" });
+export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName: string; lastName: string; email: string | null; phone: string | null; nationality: string; discipline: string; emergencyContact: string | null; guardianName: string | null; guardianContact: string | null; sport?: string; dominantHand?: string | null; playingStyle?: string | null; technicalLevel?: number | null; tacticalLevel?: number | null; physicalLevel?: number | null; mentalLevel?: number | null; developmentGoals?: string | null } }) {
+  const [f, set] = useState({
+    firstName: athlete.firstName, lastName: athlete.lastName, email: athlete.email ?? "", phone: athlete.phone ?? "",
+    nationality: athlete.nationality, discipline: athlete.discipline,
+    emergencyContact: athlete.emergencyContact ?? "", guardianName: athlete.guardianName ?? "", guardianContact: athlete.guardianContact ?? "",
+    // Tennis fields — stay empty for ski athletes and are simply ignored.
+    dominantHand: athlete.dominantHand ?? "",
+    playingStyle: athlete.playingStyle ?? "",
+    technicalLevel: athlete.technicalLevel ?? "",
+    tacticalLevel: athlete.tacticalLevel ?? "",
+    physicalLevel: athlete.physicalLevel ?? "",
+    mentalLevel: athlete.mentalLevel ?? "",
+    developmentGoals: athlete.developmentGoals ?? "",
+  });
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
+  const isTennis = (athlete.sport ?? "ski") === "tennis";
   return (
-    <form onSubmit={(e) => { e.preventDefault(); submit(() => updateAthlete({ athleteId: athlete.id, ...f })); }} className="space-y-3">
+    <form onSubmit={(e) => { e.preventDefault(); submit(() => updateAthlete({
+      athleteId: athlete.id,
+      ...f,
+      // Coerce empty-string back to undefined so the schema's optional/null
+      // transforms kick in cleanly.
+      dominantHand: f.dominantHand || undefined,
+      playingStyle: f.playingStyle || undefined,
+      technicalLevel: f.technicalLevel === "" ? undefined : Number(f.technicalLevel),
+      tacticalLevel: f.tacticalLevel === "" ? undefined : Number(f.tacticalLevel),
+      physicalLevel: f.physicalLevel === "" ? undefined : Number(f.physicalLevel),
+      mentalLevel: f.mentalLevel === "" ? undefined : Number(f.mentalLevel),
+      developmentGoals: f.developmentGoals || undefined,
+    })); }} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <Field label="First name *"><input className={inp} value={f.firstName} onChange={(e) => upd("firstName", e.target.value)} required /></Field>
         <Field label="Last name *"><input className={inp} value={f.lastName} onChange={(e) => upd("lastName", e.target.value)} required /></Field>
@@ -297,6 +322,38 @@ export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName:
         <Field label="Guardian"><input className={inp} value={f.guardianName} onChange={(e) => upd("guardianName", e.target.value)} /></Field>
         <Field label="Guardian contact"><input className={inp} value={f.guardianContact} onChange={(e) => upd("guardianContact", e.target.value)} /></Field>
       </div>
+
+      {isTennis && (
+        <div className="space-y-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-fg)]">
+            Tennis profile
+            <span className="rounded-full bg-[var(--color-surface)] px-2 py-0.5 text-[9px] uppercase tracking-wide text-[var(--color-muted)]">coach-curated</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Dominant hand">
+              <select className={inp} value={f.dominantHand} onChange={(e) => upd("dominantHand", e.target.value)}>
+                <option value="">—</option>
+                <option value="right">Right</option>
+                <option value="left">Left</option>
+                <option value="ambidextrous">Ambidextrous</option>
+              </select>
+            </Field>
+            <Field label="Playing style">
+              <input className={inp} placeholder="e.g. aggressive baseliner" value={f.playingStyle} onChange={(e) => upd("playingStyle", e.target.value)} />
+            </Field>
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            <Field label="Technical 1–10"><input type="number" min={1} max={10} className={inp} value={f.technicalLevel} onChange={(e) => upd("technicalLevel", e.target.value)} /></Field>
+            <Field label="Tactical 1–10"><input type="number" min={1} max={10} className={inp} value={f.tacticalLevel} onChange={(e) => upd("tacticalLevel", e.target.value)} /></Field>
+            <Field label="Physical 1–10"><input type="number" min={1} max={10} className={inp} value={f.physicalLevel} onChange={(e) => upd("physicalLevel", e.target.value)} /></Field>
+            <Field label="Mental 1–10"><input type="number" min={1} max={10} className={inp} value={f.mentalLevel} onChange={(e) => upd("mentalLevel", e.target.value)} /></Field>
+          </div>
+          <Field label="Development goals">
+            <textarea className={inp} rows={3} value={f.developmentGoals} onChange={(e) => upd("developmentGoals", e.target.value)} />
+          </Field>
+        </div>
+      )}
+
       <Footer pending={pending} error={error} />
     </form>
   );

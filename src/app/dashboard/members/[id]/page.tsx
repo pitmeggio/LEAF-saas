@@ -8,6 +8,7 @@ import { ManagePanel, NotesEditor, PaymentControl, DocumentControl } from "@/com
 import { PublicProfilePanel } from "@/components/PublicProfilePanel";
 import { ContractsPanel } from "@/components/ContractsPanel";
 import { CoachIntelligencePanel } from "@/components/CoachIntelligencePanel";
+import { TennisProfileCard } from "@/components/TennisProfileCard";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { getActiveAthlete, getAssignmentOptions, getNotifications } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
@@ -65,7 +66,17 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                 </span>
                 {m.conversations[0] && <Link href={`/dashboard/inbox/${m.conversations[0].id}`} className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">✉ Chat</Link>}
                 <Modal label="Edit" title="Edit athlete" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
-                  <AthleteEditForm athlete={{ id: a.id, firstName: a.firstName, lastName: a.lastName, email: a.email, phone: a.phone, nationality: a.nationality, discipline: a.discipline, emergencyContact: a.emergencyContact, guardianName: a.guardianName, guardianContact: a.guardianContact }} />
+                  <AthleteEditForm athlete={{
+                    id: a.id, firstName: a.firstName, lastName: a.lastName, email: a.email, phone: a.phone,
+                    nationality: a.nationality, discipline: a.discipline,
+                    emergencyContact: a.emergencyContact, guardianName: a.guardianName, guardianContact: a.guardianContact,
+                    // Sport-adaptive tennis fields — only rendered when sport === "tennis".
+                    sport: a.sport,
+                    dominantHand: a.dominantHand, playingStyle: a.playingStyle,
+                    technicalLevel: a.technicalLevel, tacticalLevel: a.tacticalLevel,
+                    physicalLevel: a.physicalLevel, mentalLevel: a.mentalLevel,
+                    developmentGoals: a.developmentGoals,
+                  }} />
                 </Modal>
               </div>
             </div>
@@ -88,6 +99,20 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
               <Mini label="Team avg" value={fmtPoints(m.teamAvg)} sub={a.fisPoints != null && m.teamAvg != null ? (a.fisPoints <= m.teamAvg ? "above avg" : "below avg") : undefined} />
             </div>
           </div>
+
+          {/* Tennis profile — only when sport === "tennis". Ski athletes keep
+              the FIS-driven Performance card above as their primary profile. */}
+          {a.sport === "tennis" && (
+            <TennisProfileCard profile={{
+              dominantHand: a.dominantHand,
+              playingStyle: a.playingStyle,
+              technicalLevel: a.technicalLevel,
+              tacticalLevel: a.tacticalLevel,
+              physicalLevel: a.physicalLevel,
+              mentalLevel: a.mentalLevel,
+              developmentGoals: a.developmentGoals,
+            }} />
+          )}
 
           {/* Coach Intelligence — adaptive notes + living AI profile */}
           {s?.academyId && (

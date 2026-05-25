@@ -459,6 +459,18 @@ export const manualAthleteSchema = z.object({
   packageId: nullableId,
 });
 
+// Tennis (and future coach-driven sports) profile — all optional, ignored
+// for ski-only athletes. Levels are coach-rated 1..10.
+const levelField = z
+  .union([z.number(), z.string()])
+  .optional()
+  .transform((v) => {
+    if (v === undefined || v === "" || v === null) return null;
+    const n = typeof v === "number" ? v : parseInt(String(v), 10);
+    return Number.isFinite(n) ? n : null;
+  })
+  .refine((v) => v === null || (v >= 1 && v <= 10), { message: "Level must be 1–10." });
+
 export const athleteUpdateSchema = z.object({
   athleteId: z.string().min(1),
   firstName: z.string().trim().min(1).max(80),
@@ -470,6 +482,14 @@ export const athleteUpdateSchema = z.object({
   emergencyContact: optText(160),
   guardianName: optText(120),
   guardianContact: optText(160),
+  // Tennis profile — optional across the board so ski athletes are unaffected.
+  dominantHand: z.enum(["right", "left", "ambidextrous"]).optional().nullable().transform((v) => v ?? null),
+  playingStyle: optText(120),
+  technicalLevel: levelField,
+  tacticalLevel: levelField,
+  physicalLevel: levelField,
+  mentalLevel: levelField,
+  developmentGoals: optText(1500),
 });
 
 export const applicationUpdateSchema = z.object({

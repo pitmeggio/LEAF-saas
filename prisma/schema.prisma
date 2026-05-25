@@ -382,6 +382,20 @@ model Athlete {
   aiProfile       Json?
   aiProfileUpdatedAt DateTime?
 
+  // ── Tennis (and other coach-driven sports) profile fields ──
+  // Ski uses FIS code / points / world rank (above). Tennis is development-
+  // based, so it carries coach-curated dimensions instead. All optional and
+  // sport-agnostic at the column level — the UI shows them only when
+  // athlete.sport === "tennis" (or whichever sports we add later).
+  dominantHand    String?        // right | left | ambidextrous
+  playingStyle    String?        // free text: "aggressive baseliner", "all-court", …
+  // 1..10 self/coach-rated levels — feed the future tennis dashboards.
+  technicalLevel  Int?
+  tacticalLevel   Int?
+  physicalLevel   Int?
+  mentalLevel     Int?
+  developmentGoals String?       // free text, multiline
+
   createdAt       DateTime       @default(now())
 }
 
