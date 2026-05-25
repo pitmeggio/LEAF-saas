@@ -9,7 +9,9 @@ import { PublicProfilePanel } from "@/components/PublicProfilePanel";
 import { ContractsPanel } from "@/components/ContractsPanel";
 import { CoachIntelligencePanel } from "@/components/CoachIntelligencePanel";
 import { TennisProfileCard } from "@/components/TennisProfileCard";
+import { TennisMatchesPanel } from "@/components/TennisMatchesPanel";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
+import { deriveLevelSuggestions, type AthleteAiProfile } from "@/lib/ai/coachProfile";
 import { getActiveAthlete, getAssignmentOptions, getNotifications } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -103,15 +105,30 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
           {/* Tennis profile — only when sport === "tennis". Ski athletes keep
               the FIS-driven Performance card above as their primary profile. */}
           {a.sport === "tennis" && (
-            <TennisProfileCard profile={{
-              dominantHand: a.dominantHand,
-              playingStyle: a.playingStyle,
-              technicalLevel: a.technicalLevel,
-              tacticalLevel: a.tacticalLevel,
-              physicalLevel: a.physicalLevel,
-              mentalLevel: a.mentalLevel,
-              developmentGoals: a.developmentGoals,
-            }} />
+            <TennisProfileCard
+              profile={{
+                dominantHand: a.dominantHand,
+                playingStyle: a.playingStyle,
+                technicalLevel: a.technicalLevel,
+                tacticalLevel: a.tacticalLevel,
+                physicalLevel: a.physicalLevel,
+                mentalLevel: a.mentalLevel,
+                developmentGoals: a.developmentGoals,
+              }}
+              suggestions={deriveLevelSuggestions(
+                (a.aiProfile as unknown as AthleteAiProfile | null) ?? null,
+                {
+                  technical: a.technicalLevel,
+                  tactical: a.tacticalLevel,
+                  physical: a.physicalLevel,
+                  mental: a.mentalLevel,
+                },
+              )}
+            />
+          )}
+
+          {a.sport === "tennis" && s?.academyId && (
+            <TennisMatchesPanel athleteId={a.id} academyId={s.academyId} />
           )}
 
           {/* Coach Intelligence — adaptive notes + living AI profile */}

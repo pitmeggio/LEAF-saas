@@ -3,6 +3,8 @@
 // page keeps the FIS performance chart for ski athletes; this card swaps
 // in for tennis. Empty state nudges the admin to fill in the basics.
 
+import type { LevelSuggestion } from "@/lib/ai/coachProfile";
+
 export type TennisProfile = {
   dominantHand: string | null;
   playingStyle: string | null;
@@ -19,7 +21,7 @@ const HAND_LABEL: Record<string, string> = {
   ambidextrous: "Ambidextrous",
 };
 
-export function TennisProfileCard({ profile }: { profile: TennisProfile }) {
+export function TennisProfileCard({ profile, suggestions = [] }: { profile: TennisProfile; suggestions?: LevelSuggestion[] }) {
   const hasAny = Boolean(
     profile.dominantHand ||
       profile.playingStyle ||
@@ -57,6 +59,26 @@ export function TennisProfileCard({ profile }: { profile: TennisProfile }) {
             <LevelBar label="Physical" value={profile.physicalLevel} />
             <LevelBar label="Mental" value={profile.mentalLevel} />
           </div>
+
+          {suggestions.length > 0 && (
+            <div className="mt-4 rounded-lg border border-[#7CFF6B40] bg-[#7cff6b0c] p-3">
+              <div className="mb-1.5 flex items-center gap-2">
+                <span className="flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+                <span className="text-[11px] uppercase tracking-wide text-[var(--color-muted)]">Suggested level updates</span>
+              </div>
+              <ul className="space-y-1 text-xs">
+                {suggestions.map((s) => (
+                  <li key={s.dimension} className="flex items-start justify-between gap-3">
+                    <span className="capitalize">
+                      <span className="font-semibold">{s.dimension}</span>: {s.current ?? "—"} → <span className="num font-semibold text-[var(--color-accent)]">{s.suggested}</span>
+                    </span>
+                    <span className="text-[10px] text-[var(--color-muted)]">{s.reason}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="mt-2 text-[10px] text-[var(--color-muted)]">Open Edit at the top of the page to accept the changes.</div>
+            </div>
+          )}
 
           {profile.developmentGoals && (
             <div className="mt-5 border-t border-[var(--color-border)] pt-4">

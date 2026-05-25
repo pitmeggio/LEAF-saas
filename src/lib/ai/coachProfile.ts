@@ -86,6 +86,66 @@ export function mergeNoteIntoProfile(
   };
 }
 
+// ── Tennis level suggestions ────────────────────────────────────────────
+// Derives proposed 1-10 bumps for the 4 development levels (technical /
+// tactical / physical / mental) from the rolling themeFrequency. Pure: the
+// UI shows them as a non-destructive "AI suggests" line — admin chooses
+// whether to accept and persist them via the existing edit form.
+export type LevelSuggestion = {
+  dimension: "technical" | "tactical" | "physical" | "mental";
+  current: number | null;
+  suggested: number;
+  reason: string; // short human sentence
+};
+
+const DIMENSION_THEMES: Record<LevelSuggestion["dimension"], string[]> = {
+  technical: ["technical"],
+  tactical: ["tactical", "race", "match"],
+  physical: ["physical", "recovery"],
+  mental: ["mental"],
+};
+
+export function deriveLevelSuggestions(
+  profile: AthleteAiProfile | null,
+  currentLevels: { technical: number | null; tactical: number | null; physical: number | null; mental: number | null },
+): LevelSuggestion[] {
+  if (!profile || profile.noteCount < 2) return [];
+  const totalThemeHits = Object.values(profile.themeFrequency).reduce((s, v) => s + v, 0) || 1;
+  const out: LevelSuggestion[] = [];
+  const trends = profile.trends ?? {};
+  const hasInjury = (profile.injuryFlags?.length ?? 0) > 0;
+
+  for (const dim of Object.keys(DIMENSION_THEMES) as LevelSuggestion["dimension"][]) {
+    const themes = DIMENSION_THEMES[dim];
+    const hits = themes.reduce((s, t) => s + (profile.themeFrequency[t] ?? 0), 0);
+    if (hits === 0) continue;
+    const share = hits / totalThemeHits; // 0..1
+    const current = currentLevels[dim] ?? 5;
+    // Cheap mapping: dominant share lifts the level; injury cue caps the
+    // physical bump (don't push physical up while an injury is on the books).
+    let suggested = current;
+    if (share >= 0.4) suggested = Math.min(10, current + 1);
+    if (share >= 0.6) suggested = Math.min(10, current + 2);
+    // Weakness recurring on this dimension → soft pull-down by 1.
+    const dimWeak = profile.recurringWeaknesses.some((w) =>
+      themes.some((t) => w.text.toLowerCase().includes(t)),
+    );
+    if (dimWeak) suggested = Math.max(1, suggested - 1);
+    if (dim === "physical" && hasInjury) suggested = Math.min(suggested, current);
+    if (suggested === current) continue;
+
+    const direction = suggested > current ? "↑" : "↓";
+    const trend = trends[themes[0]] ?? "stable";
+    out.push({
+      dimension: dim,
+      current: currentLevels[dim],
+      suggested,
+      reason: `${direction} ${Math.round(share * 100)}% of notes touch ${dim}${trend === "rising" ? " (trend rising)" : ""}${dimWeak ? " · weakness pattern" : ""}`,
+    });
+  }
+  return out;
+}
+
 // Lightweight string-canonicaliser for dedup. Lowercase + collapse whitespace
 // + strip trailing punctuation. Stable enough that "Tired in the second run"
 // and "tired in the second run." merge into one counter.
