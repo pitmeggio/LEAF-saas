@@ -66,6 +66,28 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                 <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium capitalize" style={{ background: `${ENROLLMENT_STATUS_COLOR[m.status]}1a`, color: ENROLLMENT_STATUS_COLOR[m.status] }}>
                   <Dot color={ENROLLMENT_STATUS_COLOR[m.status]} /> {m.status}
                 </span>
+                {/* Public profile shortcut — opens the athlete's
+                    /athlete/[slug] page in a new tab when public. When the
+                    profile is off, surface a muted hint so the admin knows
+                    they can flip it in the right-column Public profile
+                    panel. */}
+                {a.publicProfileEnabled && a.publicSlug ? (
+                  <Link
+                    href={`/athlete/${a.publicSlug}`}
+                    target="_blank"
+                    rel="noopener"
+                    className="rounded-lg border border-[#7CFF6B40] bg-[#7cff6b0c] px-3 py-1.5 text-xs font-medium text-[var(--color-accent)] hover:bg-[#7cff6b14]"
+                  >
+                    Public profile ↗
+                  </Link>
+                ) : (
+                  <span
+                    title="Public profile is off — turn it on in the Public profile panel on the right."
+                    className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium text-[var(--color-muted)]"
+                  >
+                    Public profile off
+                  </span>
+                )}
                 {m.conversations[0] && <Link href={`/dashboard/inbox/${m.conversations[0].id}`} className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">✉ Chat</Link>}
                 <Modal label="Edit" title="Edit athlete" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
                   <AthleteEditForm athlete={{
