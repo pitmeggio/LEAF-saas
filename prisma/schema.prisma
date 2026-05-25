@@ -86,6 +86,7 @@ model Academy {
   contracts     Contract[]
   calendarEvents CalendarEvent[]
   coachNotes    CoachNote[]
+  tennisMatches TennisMatch[]
   createdAt     DateTime       @default(now())
 }
 
@@ -395,6 +396,8 @@ model Athlete {
   physicalLevel   Int?
   mentalLevel     Int?
   developmentGoals String?       // free text, multiline
+
+  tennisMatches   TennisMatch[]
 
   createdAt       DateTime       @default(now())
 }
@@ -753,6 +756,26 @@ model CoachNote {
   updatedAt   DateTime @updatedAt
 
   @@index([academyId, athleteId, createdAt])
+}
+
+// Tennis (and other coach-driven sports) match record. Lightweight — opponent
+// + date + result + score string + optional notes. Drives W/L stats on the
+// athlete page; no ATP/WTA dependency by design.
+model TennisMatch {
+  id        String   @id @default(cuid())
+  academyId String
+  academy   Academy  @relation(fields: [academyId], references: [id])
+  athleteId String
+  athlete   Athlete  @relation(fields: [athleteId], references: [id])
+  date      DateTime
+  opponent  String
+  result    String   // won | lost
+  score     String?  // e.g. "6-3 4-6 7-5"
+  surface   String?  // hard | clay | grass | indoor
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@index([academyId, athleteId, date])
 }
 
 // Files attached to a note — PDF, Excel, scouting reports, etc. For the MVP

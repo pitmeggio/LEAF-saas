@@ -623,6 +623,20 @@ export type CoachNoteCreateInput = z.infer<typeof coachNoteCreateSchema>;
 export const coachNoteDeleteSchema = z.object({ id: z.string().min(1) });
 export type CoachNoteDeleteInput = z.infer<typeof coachNoteDeleteSchema>;
 
+// ── Tennis Match record ──────────────────────────────────────────────────
+export const tennisMatchCreateSchema = z.object({
+  athleteId: z.string().min(1),
+  date: z.string().min(1),
+  opponent: z.string().trim().min(1).max(120),
+  result: z.enum(["won", "lost"]),
+  score: optText(60),
+  surface: z.enum(["hard", "clay", "grass", "indoor"]).optional().nullable().transform((v) => v ?? null),
+  notes: optText(800),
+});
+export type TennisMatchCreateInput = z.infer<typeof tennisMatchCreateSchema>;
+export const tennisMatchDeleteSchema = z.object({ id: z.string().min(1) });
+export type TennisMatchDeleteInput = z.infer<typeof tennisMatchDeleteSchema>;
+
 // Returns the first human-readable error message from a ZodError.
 export function firstError(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Invalid input.";
