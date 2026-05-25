@@ -399,6 +399,12 @@ model Athlete {
 
   tennisMatches   TennisMatch[]
 
+  // Universal Athlete Performance Layer — 1:1 sport-specific extension
+  // tables. New writes target these; old reads still hit the legacy columns
+  // above as fallback (see lib/athleteProfile.ts).
+  skiProfile      SkiProfile?
+  tennisProfileExt TennisProfile?
+
   createdAt       DateTime       @default(now())
 }
 
@@ -776,6 +782,42 @@ model TennisMatch {
   createdAt DateTime @default(now())
 
   @@index([academyId, athleteId, date])
+}
+
+// ── Universal Athlete Performance Layer ───────────────────────────────────
+// Athlete stays the universal record (name, sport, contacts, …). Each sport
+// owns a 1:1 profile table that holds its dimensions. This is the future-proof
+// shape — for the MVP the legacy columns on Athlete (fisCode/fisPoints, the
+// tennis levels) still drive the UI. The accessor lib/athleteProfile.ts
+// reads either source (new table wins, falls back to the legacy columns),
+// so call sites can migrate one at a time without breaking anything.
+model SkiProfile {
+  id         String   @id @default(cuid())
+  athleteId  String   @unique
+  athlete    Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  fisCode    String?  @unique
+  fisPoints  Float?
+  worldRank  Int?
+  // Primary specialty (SL / GS / SG / DH / …). Athlete.discipline kept as
+  // the legacy mirror; this one wins when populated.
+  specialty  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model TennisProfile {
+  id               String   @id @default(cuid())
+  athleteId        String   @unique
+  athlete          Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  dominantHand     String?
+  playingStyle     String?
+  technicalLevel   Int?
+  tacticalLevel    Int?
+  physicalLevel    Int?
+  mentalLevel      Int?
+  developmentGoals String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 // Files attached to a note — PDF, Excel, scouting reports, etc. For the MVP
