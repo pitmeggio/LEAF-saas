@@ -22,7 +22,7 @@ const KIND_OPTIONS: { value: string; label: string }[] = [
 
 type Attachment = { filename: string; url: string };
 
-export function CoachNoteComposer({ athleteId, sport }: { athleteId: string; sport: string }) {
+export function CoachNoteComposer({ athleteId, sport, placeholder }: { athleteId: string; sport: string; placeholder?: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [rawText, setRawText] = useState("");
@@ -91,9 +91,7 @@ export function CoachNoteComposer({ athleteId, sport }: { athleteId: string; spo
         value={rawText}
         onChange={(e) => setRawText(e.target.value)}
         rows={6}
-        placeholder={sport === "tennis"
-          ? "e.g. Match against Marco. Serve inconsistent first set. Backhand patterns improved after grip change. Strong rally up the line. Felt soreness in the right shoulder by the third set."
-          : "e.g. Saas-Fee GS session. Edges strong, line clean. Pressure on outside ski improving. Nervous at start, recovered focus by 2nd run. Tired at the end."}
+        placeholder={placeholder ?? "Write naturally — what happened, what stood out, what needs work."}
         className="w-full resize-y rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3 text-sm leading-relaxed focus:border-[var(--color-accent)] focus:outline-none"
       />
       <div className="mt-1 text-[10px] text-[var(--color-muted)]">{rawText.length}/8000 characters</div>

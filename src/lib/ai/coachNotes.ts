@@ -11,6 +11,7 @@
 // branch on "which engine was used". The engine field carries provenance.
 
 import { callLlm, extractJson, llmConfigured } from "@/lib/ai/llm";
+import { getSportModule } from "@/lib/sports/registry";
 
 export type CoachNoteSection = {
   title: string;
@@ -130,36 +131,19 @@ async function llmStructure(input: StructureInput): Promise<CoachNoteStructure |
 // ─────────────────────────────────────────────────────────────────────────
 // Deterministic fallback — pure (no I/O), keyword-driven, sport-aware.
 // Stable enough to back unit tests + demos without an API key.
+//
+// Keyword maps live in the sport modules (lib/sports/*.ts) so a new sport
+// is a single config object away — this engine just reads them.
 // ─────────────────────────────────────────────────────────────────────────
-type Theme = "technical" | "tactical" | "physical" | "mental" | "race" | "match" | "injury" | "recovery";
-
-// Per-sport keyword maps. Generic terms (focus, tired, …) carry across sports.
-const KEYWORDS: Record<string, Partial<Record<Theme, string[]>>> = {
-  ski: {
-    technical: ["edge", "edges", "edging", "pressure", "balance", "stance", "line", "split", "carving", "angulation", "inclination", "upper body", "hip", "core position", "stivali", "sciate"],
-    tactical: ["line choice", "race line", "tactical", "course", "section", "gate", "set"],
-    physical: ["fatigue", "tired", "explosive", "explosiveness", "strength", "endurance", "cardio", "conditioning", "leg", "stanchezza"],
-    mental: ["focus", "nervous", "pressure", "anxious", "confidence", "composed", "doubt", "motivation", "head"],
-    race: ["race", "qualifier", "fis race", "world cup", "gara", "tempo", "split time"],
-    injury: ["pain", "knee", "back", "shoulder", "ankle", "injury", "concussion", "sore", "dolore"],
-    recovery: ["recovery", "rest", "ice", "physio", "massage", "stretch"],
-  },
-  tennis: {
-    technical: ["serve", "forehand", "backhand", "volley", "slice", "topspin", "grip", "swing", "footwork stroke", "racket", "racquet"],
-    tactical: ["pattern", "rally", "shot selection", "placement", "depth", "court position", "approach", "drop shot", "tactic"],
-    physical: ["movement", "endurance", "explosive", "recovery between points", "footwork", "fatigue", "stamina"],
-    mental: ["focus", "pressure", "tie break", "tiebreak", "match point", "set point", "nervous", "composure", "head"],
-    match: ["match", "set", "game", "break", "rally"],
-    injury: ["shoulder", "elbow", "wrist", "knee", "pain", "soreness", "injury"],
-    recovery: ["recovery", "rest", "ice", "physio", "massage", "stretch"],
-  },
-};
+type Theme = string;
 
 // Generic positive/negative cues — feed strengths/weaknesses across sports.
 const POSITIVE_CUES = ["strong", "excellent", "great", "improving", "improved", "solid", "consistent", "confident", "clean", "explosive"];
 const NEGATIVE_CUES = ["weak", "struggled", "inconsistent", "lost", "slow", "late", "off-balance", "tense", "tight", "tired", "doubt"];
 
-const THEME_TITLES: Record<Theme, string> = {
+// Section title lookup — covers themes any module might declare. Unknown
+// themes fall back to a capitalised version of the theme key.
+const THEME_TITLES: Record<string, string> = {
   technical: "Technical analysis",
   tactical: "Tactical analysis",
   physical: "Physical analysis",
@@ -169,6 +153,9 @@ const THEME_TITLES: Record<Theme, string> = {
   injury: "Injury risk",
   recovery: "Recovery notes",
 };
+function titleForTheme(theme: string): string {
+  return THEME_TITLES[theme] ?? `${theme.charAt(0).toUpperCase()}${theme.slice(1)} notes`;
+}
 
 const KIND_KEYWORDS: { kind: string; words: string[] }[] = [
   { kind: "race", words: ["race", "gara", "split", "world cup", "fis race", "qualifier"] },
@@ -185,7 +172,9 @@ export function deterministicStructure(input: StructureInput): CoachNoteStructur
   const sport = (input.sport || "ski").toLowerCase();
   const sentences = splitSentences(text);
 
-  const map = KEYWORDS[sport] ?? KEYWORDS.ski;
+  // Pull the sport's keyword map from the central registry (lib/sports).
+  // Falls back to the default module when an unknown sport slips through.
+  const map = getSportModule(sport).coachNotes.themes;
   // Score each theme by keyword hits. Sentences containing the keyword fuel the section.
   const themeScores = new Map<Theme, { score: number; sentences: Set<string> }>();
   (Object.keys(map) as Theme[]).forEach((theme) => {
@@ -205,7 +194,7 @@ export function deterministicStructure(input: StructureInput): CoachNoteStructur
   // Sort themes by score → drives section order (most prominent first).
   const themes = [...themeScores.entries()].sort((a, b) => b[1].score - a[1].score);
   const sections: CoachNoteSection[] = themes.map(([theme, info]) => ({
-    title: THEME_TITLES[theme],
+    title: titleForTheme(theme),
     bullets: pickBullets([...info.sentences], 3),
   }));
 

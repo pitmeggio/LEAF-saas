@@ -3,6 +3,7 @@ import { CoachNoteComposer } from "@/components/CoachNoteComposer";
 import { DeleteCoachNoteButton } from "@/components/CoachNoteControls";
 import type { CoachNoteStructure } from "@/lib/ai/coachNotes";
 import type { AthleteAiProfile } from "@/lib/ai/coachProfile";
+import { getSportModule } from "@/lib/sports/registry";
 
 // Coach Intelligence — wraps the composer, the structured-notes list and the
 // living AI profile. Server component: reads the latest notes + profile from
@@ -49,7 +50,11 @@ export async function CoachIntelligencePanel({
         <span className="text-[10px] text-[var(--color-muted)]">{notes.length} note{notes.length === 1 ? "" : "s"} on file</span>
       </div>
 
-      <CoachNoteComposer athleteId={athleteId} sport={sport} />
+      <CoachNoteComposer
+        athleteId={athleteId}
+        sport={sport}
+        placeholder={getSportModule(sport).coachNotes.composerPlaceholder}
+      />
 
       {profile && profile.noteCount > 0 && <AthleteAiProfileCard profile={profile} />}
 
