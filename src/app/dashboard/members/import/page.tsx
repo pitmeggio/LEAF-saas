@@ -13,7 +13,7 @@ export default function ImportPage() {
         title="Import from FIS"
         subtitle="Enter a FIS code to auto-build the athlete's verified sports CV."
         right={
-          <Link href="/dashboard/athletes" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">
+          <Link href="/dashboard/members" className="text-sm text-[var(--color-muted)] hover:text-[var(--color-fg)]">
             ← Back to athletes
           </Link>
         }

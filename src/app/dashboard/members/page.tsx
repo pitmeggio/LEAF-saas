@@ -42,6 +42,15 @@ export default async function MembersPage() {
         right={
           <div className="flex items-center gap-3">
             <span className="num text-sm text-[var(--color-muted)]">{members.length} members</span>
+            {/* Surface the FIS import flow so it's discoverable. For federation
+                sports the value is auto-built verified CV from a FIS code; for
+                others (tennis) the import is still useful as a manual entry. */}
+            <Link
+              href="/dashboard/members/import"
+              className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)]"
+            >
+              Import from FIS
+            </Link>
             <Modal label="+ New athlete" title="Add athlete" className={newBtn}><AthleteForm groups={opts.groups} coaches={opts.coaches} packages={opts.packages} /></Modal>
           </div>
         }

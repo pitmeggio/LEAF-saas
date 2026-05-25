@@ -97,10 +97,21 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
               <Avatar first={a.firstName} last={a.lastName} color={a.photoColor} size={64} />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <Link href={`/dashboard/athletes/${a.id}`} className="text-xl font-bold hover:underline">
-                    {a.firstName} {a.lastName}
-                  </Link>
+                  {/* Athlete name is plain text — all of this athlete's data is
+                      already rendered below on this page, no separate detail to
+                      navigate to. If they have a public profile, the link is
+                      surfaced under "External profiles" on the right column. */}
+                  <span className="text-xl font-bold">{a.firstName} {a.lastName}</span>
                   {a.verified && <Verified />}
+                  {a.publicProfileEnabled && a.publicSlug && (
+                    <Link
+                      href={`/athlete/${a.publicSlug}`}
+                      target="_blank"
+                      className="ml-1 rounded-md border border-[var(--color-border)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                    >
+                      Public ↗
+                    </Link>
+                  )}
                 </div>
                 <div className="mt-0.5 text-sm text-[var(--color-muted)]">
                   {COUNTRY[a.nationality]?.flag} {COUNTRY[a.nationality]?.name} · {age(a.dob)}y ·{" "}
