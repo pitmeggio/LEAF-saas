@@ -10,6 +10,7 @@ import { GrowthChart } from "@/components/GrowthChart";
 import { getSession } from "@/lib/auth";
 import { DISCIPLINE_LABEL, COUNTRY, fmtPoints, fmtDate } from "@/lib/domain";
 import { sportConfig } from "@/lib/sport";
+import { getSportModule } from "@/lib/sports/registry";
 import { deriveAthleteInsights } from "@/lib/ai/athleteInsights";
 import { AthleteInsights } from "@/components/AthleteInsights";
 import { forecastTrajectory } from "@/lib/ai/forecast";
@@ -51,6 +52,10 @@ export default async function PublicProfilePage({
   const country = COUNTRY[p.nationality];
   const initials = `${p.firstName[0] ?? ""}${p.lastName[0] ?? ""}`.toUpperCase();
   const sport = sportConfig(p.sport);
+  // Sport module decides which performance sections are relevant to surface.
+  // Ski → federation ranking + race results. Tennis → match record. New sports
+  // declare their own combination — no branching on a sport literal here.
+  const sportModule = getSportModule(p.sport);
   const forecast = p.pointsEvolution ? forecastTrajectory(p.pointsEvolution, p.sport) : null;
 
   // The public profile never exposes a private email (privacy boundary), so a
@@ -122,13 +127,23 @@ export default async function PublicProfilePage({
             <p className="mt-7 max-w-2xl text-base leading-relaxed text-[var(--color-fg)]/85">{p.publicBio}</p>
           )}
 
-          {/* Performance stat strip */}
-          {(p.fisPoints != null || p.worldRank != null || p.performance) && (
+          {/* Performance stat strip — sport-aware. Federation sports lead
+              with ranking-points + world rank; match-record sports lead with
+              total / wins / losses / win rate from their match log. */}
+          {sportModule.hasFederationRanking && (p.fisPoints != null || p.worldRank != null || p.performance) && (
             <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
               <HeroStat label={sport.pointsLabel} value={fmtPoints(p.fisPoints)} accent />
               <HeroStat label={sport.rankLabel} value={p.worldRank != null ? `#${p.worldRank}` : "—"} />
               {p.performance && <HeroStat label="Podium rate" value={`${p.performance.podiumPct}%`} />}
               {p.performance && <HeroStat label="Races" value={String(p.performance.totalRaces)} />}
+            </div>
+          )}
+          {sportModule.hasMatchRecord && p.tennisRecord && (
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <HeroStat label="Win rate" value={`${p.tennisRecord.winRate}%`} accent />
+              <HeroStat label="Matches" value={String(p.tennisRecord.total)} />
+              <HeroStat label="Wins" value={String(p.tennisRecord.wins)} />
+              <HeroStat label="Losses" value={String(p.tennisRecord.losses)} />
             </div>
           )}
         </div>
@@ -138,8 +153,9 @@ export default async function PublicProfilePage({
         {/* Academy recruiting banner */}
         {p.recruiting && <AcademyRecruitingBanner banner={p.recruiting} />}
 
-        {/* Ranking */}
-        {(p.fisPoints != null || p.worldRank != null || p.pointsEvolution) && (
+        {/* Ranking — federation-driven sports only (ski today). Tennis surfaces
+            its match record via the hero stat strip above instead. */}
+        {sportModule.hasFederationRanking && (p.fisPoints != null || p.worldRank != null || p.pointsEvolution) && (
           <section>
             <SectionTitle kicker="Performance" title="Ranking & trend" />
             <div className="grid gap-4 sm:grid-cols-2">

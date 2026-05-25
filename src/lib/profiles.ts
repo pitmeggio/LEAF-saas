@@ -109,6 +109,9 @@ export type PublicProfile = {
   pointsEvolution: { label: string; fisPoints: number }[] | null; // free trend chart (gated by publicShowRanking)
   performance: PerformanceStats | null; // premium analytics source (gated by publicShowResults)
   premiumUnlocked: boolean; // academy-enrolled athletes get premium analytics free
+  // Sport-specific record block — set for sports without federation data
+  // (tennis today). Driven by the SportModule capabilities downstream.
+  tennisRecord: { total: number; wins: number; losses: number; winRate: number } | null;
 };
 
 export type ResolveResult =
@@ -210,6 +213,22 @@ export async function resolvePublicProfile(slug: string, viewerAcademyId: string
   // Premium is unlocked free for athletes enrolled in a Leaf academy.
   const premiumUnlocked = a.enrollments.length > 0;
 
+  // Tennis match record — only queried for tennis athletes whose results are
+  // public. Privacy: gated by publicShowResults (same flag as race results).
+  // Aggregated across every academy the athlete is enrolled with.
+  let tennisRecord: PublicProfile["tennisRecord"] = null;
+  if (a.sport === "tennis" && a.publicShowResults && academyIds.length > 0) {
+    const matches = await prisma.tennisMatch.findMany({
+      where: { athleteId: a.id, academyId: { in: academyIds } },
+      select: { result: true },
+    });
+    const total = matches.length;
+    const wins = matches.filter((m) => m.result === "won").length;
+    if (total > 0) {
+      tennisRecord = { total, wins, losses: total - wins, winRate: Math.round((wins / total) * 100) };
+    }
+  }
+
   const profile: PublicProfile = {
     slug,
     firstName: a.firstName,
@@ -247,6 +266,7 @@ export async function resolvePublicProfile(slug: string, viewerAcademyId: string
     pointsEvolution: a.publicShowRanking && perf.pointsEvolution.length >= 2 ? perf.pointsEvolution : null,
     performance: a.publicShowResults ? perf : null,
     premiumUnlocked,
+    tennisRecord,
   };
 
   return { status: "ok", profile };
