@@ -103,7 +103,10 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
                       surfaced under "External profiles" on the right column. */}
                   <span className="text-xl font-bold">{a.firstName} {a.lastName}</span>
                   {a.verified && <Verified />}
-                  {a.publicProfileEnabled && a.publicSlug && (
+                  {/* Public chip only renders when the platform-level flag is
+                      on AND the athlete opted in. Defaults to hidden today
+                      because the discovery / marketplace layer isn't live. */}
+                  {app.academy.featurePublicProfiles && a.publicProfileEnabled && a.publicSlug && (
                     <Link
                       href={`/athlete/${a.publicSlug}`}
                       target="_blank"

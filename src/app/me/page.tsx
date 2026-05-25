@@ -51,10 +51,12 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
           </div>
         </Link>
         <div className="flex items-center gap-2">
-          {w.slug && (
+          {/* Sharing UI only renders when the platform has enabled public
+              profiles for one of the athlete's enrolled academies. The
+              feature stays off by default until the discovery / marketplace
+              layer is live — surfaces are honest about availability. */}
+          {w.featurePublicProfilesAvailable && w.slug && (
             <>
-              {/* Copy link works on mobile too — sharing is the whole point of
-                  the workspace, no reason to hide it below sm:. */}
               <ShareButton url={`${baseUrl}/athlete/${w.slug}`} label="Copy link" className="inline-flex rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:border-[var(--color-accent)]" />
               <Link
                 href={`/athlete/${w.slug}`}
@@ -94,12 +96,14 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
             <div className="kicker" style={{ color: "var(--color-accent)" }}>Welcome back</div>
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="display text-3xl font-bold md:text-4xl">{w.firstName} {w.lastName}</h1>
-              <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                style={w.publicProfileEnabled && w.publicVisibility === "PUBLIC"
-                  ? { background: "#7cff6b1a", color: "var(--color-accent)" }
-                  : { background: "#f59e0b1a", color: "#f59e0b" }}>
-                {w.publicProfileEnabled && w.publicVisibility === "PUBLIC" ? "● Public" : "● Hidden"}
-              </span>
+              {w.featurePublicProfilesAvailable && (
+                <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                  style={w.publicProfileEnabled && w.publicVisibility === "PUBLIC"
+                    ? { background: "#7cff6b1a", color: "var(--color-accent)" }
+                    : { background: "#f59e0b1a", color: "#f59e0b" }}>
+                  {w.publicProfileEnabled && w.publicVisibility === "PUBLIC" ? "● Public" : "● Hidden"}
+                </span>
+              )}
             </div>
             <div className="mt-1 text-sm text-[var(--color-muted)]">
               {cfg.label} · {cfg.pointsLabel} {fmtPoints(w.fisPoints)} · {cfg.rankLabel} {w.worldRank != null ? `#${w.worldRank}` : "—"}
@@ -107,7 +111,11 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
           </div>
         </div>
 
-        {!w.publicProfileEnabled && (
+        {/* Public-profile messaging only renders when the platform feature
+            is available to this athlete's academy. Otherwise the workspace
+            keeps the AI/calendar/edit-bio surfaces and stays silent on the
+            sharing story until the marketplace is live. */}
+        {w.featurePublicProfilesAvailable && !w.publicProfileEnabled && (
           <div className="card border-[#f59e0b]/40 p-4 text-sm" style={{ background: "#f59e0b12" }}>
             Your public profile is currently hidden. Ask your academy or contact support to publish it.
           </div>
@@ -116,7 +124,7 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
         {/* "What scouts & academies see" — same underlying athlete, filtered
             view. Explicit visibility checklist so the athlete is never
             confused about what's exposed vs what stays private. */}
-        {w.publicProfileEnabled && w.slug && (
+        {w.featurePublicProfilesAvailable && w.publicProfileEnabled && w.slug && (
           <div className="card p-5">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>

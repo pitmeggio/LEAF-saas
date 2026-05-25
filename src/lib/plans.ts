@@ -22,21 +22,24 @@ export const PLANS: Record<PlanKey, PlanDef> = {
     key: "BASIC",
     label: "Basic",
     maxAthletes: 25,
-    features: { featureRecruiting: false, featurePublicProfiles: true, featureFinance: false, featureChat: true },
-    blurb: "Core roster, public profiles and messaging.",
+    // Public profiles default to OFF — they're only meaningful once we ship
+    // a real discovery / marketplace layer. Super admin can flip per-academy
+    // for early-adopter / showcase tenants.
+    features: { featureRecruiting: false, featurePublicProfiles: false, featureFinance: false, featureChat: true },
+    blurb: "Core roster and messaging.",
   },
   PRO: {
     key: "PRO",
     label: "Pro",
     maxAthletes: 100,
-    features: { featureRecruiting: true, featurePublicProfiles: true, featureFinance: true, featureChat: true },
+    features: { featureRecruiting: true, featurePublicProfiles: false, featureFinance: true, featureChat: true },
     blurb: "Adds recruiting and full finance.",
   },
   ELITE: {
     key: "ELITE",
     label: "Elite",
     maxAthletes: null,
-    features: { featureRecruiting: true, featurePublicProfiles: true, featureFinance: true, featureChat: true },
+    features: { featureRecruiting: true, featurePublicProfiles: false, featureFinance: true, featureChat: true },
     blurb: "Unlimited athletes, every module.",
   },
 };
@@ -57,7 +60,10 @@ export type AcademyFeatureFlags = {
 export function academyFeatures(a: Partial<AcademyFeatureFlags> | null | undefined): AcademyFeatureFlags {
   return {
     featureRecruiting: a?.featureRecruiting ?? true,
-    featurePublicProfiles: a?.featurePublicProfiles ?? true,
+    // Public profiles are OFF by default until the discovery / marketplace
+    // layer is live — keeps the athlete + admin UX honest about what the
+    // feature actually does today.
+    featurePublicProfiles: a?.featurePublicProfiles ?? false,
     featureFinance: a?.featureFinance ?? true,
     featureChat: a?.featureChat ?? true,
   };

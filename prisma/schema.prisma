@@ -32,7 +32,10 @@ model Academy {
   // ── Platform-controlled feature flags (set by super-admin per tenant) ──
   // Gate whole modules on/off independently of the academy's own settings.
   featureRecruiting     Boolean @default(true)
-  featurePublicProfiles Boolean @default(true)
+  // Public athlete profiles default OFF — the feature is meaningful once a
+  // discovery / marketplace surface exists. Super admin can flip per-academy
+  // for showcase / early-adopter tenants.
+  featurePublicProfiles Boolean @default(false)
   featureFinance        Boolean @default(true)
   featureChat           Boolean @default(true)
   maxAthletes           Int?    // null = unlimited (plan default)

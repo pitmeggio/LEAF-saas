@@ -146,15 +146,17 @@ export async function resolvePublicProfile(slug: string, viewerAcademyId: string
       results: { orderBy: { date: "desc" }, take: 60 },
       rankings: { orderBy: { date: "asc" }, select: { date: true, fisPoints: true } },
       publicMedia: { where: { isApprovedPublic: true }, orderBy: { sortOrder: "asc" } },
-      // enrollments only to (a) derive academy name, (b) gate ACADEMY_ONLY, and (c) build
-      // the recruiting banner — we read only public-safe academy fields, never any
-      // operational/financial enrollment data.
+      // enrollments only to (a) derive academy name, (b) gate ACADEMY_ONLY,
+      // (c) gate the platform-level featurePublicProfiles flag, and (d) build
+      // the recruiting banner — we read only public-safe academy fields, never
+      // any operational/financial enrollment data.
       enrollments: {
         select: {
           academyId: true,
           academy: {
             select: {
               name: true, slug: true, status: true, logoColor: true, season: true,
+              featurePublicProfiles: true,
               recruitingEnabled: true, recruitingStatus: true, publicRecruitingHeadline: true,
               publicApplyEnabled: true, applicationUrl: true,
             },
@@ -167,6 +169,11 @@ export async function resolvePublicProfile(slug: string, viewerAcademyId: string
   // Hard privacy gates — every denial returns not_found so the page 404s.
   if (!a) return { status: "not_found" };
   if (!a.publicProfileEnabled) return { status: "not_found" };
+  // Platform-level gate: public profiles only render when at least one of the
+  // athlete's enrolled academies has the feature on. Keeps the page honest
+  // about availability while the discovery / marketplace layer is in flight.
+  const anyAcademyHasFeature = a.enrollments.some((e) => e.academy?.featurePublicProfiles);
+  if (!anyAcademyHasFeature) return { status: "not_found" };
 
   const vis = a.publicVisibility;
   if (vis === "PRIVATE") return { status: "not_found" };
@@ -407,9 +414,12 @@ export type AcademyProfilesPage = {
 export async function getAcademyPublicAthletes(slug: string): Promise<AcademyProfilesPage | null> {
   const academy = await prisma.academy.findUnique({
     where: { slug },
-    select: { id: true, name: true, slug: true, logoColor: true, location: true, status: true },
+    select: { id: true, name: true, slug: true, logoColor: true, location: true, status: true, featurePublicProfiles: true },
   });
   if (!academy || academy.status !== "active") return null;
+  // Platform-level gate — same as resolvePublicProfile. Academy must have the
+  // featurePublicProfiles flag on to expose any athlete roster publicly.
+  if (!academy.featurePublicProfiles) return null;
 
   const rows = await prisma.athlete.findMany({
     where: {

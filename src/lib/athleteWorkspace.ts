@@ -13,6 +13,11 @@ export type AthleteWorkspace = {
   verified: boolean;
   publicProfileEnabled: boolean;
   publicVisibility: string;
+  // Platform-level gate — true when at least one of the athlete's enrolled
+  // academies has the featurePublicProfiles flag on. /me uses this to hide
+  // the share / preview UI when the marketplace surface isn't live for the
+  // athlete's academy.
+  featurePublicProfilesAvailable: boolean;
   // editable
   publicBio: string | null;
   publicPhotoUrl: string | null;
@@ -40,9 +45,13 @@ export async function getAthleteWorkspace(athleteId: string): Promise<AthleteWor
     include: {
       results: { orderBy: { date: "desc" }, take: 60 },
       rankings: { orderBy: { date: "asc" }, select: { date: true, fisPoints: true } },
+      enrollments: {
+        select: { academy: { select: { featurePublicProfiles: true } } },
+      },
     },
   });
   if (!a) return null;
+  const featurePublicProfilesAvailable = a.enrollments.some((e) => e.academy?.featurePublicProfiles);
 
   const perf = computePerformance(
     a.results.map((r) => ({ date: r.date, discipline: r.discipline, rank: r.rank, fisPoints: r.fisPoints, status: r.status })),
@@ -59,6 +68,7 @@ export async function getAthleteWorkspace(athleteId: string): Promise<AthleteWor
     verified: a.publicVerified,
     publicProfileEnabled: a.publicProfileEnabled,
     publicVisibility: a.publicVisibility,
+    featurePublicProfilesAvailable,
     publicBio: a.publicBio,
     publicPhotoUrl: a.publicPhotoUrl,
     publicContactEnabled: a.publicContactEnabled,

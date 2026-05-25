@@ -32,8 +32,15 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
   if (!m) notFound();
   const [opts, notifications] = await Promise.all([getAssignmentOptions(), getNotifications({ enrollmentId: id })]);
   const a = m.athlete;
-  const academy = s?.academyId ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { currency: true } }) : null;
+  const academy = s?.academyId
+    ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { currency: true, featurePublicProfiles: true } })
+    : null;
   const currency = academy?.currency ?? "EUR";
+  // Public-profile UI (chips in the hero + the PublicProfilePanel on the
+  // right) only renders when the platform has enabled the feature for this
+  // academy. With the marketplace not live yet, default is OFF — surface
+  // stays clean and honest.
+  const publicProfilesEnabled = academy?.featurePublicProfiles ?? false;
   const chart: Point[] = a.rankings.map((r) => ({ label: new Date(r.date).toLocaleDateString("en-GB", { month: "short" }), fisPoints: r.fisPoints }));
   const perf = perfFromTrend(m.trend);
 
@@ -66,12 +73,11 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                 <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium capitalize" style={{ background: `${ENROLLMENT_STATUS_COLOR[m.status]}1a`, color: ENROLLMENT_STATUS_COLOR[m.status] }}>
                   <Dot color={ENROLLMENT_STATUS_COLOR[m.status]} /> {m.status}
                 </span>
-                {/* Public profile shortcut — opens the athlete's
-                    /athlete/[slug] page in a new tab when public. When the
-                    profile is off, surface a muted hint so the admin knows
-                    they can flip it in the right-column Public profile
-                    panel. */}
-                {a.publicProfileEnabled && a.publicSlug ? (
+                {/* Public profile shortcut — only rendered when the platform
+                    has enabled the feature for this academy. With the
+                    marketplace not live yet, the flag defaults to OFF; super
+                    admin flips it on for showcase / early-adopter tenants. */}
+                {publicProfilesEnabled && a.publicProfileEnabled && a.publicSlug ? (
                   <Link
                     href={`/athlete/${a.publicSlug}`}
                     target="_blank"
@@ -80,14 +86,14 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                   >
                     Public profile ↗
                   </Link>
-                ) : (
+                ) : publicProfilesEnabled ? (
                   <span
                     title="Public profile is off — turn it on in the Public profile panel on the right."
                     className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium text-[var(--color-muted)]"
                   >
                     Public profile off
                   </span>
-                )}
+                ) : null}
                 {m.conversations[0] && <Link href={`/dashboard/inbox/${m.conversations[0].id}`} className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">✉ Chat</Link>}
                 <Modal label="Edit" title="Edit athlete" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
                   <AthleteEditForm athlete={{
@@ -289,7 +295,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
           />
 
 
-          <PublicProfilePanel
+          {publicProfilesEnabled && <PublicProfilePanel
             initial={{
               athleteId: a.id,
               publicProfileEnabled: a.publicProfileEnabled,
@@ -309,7 +315,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
               atpPlayerId: a.atpPlayerId,
               atpProfileUrl: a.atpProfileUrl,
             }}
-          />
+          />}
 
           <Panel title="Identity">
             <Row label="Email" value={a.email ?? "—"} />
