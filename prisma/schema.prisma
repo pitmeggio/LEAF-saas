@@ -85,6 +85,7 @@ model Academy {
   trainingSessions TrainingSession[]
   contracts     Contract[]
   calendarEvents CalendarEvent[]
+  coachNotes    CoachNote[]
   createdAt     DateTime       @default(now())
 }
 
@@ -215,6 +216,7 @@ model User {
   approvedExpenses Expense[] @relation("ExpenseApprover")
   expenseEvents ExpenseEvent[]
   createdCalendarEvents CalendarEvent[] @relation("CalendarCreator")
+  authoredCoachNotes CoachNote[] @relation("CoachNoteAuthor")
   createdAt DateTime @default(now())
 }
 
@@ -236,6 +238,7 @@ model Coach {
   expenses       Expense[]
   sessions       TrainingSession[]
   calendarEvents CalendarEvent[]
+  coachNotes     CoachNote[]
   createdAt      DateTime     @default(now())
 }
 
@@ -364,6 +367,15 @@ model Athlete {
   enrollments     Enrollment[]
   conversations   Conversation[]
   users           User[]
+  coachNotes      CoachNote[]
+
+  // Living athlete profile maintained by the Coach Intelligence engine.
+  // Shape is intentionally Json — the structurer evolves per sport, so the
+  // schema must not lock the dimensions in concrete. See lib/ai/coachProfile.ts
+  // for the canonical AthleteAiProfile type.
+  aiProfile       Json?
+  aiProfileUpdatedAt DateTime?
+
   createdAt       DateTime       @default(now())
 }
 
@@ -677,4 +689,62 @@ model Message {
   senderUserId   String?
   body           String
   createdAt      DateTime     @default(now())
+}
+
+// ── Coach Intelligence — Adaptive Coach Notes ─────────────────────────────
+// The coach writes naturally (free text + optional file refs); the AI engine
+// in lib/ai/coachNotes.ts reads it, detects the sport context (from the
+// athlete's group), structures it dynamically, and merges insights into the
+// athlete's living aiProfile. Raw text is preserved so the coach can always
+// re-read what they actually wrote.
+model CoachNote {
+  id          String   @id @default(cuid())
+  academyId   String
+  academy     Academy  @relation(fields: [academyId], references: [id])
+  athleteId   String
+  athlete     Athlete  @relation(fields: [athleteId], references: [id])
+  // Coach attribution — coachId for the academy-side coach record; authorId
+  // ties back to the User who wrote it (admin can author notes too).
+  coachId     String?
+  coach       Coach?   @relation(fields: [coachId], references: [id])
+  authorId    String?
+  author      User?    @relation("CoachNoteAuthor", fields: [authorId], references: [id])
+
+  // Original observation in the coach's own words. Never re-written by the AI.
+  rawText     String
+  // Sport snapshot at write time (taken from the athlete's group). Drives the
+  // AI's analytic lens (ski technical/race; tennis match intelligence; ...).
+  sport       String   @default("ski")
+  // Optional coach-supplied kind hint. The structurer may refine / override.
+  kind        String?  // training_session | race | match | video_review | physical_block | testing | other
+
+  // Structured output of the AI — Json so dimensions can evolve per sport
+  // without schema churn. Canonical shape in lib/ai/coachNotes.ts.
+  aiSummary   Json?
+  // Lifecycle of the structuring pass.
+  status      String   @default("pending") // pending | structured | failed
+  // Which engine produced aiSummary (llm | deterministic). Set by the worker.
+  engine      String?
+  error       String?
+
+  attachments CoachNoteAttachment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([academyId, athleteId, createdAt])
+}
+
+// Files attached to a note — PDF, Excel, scouting reports, etc. For the MVP
+// we record metadata + a URL (paste-link or future Supabase Storage upload);
+// no binary blob is held in Postgres.
+model CoachNoteAttachment {
+  id        String    @id @default(cuid())
+  noteId    String
+  note      CoachNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  filename  String
+  mimeType  String    @default("application/octet-stream")
+  size      Int       @default(0) // bytes; 0 = unknown (paste-link case)
+  url       String
+  createdAt DateTime  @default(now())
 }

@@ -566,6 +566,43 @@ export const contractStatusUpdateSchema = z.object({ id: z.string().min(1), stat
 export type ContractCreateInput = z.infer<typeof contractCreateSchema>;
 export type ContractUpdateInput = z.infer<typeof contractUpdateSchema>;
 
+// ── Coach Intelligence — Adaptive Coach Notes ────────────────────────────
+// The composer keeps the input deliberately loose: free text + optional
+// kind hint + zero-to-many attachment links. The structurer downstream
+// decides everything else dynamically.
+const coachNoteKindEnum = z.enum([
+  "training_session",
+  "race",
+  "match",
+  "video_review",
+  "physical_block",
+  "testing",
+  "other",
+]);
+
+export const coachNoteAttachmentSchema = z.object({
+  filename: z.string().trim().min(1).max(200),
+  url: z
+    .string()
+    .trim()
+    .url("Enter a valid URL.")
+    .max(800),
+  mimeType: z.string().trim().max(120).optional(),
+  size: z.number().int().nonnegative().optional(),
+});
+
+export const coachNoteCreateSchema = z.object({
+  athleteId: z.string().min(1),
+  rawText: z.string().trim().min(3, "The note is too short.").max(8000),
+  kind: coachNoteKindEnum.optional(),
+  attachments: z.array(coachNoteAttachmentSchema).max(8).optional(),
+});
+
+export type CoachNoteCreateInput = z.infer<typeof coachNoteCreateSchema>;
+
+export const coachNoteDeleteSchema = z.object({ id: z.string().min(1) });
+export type CoachNoteDeleteInput = z.infer<typeof coachNoteDeleteSchema>;
+
 // Returns the first human-readable error message from a ZodError.
 export function firstError(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Invalid input.";
