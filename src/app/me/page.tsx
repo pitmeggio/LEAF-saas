@@ -53,7 +53,9 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
         <div className="flex items-center gap-2">
           {w.slug && (
             <>
-              <ShareButton url={`${baseUrl}/athlete/${w.slug}`} label="Copy link" className="hidden rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:border-[var(--color-accent)] sm:inline-flex" />
+              {/* Copy link works on mobile too — sharing is the whole point of
+                  the workspace, no reason to hide it below sm:. */}
+              <ShareButton url={`${baseUrl}/athlete/${w.slug}`} label="Copy link" className="inline-flex rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:border-[var(--color-accent)]" />
               <Link href={`/athlete/${w.slug}`} target="_blank" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface)]">
                 View public profile ↗
               </Link>
@@ -103,6 +105,34 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
         {!w.publicProfileEnabled && (
           <div className="card border-[#f59e0b]/40 p-4 text-sm" style={{ background: "#f59e0b12" }}>
             Your public profile is currently hidden. Ask your academy or contact support to publish it.
+          </div>
+        )}
+
+        {/* Share your profile — the single most useful action for the athlete:
+            grab the link and send it to scouts / academies. Surface it as a
+            prominent card right after the identity. */}
+        {w.publicProfileEnabled && w.slug && (
+          <div className="card p-5">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <div className="kicker" style={{ color: "var(--color-accent)" }}>Your public link</div>
+                <h2 className="mt-1 text-lg font-semibold">Share your profile with academies & scouts</h2>
+                <p className="mt-1 text-xs text-[var(--color-muted)]">Anyone with the link sees your verified profile — ranking, growth trend and AI insights.</p>
+              </div>
+              <Link
+                href={`/athlete/${w.slug}`}
+                target="_blank"
+                className="shrink-0 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]"
+              >
+                Open ↗
+              </Link>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2">
+              <span className="num truncate text-xs text-[var(--color-muted)]">{baseUrl}/athlete/{w.slug}</span>
+              <div className="ml-auto shrink-0">
+                <ShareButton url={`${baseUrl}/athlete/${w.slug}`} label="Copy link" className="rounded-md bg-[var(--color-accent)] px-3 py-1 text-xs font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]" />
+              </div>
+            </div>
           </div>
         )}
 
