@@ -22,7 +22,6 @@ const ADMIN_SECTIONS: NavSection[] = [
   { label: "Athletes", items: [
     { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
     { href: "/dashboard/members", label: "Active Athletes", icon: "⛷" },
-    { href: "/dashboard/attendance", label: "Attendance", icon: "◉" },
     { href: "/dashboard/documents", label: "Documents", icon: "▢" },
   ] },
   { label: "Program", items: [
@@ -49,7 +48,6 @@ const COACH_SECTIONS: NavSection[] = [
   { label: "Athletes", items: [
     { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
     { href: "/dashboard/members", label: "My Athletes", icon: "⛷" },
-    { href: "/dashboard/attendance", label: "Attendance", icon: "◉" },
     { href: "/dashboard/documents", label: "Documents", icon: "▢" },
   ] },
   { label: "Program", items: [

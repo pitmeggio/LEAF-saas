@@ -566,26 +566,6 @@ export const contractStatusUpdateSchema = z.object({ id: z.string().min(1), stat
 export type ContractCreateInput = z.infer<typeof contractCreateSchema>;
 export type ContractUpdateInput = z.infer<typeof contractUpdateSchema>;
 
-// ── Attendance ───────────────────────────────────────────────────────────────
-export const ATTENDANCE_STATUSES = ["present", "late", "absent", "excused", "injured"] as const;
-export const attendanceStatusSchema = z.enum(ATTENDANCE_STATUSES);
-
-export const sessionCreateSchema = z.object({
-  groupId: z.string().min(1, "Pick a group."),
-  date: z.string().min(1, "Pick a date."),
-  title: optionalStr(120),
-});
-
-export const attendanceSaveSchema = z.object({
-  sessionId: z.string().min(1),
-  entries: z
-    .array(z.object({ enrollmentId: z.string().min(1), status: attendanceStatusSchema, note: optionalStr(200) }))
-    .max(500),
-});
-
-export type SessionCreateInput = z.infer<typeof sessionCreateSchema>;
-export type AttendanceSaveInput = z.infer<typeof attendanceSaveSchema>;
-
 // Returns the first human-readable error message from a ZodError.
 export function firstError(error: z.ZodError): string {
   return error.issues[0]?.message ?? "Invalid input.";

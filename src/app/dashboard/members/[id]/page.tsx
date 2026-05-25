@@ -7,12 +7,10 @@ import { GrowthChart, type Point } from "@/components/GrowthChart";
 import { ManagePanel, NotesEditor, PaymentControl, DocumentControl } from "@/components/MemberControls";
 import { PublicProfilePanel } from "@/components/PublicProfilePanel";
 import { ContractsPanel } from "@/components/ContractsPanel";
-import { FinanceCustomerMapping } from "@/components/FinanceCustomerMapping";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { getActiveAthlete, getAssignmentOptions, getNotifications } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { isExternalFinance } from "@/lib/finance";
 import { NOTIF_LABEL } from "@/lib/notifications";
 import {
   DISCIPLINE_LABEL, COUNTRY, LEVEL_LABEL, age, fmtDate, fmtPoints, fmtMoney,
@@ -30,8 +28,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
   if (!m) notFound();
   const [opts, notifications] = await Promise.all([getAssignmentOptions(), getNotifications({ enrollmentId: id })]);
   const a = m.athlete;
-  const academy = s?.academyId ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { financeProvider: true, currency: true } }) : null;
-  const externalFinance = isExternalFinance(academy?.financeProvider);
+  const academy = s?.academyId ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { currency: true } }) : null;
   const currency = academy?.currency ?? "EUR";
   const chart: Point[] = a.rankings.map((r) => ({ label: new Date(r.date).toLocaleDateString("en-GB", { month: "short" }), fisPoints: r.fisPoints }));
   const perf = perfFromTrend(m.trend);
@@ -215,7 +212,6 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
             packages={opts.packages}
           />
 
-          {externalFinance && <FinanceCustomerMapping enrollmentId={m.id} value={m.externalCustomerId ?? null} />}
 
           <PublicProfilePanel
             initial={{

@@ -55,7 +55,7 @@ export default async function OverviewPage() {
           </div>
           {d.alerts.length === 0 ? (
             <p className="text-sm text-[var(--color-fg)]/85">
-              ✓ You&apos;re all caught up. LEAF is auto-tracking {d.activeAthletes} athletes — payments, documents, attendance and performance.
+              ✓ You&apos;re all caught up. LEAF is auto-tracking {d.activeAthletes} athletes — payments, documents and performance.
             </p>
           ) : (
             <>

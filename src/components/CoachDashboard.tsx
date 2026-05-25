@@ -34,7 +34,6 @@ export async function CoachDashboard() {
     athleteCount: members.length,
     improvingNames: members.filter((m) => m.perf === "improving").map(nameOf),
     decliningNames: members.filter((m) => m.perf === "declining").map(nameOf),
-    attendanceLow: alerts.filter((a) => a.type === "attendance_low").length,
     overdue: alerts.filter((a) => a.type === "payment_overdue").length,
     docIssues: alerts.filter((a) => a.type === "missing_document").length,
   });

@@ -135,65 +135,6 @@ export async function getAssignmentOptions() {
 
 // Groups (active) with their assignment rules + current active-enrollment load,
 // shaped for the Smart Group Assignment recommender.
-// Active groups for the attendance picker (coach sees only their groups).
-export async function getAttendanceGroups(coachId?: string | null) {
-  const academyId = await requireAcademyId();
-  return prisma.group.findMany({
-    where: { academyId, active: true, ...(coachId ? { coachId } : {}) },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
-}
-
-// Attendance board for a group: roster (active athletes), recent sessions with
-// their records, and a per-athlete attendance rate. Coaches see only their groups.
-export async function getAttendanceBoard(groupId: string, coachId?: string | null) {
-  const academyId = await requireAcademyId();
-  const group = await prisma.group.findFirst({
-    where: { id: groupId, academyId, ...(coachId ? { coachId } : {}) },
-    include: {
-      enrollments: {
-        where: { status: "active" },
-        select: { id: true, athlete: { select: { firstName: true, lastName: true } } },
-        orderBy: { athlete: { lastName: "asc" } },
-      },
-      sessions: {
-        orderBy: { date: "desc" },
-        take: 12,
-        include: { attendance: { select: { enrollmentId: true, status: true } } },
-      },
-    },
-  });
-  if (!group) return null;
-
-  const roster = group.enrollments.map((e) => ({ enrollmentId: e.id, name: `${e.athlete.firstName} ${e.athlete.lastName}` }));
-
-  // Attendance rate per enrollment = present-or-late / sessions where a record exists.
-  const rate = new Map<string, { present: number; total: number }>();
-  for (const s of group.sessions) {
-    for (const rec of s.attendance) {
-      const r = rate.get(rec.enrollmentId) ?? { present: 0, total: 0 };
-      r.total += 1;
-      if (rec.status === "present" || rec.status === "late") r.present += 1;
-      rate.set(rec.enrollmentId, r);
-    }
-  }
-
-  return {
-    group: { id: group.id, name: group.name },
-    roster: roster.map((r) => {
-      const ra = rate.get(r.enrollmentId);
-      return { ...r, ratePct: ra && ra.total > 0 ? Math.round((ra.present / ra.total) * 100) : null, sessionsTracked: ra?.total ?? 0 };
-    }),
-    sessions: group.sessions.map((s) => ({
-      id: s.id,
-      date: s.date,
-      title: s.title,
-      records: Object.fromEntries(s.attendance.map((a) => [a.enrollmentId, a.status])),
-    })),
-  };
-}
-
 export async function getGroupsForAssignment() {
   const academyId = await requireAcademyId();
   const groups = await prisma.group.findMany({
@@ -516,31 +457,6 @@ export async function computeAlerts(coachId?: string | null): Promise<Alert[]> {
       const ageDays = Math.round((now - +c.createdAt) / (24 * 3600 * 1000));
       if (ageDays >= 14) {
         alerts.push({ id: `ctr-sig-${c.id}`, type: "contract_unsigned", severity: "medium", title: "Contract awaiting signature", detail: `${nm} — "${c.title}" ${c.status} for ${ageDays} days`, href: `/dashboard/members/${c.enrollmentId}` });
-      }
-    }
-  }
-
-  // ── Attendance anomaly: low recent attendance rate ──
-  const att = await prisma.attendance.findMany({
-    where: { session: { academyId }, ...(coachId ? { enrollment: { coachId } } : {}) },
-    include: { enrollment: { include: { athlete: { select: { firstName: true, lastName: true } } } }, session: { select: { date: true } } },
-    orderBy: { session: { date: "desc" } },
-    take: 2000,
-  });
-  const byEnr = new Map<string, { present: number; total: number; name: string }>();
-  for (const a of att) {
-    const r = byEnr.get(a.enrollmentId) ?? { present: 0, total: 0, name: `${a.enrollment.athlete.firstName} ${a.enrollment.athlete.lastName}` };
-    if (r.total < 8) { // most recent 8 sessions per athlete
-      r.total += 1;
-      if (a.status === "present" || a.status === "late") r.present += 1;
-      byEnr.set(a.enrollmentId, r);
-    }
-  }
-  for (const [enrollmentId, r] of byEnr) {
-    if (r.total >= 3) {
-      const pct = Math.round((r.present / r.total) * 100);
-      if (pct < 60) {
-        alerts.push({ id: `att-${enrollmentId}`, type: "attendance_low", severity: pct < 40 ? "high" : "medium", title: "Low attendance", detail: `${r.name} — ${pct}% across the last ${r.total} sessions`, href: `/dashboard/members/${enrollmentId}` });
       }
     }
   }

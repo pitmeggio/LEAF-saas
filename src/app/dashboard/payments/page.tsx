@@ -3,18 +3,13 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar, Dot } from "@/components/StatCard";
 import { getFinance } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
-import { prisma } from "@/lib/db";
 import { PaymentControl } from "@/components/MemberControls";
-import { FinanceConnection } from "@/components/FinanceConnection";
-import { isExternalFinance } from "@/lib/finance";
 import { fmtMoney, fmtDate, effectivePaymentStatus, effectiveInvoiceStatus, PAYMENT_STATUS_COLOR, INVOICE_STATUS_COLOR } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
 
 export default async function PaymentsPage() {
-  const session = await requireAdmin();
-  const academy = session.academyId ? await prisma.academy.findUnique({ where: { id: session.academyId }, select: { financeProvider: true, financeSyncedAt: true } }) : null;
-  const external = isExternalFinance(academy?.financeProvider);
+  await requireAdmin();
   const f = await getFinance();
   const rows = [...f.payments].sort((a, b) => {
     const ao = effectivePaymentStatus(a) === "overdue" ? 0 : 1;
@@ -24,13 +19,9 @@ export default async function PaymentsPage() {
 
   return (
     <>
-      <PageHeader title="Payments & Invoices" subtitle={external ? "Read-only view — invoices and payments are synced from your connected finance system." : "Invoices, balances, overdue and forecasts update automatically as payments are recorded."} />
+      <PageHeader title="Payments & Invoices" subtitle="Invoices, balances, overdue and forecasts update automatically as payments are recorded." />
 
       <div className="space-y-6 p-8">
-        <FinanceConnection
-          provider={academy?.financeProvider ?? null}
-          syncedAt={academy?.financeSyncedAt ? academy.financeSyncedAt.toLocaleString() : null}
-        />
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
           <StatCard label="Collected" value={fmtMoney(f.collected, f.currency)} hint="paid to date" accent />
           <StatCard label="Outstanding" value={fmtMoney(f.outstandingTotal, f.currency)} hint="billed, not yet paid" danger={f.outstandingTotal > 0} />
@@ -97,11 +88,7 @@ export default async function PaymentsPage() {
                       </span>
                     </td>
                     <td className="px-3 py-3">
-                      {p.source === "external" ? (
-                        <span className="inline-flex items-center gap-1 rounded-md bg-[var(--color-surface-2)] px-2 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted)]" title="Synced from your finance system — read-only">⟳ Synced</span>
-                      ) : (
-                        <PaymentControl paymentId={p.id} status={p.status} amount={p.amount} paidAmount={p.paidAmount} currency={p.currency} />
-                      )}
+                      <PaymentControl paymentId={p.id} status={p.status} amount={p.amount} paidAmount={p.paidAmount} currency={p.currency} />
                     </td>
                   </tr>
                 );
