@@ -7,6 +7,7 @@ import { GrowthChart, type Point } from "@/components/GrowthChart";
 import { ManagePanel, NotesEditor, PaymentControl, DocumentControl } from "@/components/MemberControls";
 import { PublicProfilePanel } from "@/components/PublicProfilePanel";
 import { ContractsPanel } from "@/components/ContractsPanel";
+import { CoachIntelligencePanel } from "@/components/CoachIntelligencePanel";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { getActiveAthlete, getAssignmentOptions, getNotifications } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
@@ -87,6 +88,17 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
               <Mini label="Team avg" value={fmtPoints(m.teamAvg)} sub={a.fisPoints != null && m.teamAvg != null ? (a.fisPoints <= m.teamAvg ? "above avg" : "below avg") : undefined} />
             </div>
           </div>
+
+          {/* Coach Intelligence — adaptive notes + living AI profile */}
+          {s?.academyId && (
+            <CoachIntelligencePanel
+              athleteId={a.id}
+              academyId={s.academyId}
+              sport={m.group?.sport ?? a.sport ?? "ski"}
+              canDeleteAuthorId={s.userId ?? null}
+              isAdmin={s.isAdmin ?? false}
+            />
+          )}
 
           {/* Recent results */}
           <div className="card overflow-hidden">
