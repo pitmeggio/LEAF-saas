@@ -9,14 +9,15 @@
 
 export type SportKey = "ski" | "tennis" | "padel" | "cycling" | "football" | string;
 
-// What a column in the Athletes list should look like.
-// Keys are intentionally string-typed so each sport can name its own.
+// A sport-specific column in the Athletes list. The page keeps the universal
+// columns (Athlete / Status / Level / Group / Coach / Payments / Docs) and
+// only the columns in between change per sport, so a new sport doesn't have
+// to redeclare everything. The renderer reads `field` and falls back to "—"
+// when the value is missing.
 export type AthleteListColumn = {
   key: string;
   label: string;
   align?: "left" | "right";
-  // Field on the athlete record (or a derived key the renderer recognises).
-  // Renderer treats unknown fields as "—".
   field: string;
   hint?: string;
 };

@@ -14,12 +14,12 @@ export const skiModule: SportModule = {
   hasDevelopmentLevels: false,
   hasDisciplineSplit: true,
 
+  // Sport-specific columns inserted between Coach and Payments on the
+  // Athletes list. Universal columns (Athlete / Status / Level / Group /
+  // Coach / Payments / Docs) stay in the page — keep this short.
   athletesListColumns: [
-    { key: "athlete", label: "Athlete", field: "name", align: "left" },
-    { key: "discipline", label: "Discipline", field: "discipline" },
     { key: "fisPoints", label: "FIS pts", field: "fisPoints", align: "right", hint: "lower is better" },
-    { key: "worldRank", label: "World rank", field: "worldRank", align: "right" },
-    { key: "trend", label: "Trend", field: "trend" },
+    { key: "trend", label: "Perf", field: "trend" },
   ],
 
   dashboardKpis: [

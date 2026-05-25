@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
-import { Avatar, TrendArrow, Verified } from "@/components/ui";
+import { Avatar, Verified } from "@/components/ui";
 import { Dot } from "@/components/StatCard";
 import { Modal, AthleteForm } from "@/components/EntityForms";
+import { AthleteSportCell } from "@/components/AthleteSportCell";
 import { getActiveAthletes, getAssignmentOptions } from "@/lib/ops";
-import { getSession } from "@/lib/auth";
+import { getCurrentUser, getSession } from "@/lib/auth";
 import {
-  DISCIPLINE_LABEL, COUNTRY, LEVEL_LABEL, age, fmtPoints,
-  ENROLLMENT_STATUS_COLOR, PERF_COLOR,
+  DISCIPLINE_LABEL, COUNTRY, LEVEL_LABEL, age,
+  ENROLLMENT_STATUS_COLOR,
 } from "@/lib/domain";
+import { getSportModuleForAcademy } from "@/lib/sports/registry";
 
 export const dynamic = "force-dynamic";
 
@@ -16,8 +18,13 @@ const newBtn = "rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semib
 
 export default async function MembersPage() {
   const s = await getSession();
+  const user = await getCurrentUser();
   const coachScope = s?.isAdmin ? null : s?.coachId ?? null;
   const [members, opts] = await Promise.all([getActiveAthletes(coachScope), getAssignmentOptions()]);
+  // Sport-aware columns — the active sport module decides what shows between
+  // Coach and Payments (FIS pts/Trend for ski; Style/Levels for tennis).
+  const sport = getSportModuleForAcademy(user?.academy);
+  const sportCols = sport.athletesListColumns;
 
   // Guided view: surface who needs a human. Flagged athletes sort to the top.
   const flagged = members.map((m) => ({
@@ -31,7 +38,7 @@ export default async function MembersPage() {
     <>
       <PageHeader
         title="Active Athletes"
-        subtitle="Enrolled members — sport, academy and operational status in one place."
+        subtitle={`${sport.label} workspace · enrolled members, academy and operational status in one place.`}
         right={
           <div className="flex items-center gap-3">
             <span className="num text-sm text-[var(--color-muted)]">{members.length} members</span>
@@ -60,8 +67,16 @@ export default async function MembersPage() {
                 <th className="px-3 py-3 font-medium">Level</th>
                 <th className="px-3 py-3 font-medium">Group</th>
                 <th className="px-3 py-3 font-medium">Coach</th>
-                <th className="px-3 py-3 font-medium">FIS</th>
-                <th className="px-3 py-3 font-medium">Perf</th>
+                {/* Sport-specific columns — declared by the active sport module. */}
+                {sportCols.map((c) => (
+                  <th
+                    key={c.key}
+                    className={`px-3 py-3 font-medium ${c.align === "right" ? "text-right" : ""}`}
+                    title={c.hint}
+                  >
+                    {c.label}
+                  </th>
+                ))}
                 <th className="px-3 py-3 font-medium">Payments</th>
                 <th className="px-3 py-3 font-medium">Docs</th>
               </tr>
@@ -90,12 +105,12 @@ export default async function MembersPage() {
                   <td className="px-3 py-3 text-[var(--color-muted)]">{m.level ? LEVEL_LABEL[m.level] : "—"}</td>
                   <td className="px-3 py-3 text-[var(--color-muted)]">{m.group?.name ?? "—"}</td>
                   <td className="px-3 py-3 text-[var(--color-muted)]">{m.coach?.name ?? "—"}</td>
-                  <td className="num px-3 py-3">{fmtPoints(m.athlete.fisPoints)}</td>
-                  <td className="px-3 py-3">
-                    <span className="inline-flex items-center gap-1.5 text-xs capitalize" style={{ color: PERF_COLOR[m.perf] }}>
-                      <TrendArrow trend={m.trend} />
-                    </span>
-                  </td>
+                  {/* Sport-specific cells — same order as the headers above. */}
+                  {sportCols.map((c) => (
+                    <td key={c.key} className={`px-3 py-3 ${c.align === "right" ? "text-right" : ""}`}>
+                      <AthleteSportCell field={c.field} athlete={m.athlete} trend={m.trend} />
+                    </td>
+                  ))}
                   <td className="px-3 py-3">
                     {m.overduePayments.length > 0 ? (
                       <span className="text-xs font-medium text-[#f87171]">{m.overduePayments.length} overdue</span>

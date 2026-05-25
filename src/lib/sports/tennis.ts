@@ -13,12 +13,12 @@ export const tennisModule: SportModule = {
   hasDevelopmentLevels: true,
   hasDisciplineSplit: false,
 
+  // Sport-specific columns inserted between Coach and Payments on the
+  // Athletes list. Win rate + recent form land in a follow-up (need the
+  // match data layer to avoid N+1 in the list query).
   athletesListColumns: [
-    { key: "athlete", label: "Athlete", field: "name", align: "left" },
     { key: "playingStyle", label: "Style", field: "playingStyle" },
     { key: "levels", label: "T / T / P / M", field: "tennisLevels", align: "right", hint: "Technical / Tactical / Physical / Mental, 1–10" },
-    { key: "winRate", label: "Win rate", field: "tennisWinRate", align: "right" },
-    { key: "trend", label: "Form", field: "tennisRecentForm" },
   ],
 
   dashboardKpis: [
