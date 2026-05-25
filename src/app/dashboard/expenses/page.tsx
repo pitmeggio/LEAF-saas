@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { Modal, ExpenseForm } from "@/components/EntityForms";
 import { ExpenseCoachActions, ExpenseAdminActions } from "@/components/EntityActions";
+import { FinanceSubNav } from "@/components/FinanceSubNav";
 import { getExpenses, getAssignmentOptions, getAcademyCurrency } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -29,10 +30,11 @@ export default async function ExpensesPage() {
   return (
     <>
       <PageHeader
-        title={isAdmin ? "Expenses" : "My Expenses"}
-        subtitle={isAdmin ? "Approve, reject and reimburse coach expenses." : "File and track your expense claims."}
+        title={isAdmin ? "Expenses & Approvals" : "My Expenses"}
+        subtitle={isAdmin ? "Approve, reject and reimburse coach expenses. The approvals queue lives here." : "File and track your expense claims."}
         right={!isAdmin ? <Modal label="+ New expense" title="New expense" className={newBtn}><ExpenseForm groups={groups} currency={currency} /></Modal> : undefined}
       />
+      {isAdmin && <FinanceSubNav active="expenses" />}
       <div className="space-y-6 p-8">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <StatCard label="Pending approval" value={String(data.pendingCount)} hint={fmtMoney(data.submittedTotal, currency)} danger={data.pendingCount > 0} />

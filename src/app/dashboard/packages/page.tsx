@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { PercentBar } from "@/components/StatCard";
 import { Modal, PackageForm, DeleteButton } from "@/components/EntityForms";
+import { FinanceSubNav } from "@/components/FinanceSubNav";
 import { getPackagesWithStats, getAcademyCurrency } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
@@ -20,7 +21,7 @@ export default async function PackagesPage() {
     <>
       <PageHeader
         title="Packages / Subscriptions"
-        subtitle="Occupancy, active subscriptions and revenue forecast update automatically."
+        subtitle="Product catalogue — occupancy, active subscriptions and revenue forecast update automatically."
         right={
           <div className="flex items-center gap-3">
             <span className="num text-sm text-[var(--color-muted)]">Forecast {fmtMoney(totalForecast, currency)}</span>
@@ -28,6 +29,7 @@ export default async function PackagesPage() {
           </div>
         }
       />
+      <FinanceSubNav active="packages" />
       <div className="grid gap-4 p-8 md:grid-cols-2">
         {packages.map((p) => (
           <div key={p.id} className="card p-6" style={p.full ? { borderColor: "#f59e0b" } : undefined}>

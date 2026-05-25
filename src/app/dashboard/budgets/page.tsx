@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { PercentBar, StatCard } from "@/components/StatCard";
 import { Modal, GroupExpenseForm } from "@/components/EntityForms";
+import { FinanceSubNav } from "@/components/FinanceSubNav";
 import { getGroupsWithStats, getAcademyCurrency } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
@@ -45,6 +46,7 @@ export default async function BudgetsPage() {
         title="Budgets"
         subtitle={`Season ${season} · per-team budget, spend by cost line and P&L. Add expenses straight against a group budget.`}
       />
+      <FinanceSubNav active="budgets" />
 
       <div className="space-y-6 p-8">
         {/* Academy-wide totals */}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar, Dot } from "@/components/StatCard";
+import { FinanceSubNav } from "@/components/FinanceSubNav";
 import { getFinance } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
 import { PaymentControl } from "@/components/MemberControls";
@@ -25,6 +26,7 @@ export default async function PaymentsPage() {
         title="Payments & Invoices"
         subtitle={`Season ${season} · only invoices and payments tied to this season are shown. Switch season from the sidebar to view another.`}
       />
+      <FinanceSubNav active="payments" />
 
       <div className="space-y-6 p-8">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">

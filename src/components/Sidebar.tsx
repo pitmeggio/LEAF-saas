@@ -8,7 +8,17 @@ import { SeasonSelector } from "@/components/SeasonSelector";
 import { initials } from "@/lib/domain";
 
 type FeatureKey = "featureRecruiting" | "featurePublicProfiles" | "featureFinance" | "featureChat";
-type NavItem = { href: string; label: string; icon: string; soon?: boolean; feature?: FeatureKey };
+type NavItem = {
+  href: string;
+  label: string;
+  icon: string;
+  soon?: boolean;
+  feature?: FeatureKey;
+  // Extra path prefixes that should keep this nav item highlighted. Useful
+  // for hub entries (e.g. "Finance") whose sub-pages live at sibling URLs
+  // (/dashboard/payments, /dashboard/budgets) rather than nested children.
+  activePaths?: string[];
+};
 type NavSection = { label: string; items: NavItem[] };
 export type SidebarFeatures = Record<FeatureKey, boolean>;
 
@@ -36,10 +46,16 @@ const ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard/coaches", label: "Coaches", icon: "◎" },
   ] },
   { label: "Finance", items: [
-    { href: "/dashboard/payments", label: "Payments", icon: "€", feature: "featureFinance" },
-    { href: "/dashboard/budgets", label: "Budgets", icon: "◧", feature: "featureFinance" },
-    { href: "/dashboard/expenses", label: "Expenses", icon: "⊟", feature: "featureFinance" },
-    { href: "/dashboard/packages", label: "Packages", icon: "▥" },
+    // Single entry — the Finance hub lands on /dashboard/finance and routes
+    // out to Payments / Budgets / Expenses / Packages via a sub-nav so the
+    // whole money surface reads as one module.
+    {
+      href: "/dashboard/finance",
+      label: "Finance",
+      icon: "€",
+      feature: "featureFinance",
+      activePaths: ["/dashboard/finance", "/dashboard/payments", "/dashboard/budgets", "/dashboard/expenses", "/dashboard/packages"],
+    },
   ] },
   { label: "Performance", items: [
     { href: "/dashboard/calendar", label: "Season Planner", icon: "▣" },
@@ -94,7 +110,13 @@ export function Sidebar({ user, features, season }: { user: { name: string; role
     .filter((s) => s.items.length > 0);
 
   const renderItem = (item: NavItem) => {
-    const active = item.href === "/dashboard" ? pathname === "/dashboard" : pathname.startsWith(item.href);
+    // /dashboard must match exactly (otherwise every sub-page matches it).
+    // Hub entries (activePaths) light up when the user is on any of their
+    // sibling sub-pages, e.g. Finance stays highlighted on /dashboard/payments.
+    const candidates = item.activePaths ?? [item.href];
+    const active = item.href === "/dashboard"
+      ? pathname === "/dashboard"
+      : candidates.some((p) => pathname === p || pathname.startsWith(p + "/"));
     return (
       <Link
         key={item.href}
