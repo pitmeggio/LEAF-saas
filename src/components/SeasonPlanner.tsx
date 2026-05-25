@@ -66,19 +66,23 @@ function sameDay(a: Date, b: Date): boolean {
 
 type ViewMode = "year" | "month" | "week";
 
-export function SeasonPlanner({ events, groups, currency, totalBudget, spent, canCreateAcademyWide }: {
+export function SeasonPlanner({ events, groups, currency, totalBudget, spent, canCreateAcademyWide, initialCursor, initialSeasonFilter }: {
   events: EventLite[];
   groups: GroupOpt[];
   currency: string;
   totalBudget: number;
   spent: number;
   canCreateAcademyWide: boolean;
+  // Anchor the cursor to a specific date (e.g. the start of the active season)
+  // — falls back to "today" so the existing public-page behaviour is preserved.
+  initialCursor?: Date;
+  initialSeasonFilter?: string;
 }) {
   const now = useMemo(() => new Date(), []);
   const [view, setView] = useState<ViewMode>("month");
-  const [cursor, setCursor] = useState<Date>(now); // any date inside the focused period
+  const [cursor, setCursor] = useState<Date>(() => initialCursor ?? now); // any date inside the focused period
   const [groupFilter, setGroupFilter] = useState<string>(""); // "" = all, "_academy" = academy-wide, id = team
-  const [seasonFilter, setSeasonFilter] = useState<string>("all");
+  const [seasonFilter, setSeasonFilter] = useState<string>(initialSeasonFilter ?? "all");
   const [editing, setEditing] = useState<EventLite | "new" | { prefillDay: Date } | null>(null);
 
   // Filtered events drive both the views and the KPIs.

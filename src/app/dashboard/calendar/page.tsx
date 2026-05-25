@@ -4,6 +4,8 @@ import { getSession, requireAcademyId } from "@/lib/auth";
 import { getCalendarEvents, type CalendarScope } from "@/lib/calendar";
 import { getAcademyCurrency, getGroupsWithStats } from "@/lib/ops";
 import type { EventLite } from "@/lib/planning";
+import { getActiveSeason } from "@/lib/season-server";
+import { seasonStartMonth } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
@@ -14,15 +16,18 @@ export default async function CalendarPage() {
   const s = await getSession();
   const academyId = await requireAcademyId();
   const isAdmin = s?.isAdmin ?? false;
+  const season = await getActiveSeason();
 
   const scope: CalendarScope = isAdmin
     ? { kind: "admin", academyId }
     : { kind: "coach", academyId, coachId: s?.coachId ?? "" };
 
   const [groupsStats, currency, events] = await Promise.all([
-    getGroupsWithStats(isAdmin ? null : s?.coachId ?? null),
+    getGroupsWithStats(isAdmin ? null : s?.coachId ?? null, { season }),
     getAcademyCurrency(),
-    getCalendarEvents(scope),
+    // Scope to the active season — only events tagged for this season (plus
+    // academy-wide ones whose season is null/"all") flow through.
+    getCalendarEvents(scope, { season }),
   ]);
 
   // Group options + per-group budget/spent so the KPI bar can refocus on a
@@ -60,7 +65,9 @@ export default async function CalendarPage() {
     <>
       <PageHeader
         title="Season Planner"
-        subtitle={isAdmin ? "Spreadsheet-style preseason planner — events, costs and budget exposure in one view." : "Your groups' plan — events, locations and costs."}
+        subtitle={isAdmin
+          ? `Season ${season} · spreadsheet-style preseason planner — events, costs and budget exposure in one view.`
+          : `Season ${season} · your groups' plan — events, locations and costs.`}
       />
       <div className="p-8">
         <SeasonPlanner
@@ -70,6 +77,10 @@ export default async function CalendarPage() {
           totalBudget={totalBudget}
           spent={spent}
           canCreateAcademyWide={isAdmin}
+          // Anchor the cursor at the start of the active season (Aug 1) so the
+          // planner opens on the right window even when "today" is months later.
+          initialCursor={seasonStartMonth(season)}
+          initialSeasonFilter={season}
         />
       </div>
     </>

@@ -5,12 +5,14 @@ import { getFinance } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
 import { PaymentControl } from "@/components/MemberControls";
 import { fmtMoney, fmtDate, effectivePaymentStatus, effectiveInvoiceStatus, PAYMENT_STATUS_COLOR, INVOICE_STATUS_COLOR } from "@/lib/domain";
+import { getActiveSeason } from "@/lib/season-server";
 
 export const dynamic = "force-dynamic";
 
 export default async function PaymentsPage() {
   await requireAdmin();
-  const f = await getFinance();
+  const season = await getActiveSeason();
+  const f = await getFinance({ season });
   const rows = [...f.payments].sort((a, b) => {
     const ao = effectivePaymentStatus(a) === "overdue" ? 0 : 1;
     const bo = effectivePaymentStatus(b) === "overdue" ? 0 : 1;
@@ -19,15 +21,18 @@ export default async function PaymentsPage() {
 
   return (
     <>
-      <PageHeader title="Payments & Invoices" subtitle="Invoices, balances, overdue and forecasts update automatically as payments are recorded." />
+      <PageHeader
+        title="Payments & Invoices"
+        subtitle={`Season ${season} · only invoices and payments tied to this season are shown. Switch season from the sidebar to view another.`}
+      />
 
       <div className="space-y-6 p-8">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="Collected" value={fmtMoney(f.collected, f.currency)} hint="paid to date" accent />
+          <StatCard label="Collected" value={fmtMoney(f.collected, f.currency)} hint={`paid in ${season}`} accent />
           <StatCard label="Outstanding" value={fmtMoney(f.outstandingTotal, f.currency)} hint="billed, not yet paid" danger={f.outstandingTotal > 0} />
           <StatCard label="Overdue" value={fmtMoney(f.overdueTotal, f.currency)} hint={`past due · ${f.unpaidAthletes} athlete(s)`} danger={f.overdueTotal > 0} />
-          <StatCard label="Paid this month" value={fmtMoney(f.paidThisMonth, f.currency)} hint="collected this month" />
-          <StatCard label="Active subscriptions" value={String(f.activeSubscriptions)} hint="athletes on a package" />
+          <StatCard label="Paid in season" value={fmtMoney(f.paidThisMonth, f.currency)} hint={`collected in ${season}`} />
+          <StatCard label="Active subscriptions" value={String(f.activeSubscriptions)} hint={`athletes on a package in ${season}`} />
           <StatCard label="Monthly recurring" value={fmtMoney(f.monthlyRecurring, f.currency)} hint="avg/mo · last 3 months" />
         </div>
 

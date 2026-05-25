@@ -3,6 +3,17 @@ import { requireAcademyId } from "@/lib/auth";
 import { computeTrend } from "@/lib/queries";
 import { perfFromTrend, isOverdue, isThisMonth, type PerfStatus, type Trend } from "@/lib/domain";
 import { aggregateFinance } from "@/lib/financeMath";
+import { seasonBounds, previousSeason } from "@/lib/season";
+
+// Shared option bag for "what season am I looking at?". All read functions
+// accept this and narrow their result set accordingly — pages just pass the
+// season they got from the cookie. Omitting it keeps the all-time behaviour.
+export type SeasonScope = { season?: string };
+function dateInWindow(d: Date | null | undefined, start: Date, end: Date) {
+  if (!d) return false;
+  const t = +d;
+  return t >= +start && t <= +end;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Operational data + automation. Everything here is COMPUTED from the database —
@@ -78,9 +89,17 @@ function enrichOne<T extends EnrichInput>(e: T) {
   return { ...e, trend, perf, overduePayments, overdueAmount, missingDocs, paymentsTotal, paidTotal, outstanding };
 }
 
-async function loadEnrollments(academyId: string, coachId?: string | null) {
+async function loadEnrollments(academyId: string, coachId?: string | null, opts: SeasonScope = {}) {
+  // Season scoping for enrollments — an enrollment belongs to a season via its
+  // group. We deliberately include enrollments without a group (intake limbo)
+  // only when no season filter is active, so the season view stays focused on
+  // the rostered athletes for that season.
   const list = await prisma.enrollment.findMany({
-    where: { academyId, ...(coachId ? { coachId } : {}) },
+    where: {
+      academyId,
+      ...(coachId ? { coachId } : {}),
+      ...(opts.season ? { group: { season: opts.season } } : {}),
+    },
     include: ENROLLMENT_INCLUDE,
     orderBy: { joinDate: "desc" },
   });
@@ -88,9 +107,10 @@ async function loadEnrollments(academyId: string, coachId?: string | null) {
 }
 
 // `coachId` scopes results to a single coach's athletes (coach workspace).
-export async function getActiveAthletes(coachId?: string | null) {
+// `opts.season` narrows to athletes rostered in that season's groups.
+export async function getActiveAthletes(coachId?: string | null, opts: SeasonScope = {}) {
   const academyId = await requireAcademyId();
-  return loadEnrollments(academyId, coachId);
+  return loadEnrollments(academyId, coachId, opts);
 }
 
 export async function getActiveAthlete(id: string, coachId?: string | null) {
@@ -161,12 +181,19 @@ export async function getGroupsForAssignment() {
   }));
 }
 
-export async function getGroupsWithStats(coachId?: string | null) {
+// `opts.season` restricts to groups whose `season` field matches — Groups
+// already live in exactly one season per the schema (group.season is required),
+// so scoping is a simple equality filter.
+export async function getGroupsWithStats(coachId?: string | null, opts: SeasonScope = {}) {
   const academyId = await requireAcademyId();
   const academy = await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } });
   const baseCurrency = academy?.currency ?? "EUR";
   const groups = await prisma.group.findMany({
-    where: { academyId, ...(coachId ? { coachId } : {}) },
+    where: {
+      academyId,
+      ...(coachId ? { coachId } : {}),
+      ...(opts.season ? { season: opts.season } : {}),
+    },
     include: { coach: true, enrollments: { include: { package: true, payments: true, athlete: { select: { discipline: true } } } }, expenses: true },
     orderBy: { name: "asc" },
   });
@@ -250,11 +277,18 @@ export async function getCoachesWithStats() {
   });
 }
 
-export async function getPackagesWithStats() {
+// When `opts.season` is set we still load every Package (they're shared across
+// seasons), but the per-package `activeCount` only counts enrollments rostered
+// in that season's groups — so "active in season X" is honest.
+export async function getPackagesWithStats(opts: SeasonScope = {}) {
   const academyId = await requireAcademyId();
   const packages = await prisma.package.findMany({
     where: { academyId },
-    include: { enrollments: true },
+    include: {
+      enrollments: opts.season
+        ? { where: { group: { season: opts.season } } }
+        : true,
+    },
     orderBy: { order: "asc" },
   });
   return packages.map((p) => {
@@ -272,12 +306,32 @@ export async function getPackagesWithStats() {
 
 export type FinanceData = Awaited<ReturnType<typeof getFinance>>;
 
-export async function getFinance() {
+// `opts.season` scopes the entire finance picture to a single season:
+//   – payments included only if dueDate OR paidDate falls in the season window
+//   – activeSubscriptions / packageBreakdown / totalContract counted only for
+//     enrollments rostered in that season's groups
+// Omit `opts.season` to keep the historical (all-time) behaviour.
+export async function getFinance(opts: SeasonScope = {}) {
   const academyId = await requireAcademyId();
   const academy = await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } });
   const baseCurrency = academy?.currency ?? "EUR";
+  const bounds = opts.season ? seasonBounds(opts.season) : null;
+
+  // Pull all matching payments — when scoped, we ask Postgres for "anything that
+  // touched the season" (due in window OR paid in window) so a payment created
+  // before the season but paid inside it still counts as season revenue.
   const payments = await prisma.payment.findMany({
-    where: { academyId },
+    where: {
+      academyId,
+      ...(bounds
+        ? {
+            OR: [
+              { dueDate: { gte: bounds.start, lte: bounds.end } },
+              { paidDate: { gte: bounds.start, lte: bounds.end } },
+            ],
+          }
+        : {}),
+    },
     include: { enrollment: { include: { athlete: true, package: true, group: true } }, invoice: true },
     orderBy: { dueDate: "asc" },
   });
@@ -290,8 +344,15 @@ export async function getFinance() {
   const collected = agg.collected;
   const outstandingTotal = agg.outstandingTotal;
   const overdueTotal = agg.overdueTotal;
-  const paidThisMonth = agg.paidThisMonth;
   const monthlyRecurring = agg.monthlyRecurring;
+  // "paid this month" stays calendar-current; when a past season is selected,
+  // the page surfaces "paid in season" (sum of paidAmount on payments paid in
+  // window) instead — computed here so the page doesn't have to.
+  const paidInSeason = bounds
+    ? payments
+        .filter((p) => p.currency === baseCurrency && dateInWindow(p.paidDate, bounds.start, bounds.end))
+        .reduce((s, p) => s + p.paidAmount, 0)
+    : agg.paidThisMonth;
 
   const expectedThisMonth = payments.filter((p) => p.currency === baseCurrency && isThisMonth(p.dueDate)).reduce((s, p) => s + p.amount, 0);
   const overdue = payments.filter((p) => isOverdue(p));
@@ -310,22 +371,29 @@ export async function getFinance() {
     else invoiceStates.pending++;
   }
 
-  const activeSubs = await prisma.enrollment.count({ where: { academyId, status: { in: ["active", "injured", "paused"] }, packageId: { not: null } } });
-
-  // package revenue breakdown (contract value of active enrollments)
-  const pkgs = await getPackagesWithStats();
+  // Active subscriptions + package breakdown — when a season is in effect we
+  // count only enrollments whose group is in that season, so the headline
+  // "Active subscriptions" answers "how many athletes were on a package this
+  // season", not "right now across all time".
+  const activeSubs = await prisma.enrollment.count({
+    where: {
+      academyId,
+      status: { in: ["active", "injured", "paused"] },
+      packageId: { not: null },
+      ...(opts.season ? { group: { season: opts.season } } : {}),
+    },
+  });
+  const pkgs = await getPackagesWithStats(opts);
   const packageBreakdown = pkgs
     .filter((p) => p.activeCount > 0)
     .map((p) => ({ id: p.id, name: p.name, count: p.activeCount, revenue: p.contractValue, currency: p.currency }));
-
-  // Total contract value — base currency only (don't sum across currencies).
   const totalContract = pkgs.filter((p) => p.currency === baseCurrency).reduce((s, p) => s + p.contractValue, 0);
 
   return {
     payments,
     currency: baseCurrency,
     expectedThisMonth,
-    paidThisMonth,
+    paidThisMonth: paidInSeason,
     collected,
     outstandingTotal,
     overdue,
@@ -340,6 +408,7 @@ export async function getFinance() {
     otherCurrencies: agg.otherCurrencies,
     collectionRate: agg.collectionRate,
     invoiceStates,
+    seasonScoped: !!opts.season,
   };
 }
 
@@ -356,14 +425,24 @@ export async function getDocumentsData(coachId?: string | null) {
 }
 
 // ── Dashboard metrics ──
-export async function getDashboard() {
+// `opts.season` makes the entire overview season-scoped: enrolments, applications,
+// groups, finance, budget rollup and the recent-activity feed all reflect the
+// chosen season. Without it the dashboard falls back to the all-time view.
+export async function getDashboard(opts: SeasonScope = {}) {
   const academyId = await requireAcademyId();
+  const bounds = opts.season ? seasonBounds(opts.season) : null;
   const [enrollments, applications, groups, coaches, finance, docs, alerts] = await Promise.all([
-    getActiveAthletes(),
-    prisma.application.findMany({ where: { academyId }, include: { athlete: { include: { rankings: { orderBy: { date: "asc" } } } } } }),
-    getGroupsWithStats(),
+    getActiveAthletes(null, opts),
+    prisma.application.findMany({
+      where: {
+        academyId,
+        ...(bounds ? { submittedAt: { gte: bounds.start, lte: bounds.end } } : {}),
+      },
+      include: { athlete: { include: { rankings: { orderBy: { date: "asc" } } } } },
+    }),
+    getGroupsWithStats(null, opts),
     getCoachesWithStats(),
-    getFinance(),
+    getFinance(opts),
     getDocumentsData(),
     computeAlerts(),
   ]);
@@ -390,9 +469,13 @@ export async function getDashboard() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 8);
 
-  // Recent activity feed (most recent application status changes).
+  // Recent activity feed — most recent application status changes inside the
+  // active season window when scoped, full history otherwise.
   const recentStatusEvents = await prisma.statusEvent.findMany({
-    where: { application: { academyId } },
+    where: {
+      application: { academyId },
+      ...(bounds ? { createdAt: { gte: bounds.start, lte: bounds.end } } : {}),
+    },
     include: { application: { include: { athlete: { select: { firstName: true, lastName: true } } } } },
     orderBy: { createdAt: "desc" },
     take: 8,
@@ -456,7 +539,6 @@ export type SeasonReport = {
 
 export async function getSeasonReport(season: string): Promise<SeasonReport> {
   const academyId = await requireAcademyId();
-  const { seasonBounds, previousSeason } = await import("@/lib/season");
   const bounds = seasonBounds(season);
   const priorBounds = seasonBounds(previousSeason(season));
 

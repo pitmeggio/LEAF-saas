@@ -18,7 +18,8 @@ export default async function OverviewPage() {
   const session = await getSession();
   if (session && !session.isAdmin) return <CoachDashboard />;
 
-  const [academy, d, season] = await Promise.all([getAcademy(), getDashboard(), getActiveSeason()]);
+  const season = await getActiveSeason();
+  const [academy, d] = await Promise.all([getAcademy(), getDashboard({ season })]);
   const f = d.finance;
   const perfAlertCount = d.alerts.filter((a) => a.type === "declining_trend").length;
 

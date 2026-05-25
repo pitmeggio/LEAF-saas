@@ -4,6 +4,7 @@ import { Modal, GroupExpenseForm } from "@/components/EntityForms";
 import { getGroupsWithStats, getAcademyCurrency } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
+import { getActiveSeason } from "@/lib/season-server";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,11 @@ export const dynamic = "force-dynamic";
 // "+ Add expense" against any group budget. Cross-group totals at the top.
 export default async function BudgetsPage() {
   await requireAdmin();
-  const [groups, currency] = await Promise.all([getGroupsWithStats(), getAcademyCurrency()]);
+  const season = await getActiveSeason();
+  const [groups, currency] = await Promise.all([
+    getGroupsWithStats(null, { season }),
+    getAcademyCurrency(),
+  ]);
 
   const totals = groups.reduce(
     (acc, g) => {
@@ -36,7 +41,10 @@ export default async function BudgetsPage() {
 
   return (
     <>
-      <PageHeader title="Budgets" subtitle="Per-team budget, spend by cost line and P&L. Add expenses straight against a group budget." />
+      <PageHeader
+        title="Budgets"
+        subtitle={`Season ${season} · per-team budget, spend by cost line and P&L. Add expenses straight against a group budget.`}
+      />
 
       <div className="space-y-6 p-8">
         {/* Academy-wide totals */}
