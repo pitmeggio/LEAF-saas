@@ -68,3 +68,13 @@ export function academyFeatures(a: Partial<AcademyFeatureFlags> | null | undefin
     featureChat: a?.featureChat ?? true,
   };
 }
+
+// Platform-level kill switch for the self-serve athlete signup flow on
+// /explore (the "Create your verified profile" CTA + FIS-import flow that
+// builds a public profile without any academy involvement). When the
+// discovery / marketplace layer is live, flip LEAF_PUBLIC_PROFILES=on in
+// the env to re-enable. Per-academy featurePublicProfiles is separate and
+// stays controllable by super admin.
+export function publicProfileSignupEnabled(): boolean {
+  return process.env.LEAF_PUBLIC_PROFILES === "on";
+}

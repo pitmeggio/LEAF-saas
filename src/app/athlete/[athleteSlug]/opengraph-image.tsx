@@ -15,10 +15,16 @@ export default async function Image({ params }: { params: Promise<{ athleteSlug:
     select: {
       firstName: true, lastName: true, sport: true, fisPoints: true, worldRank: true,
       photoColor: true, publicVerified: true, publicProfileEnabled: true, publicVisibility: true, publicShowRanking: true,
+      // Platform-level gate — same condition the page itself uses to render
+      // (or 404). The OG card collapses to a generic "LEAF" mark when the
+      // feature isn't enabled for any of the athlete's academies, so a stale
+      // shared URL doesn't keep teasing a profile that isn't actually live.
+      enrollments: { select: { academy: { select: { featurePublicProfiles: true } } } },
     },
   });
 
-  const visible = a && a.publicProfileEnabled && a.publicVisibility === "PUBLIC";
+  const featureOn = !!a && a.enrollments.some((e) => e.academy?.featurePublicProfiles);
+  const visible = a && featureOn && a.publicProfileEnabled && a.publicVisibility === "PUBLIC";
   const cfg = sportConfig(a?.sport);
   const name = visible ? `${a!.firstName} ${a!.lastName}` : "LEAF";
   const accent = "#7CFF6B";

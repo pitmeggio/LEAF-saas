@@ -1,8 +1,31 @@
+import Link from "next/link";
 import { PublicNav } from "@/components/PublicNav";
 import { CreateProfileButton } from "@/components/CreateProfilePanel";
 import { SiteFooter } from "@/components/SiteFooter";
+import { publicProfileSignupEnabled } from "@/lib/plans";
 
 export const metadata = { title: "Your performance, analyzed — LEAF" };
+
+// Coming-soon CTA — replaces "Create your profile" while public profiles are
+// behind a flag (no discovery / marketplace yet, so a brand-new profile would
+// be invisible). When LEAF_PUBLIC_PROFILES=on is set, the original signup
+// flow comes back automatically.
+function AthleteEntryCTA() {
+  if (publicProfileSignupEnabled()) return <CreateProfileButton />;
+  return (
+    <div className="inline-flex flex-col items-center gap-3 sm:flex-row">
+      <Link
+        href="/login/athlete"
+        className="rounded-full bg-[var(--color-accent)] px-7 py-3 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]"
+      >
+        Sign in to your profile
+      </Link>
+      <span className="text-xs text-[var(--color-muted)]">
+        Self-serve profiles open soon · ask your academy to invite you
+      </span>
+    </div>
+  );
+}
 
 // What LEAF computes from an athlete's federation-published record (FIS, ATP…).
 const ANALYSIS = [
@@ -38,7 +61,7 @@ export default function ExplorePage() {
             LEAF reads your federation-published record — FIS for ski, ATP for tennis and more — and builds a verified performance profile: trends, consistency and the analysis academies actually look for. One link, owned by you.
           </p>
           <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-            <CreateProfileButton />
+            <AthleteEntryCTA />
             <a href="#how" className="rounded-full border border-[var(--color-border)] px-7 py-3 text-sm font-semibold hover:border-[var(--color-accent)]">
               How it works
             </a>
@@ -127,7 +150,7 @@ export default function ExplorePage() {
               It takes one federation code. Free, and yours to keep.
             </p>
             <div className="mt-8 flex justify-center">
-              <CreateProfileButton />
+              <AthleteEntryCTA />
             </div>
           </div>
         </div>

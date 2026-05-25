@@ -55,6 +55,14 @@ async function uniqueSlug(first: string, last: string, athleteId: string): Promi
 // FIS-published record (points, history, results), build a verified public profile and
 // hand them their shareable link. ATP is not wired to a provider yet.
 export async function createProfileAction(_prev: CreateProfileState, formData: FormData): Promise<CreateProfileState> {
+  // Platform-level gate — self-serve athlete signup creates a public profile.
+  // While the discovery / marketplace layer isn't live, the resulting profile
+  // would be invisible (404 at /athlete/[slug] thanks to the academy-level
+  // feature flag). Return a clear error instead of creating an orphan record.
+  const { publicProfileSignupEnabled } = await import("@/lib/plans");
+  if (!publicProfileSignupEnabled()) {
+    return { error: "Self-serve athlete profiles are paused. Ask your academy to invite you to LEAF." };
+  }
   const parsed = createProfileSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const d = parsed.data;
