@@ -2,11 +2,13 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar, Dot } from "@/components/StatCard";
 import { getAcademy } from "@/lib/queries";
-import { getDashboard } from "@/lib/ops";
+import { getDashboard, getTennisDashboardStats } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { CoachDashboard } from "@/components/CoachDashboard";
 import { fmtMoney } from "@/lib/domain";
 import { getActiveSeason } from "@/lib/season-server";
+import { getSportModuleForAcademy } from "@/lib/sports/registry";
+import type { DashboardKpi } from "@/lib/sports/types";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +24,14 @@ export default async function OverviewPage() {
   const [academy, d] = await Promise.all([getAcademy(), getDashboard({ season })]);
   const f = d.finance;
   const perfAlertCount = d.alerts.filter((a) => a.type === "declining_trend").length;
+
+  // Sport-aware KPI grid — the active sport module decides what to display.
+  // Only fetch sport-specific aggregates (tennis) when the module asks for them.
+  const sport = getSportModuleForAcademy(academy);
+  const needsTennisStats = sport.dashboardKpis.some((k) =>
+    k.source === "matchesThisSeason" || k.source === "avgWinRate"
+  );
+  const tennisStats = needsTennisStats ? await getTennisDashboardStats({ season }) : null;
 
   return (
     <>
@@ -69,14 +79,28 @@ export default async function OverviewPage() {
           </div>
         )}
 
-        {/* 6 KPI cards — the academy at a glance */}
+        {/* Sport-aware KPI grid — the active sport module decides which cards
+            land here. Ski leads with Performance alerts + Budget usage;
+            Tennis swaps those out for Matches this season + Avg win rate. */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="Total athletes" value={String(d.activeAthletes)} hint="enrolled members" accent href="/dashboard/members" />
-          <StatCard label="Active applications" value={String(d.pipelineCount)} hint={`${d.accepted} accepted this season`} href="/dashboard/applications" />
-          <StatCard label="Season revenue" value={fmtMoney(f.collected, f.currency)} hint={`paid · ${season}`} href="/dashboard/payments" />
-          <StatCard label="Pending payments" value={fmtMoney(f.outstandingTotal, f.currency)} hint={`${f.unpaidAthletes} athlete(s) to chase`} danger={f.outstandingTotal > 0} href="/dashboard/payments" />
-          <StatCard label="Budget usage" value={`${d.budgetPctUsed}%`} hint={`${fmtMoney(d.usedBudget, f.currency)} of ${fmtMoney(d.totalBudget, f.currency)}`} danger={d.budgetPctUsed > 100} href="/dashboard/budgets" />
-          <StatCard label="Performance alerts" value={String(perfAlertCount)} hint="athletes trending down" danger={perfAlertCount > 0} href="/dashboard/alerts" />
+          {sport.dashboardKpis.map((kpi) => {
+            const props = kpiCardProps(kpi, {
+              season,
+              activeAthletes: d.activeAthletes,
+              pipelineCount: d.pipelineCount,
+              accepted: d.accepted,
+              budgetPctUsed: d.budgetPctUsed,
+              usedBudget: d.usedBudget,
+              totalBudget: d.totalBudget,
+              perfAlertCount,
+              currency: f.currency,
+              collected: f.collected,
+              outstandingTotal: f.outstandingTotal,
+              unpaidAthletes: f.unpaidAthletes,
+              tennisStats,
+            });
+            return <StatCard key={kpi.key} {...props} />;
+          })}
         </div>
 
         {/* Two-column: Group distribution + Recent activity */}
@@ -128,4 +152,54 @@ export default async function OverviewPage() {
       </div>
     </>
   );
+}
+
+// Maps a sport-module KPI (declared as a `source` key) to the props the
+// StatCard component renders. New KPI sources land here — keep the switch
+// exhaustive so new sports drop in without surprises.
+type KpiData = {
+  season: string;
+  activeAthletes: number;
+  pipelineCount: number;
+  accepted: number;
+  budgetPctUsed: number;
+  usedBudget: number;
+  totalBudget: number;
+  perfAlertCount: number;
+  currency: string;
+  collected: number;
+  outstandingTotal: number;
+  unpaidAthletes: number;
+  tennisStats: { matchesThisSeason: number; avgWinRate: number } | null;
+};
+
+function kpiCardProps(kpi: DashboardKpi, d: KpiData) {
+  const base = { label: kpi.label, hint: kpi.hint } as { label: string; value: string; hint?: string; accent?: boolean; danger?: boolean; href?: string };
+  switch (kpi.source) {
+    case "totalAthletes":
+      return { ...base, value: String(d.activeAthletes), hint: kpi.hint ?? "enrolled members", accent: true, href: "/dashboard/members" };
+    case "activeApplications":
+      return { ...base, value: String(d.pipelineCount), hint: kpi.hint ?? `${d.accepted} accepted this season`, href: "/dashboard/applications" };
+    case "seasonRevenue":
+      return { ...base, value: fmtMoney(d.collected, d.currency), hint: kpi.hint ?? `paid · ${d.season}`, accent: !kpi.hint, href: "/dashboard/payments" };
+    case "pendingPayments":
+      return { ...base, value: fmtMoney(d.outstandingTotal, d.currency), hint: kpi.hint ?? `${d.unpaidAthletes} athlete(s) to chase`, danger: d.outstandingTotal > 0, href: "/dashboard/payments" };
+    case "budgetUsage":
+      return { ...base, value: `${d.budgetPctUsed}%`, hint: kpi.hint ?? `${fmtMoney(d.usedBudget, d.currency)} of ${fmtMoney(d.totalBudget, d.currency)}`, danger: d.budgetPctUsed > 100, href: "/dashboard/budgets" };
+    case "performanceAlerts":
+      return { ...base, value: String(d.perfAlertCount), hint: kpi.hint ?? "athletes trending down", danger: d.perfAlertCount > 0, href: "/dashboard/alerts" };
+    case "matchesThisSeason":
+      return { ...base, value: String(d.tennisStats?.matchesThisSeason ?? 0), hint: kpi.hint ?? `recorded · ${d.season}`, href: "/dashboard/members" };
+    case "avgWinRate":
+      return { ...base, value: `${d.tennisStats?.avgWinRate ?? 0}%`, hint: kpi.hint ?? "across all logged matches", accent: (d.tennisStats?.avgWinRate ?? 0) >= 50, href: "/dashboard/members" };
+    case "avgFisProgression":
+      // Reserved for a future ski-specific aggregate; falls back gracefully.
+      return { ...base, value: "—", hint: kpi.hint ?? "season progression (coming)" };
+    default: {
+      // Exhaustiveness guard — surfaced if a sport adds a new source the
+      // page hasn't taught itself to render yet.
+      const _exhaustive: never = kpi.source;
+      return { ...base, value: "—" };
+    }
+  }
 }

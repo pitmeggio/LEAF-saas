@@ -684,6 +684,33 @@ export async function getCoachIntelligenceSummary(coachId: string | null): Promi
   return { totalNotes, watchlist, recentNotes, themeBalance };
 }
 
+// ── Sport-specific dashboard stats ────────────────────────────────────────
+// Computed separately from getDashboard so the universal flow stays sport-
+// agnostic. Callers (the overview page) only hit this when the active sport
+// module actually wants the values (tennis = matchesThisSeason / avgWinRate).
+export type TennisDashboardStats = {
+  matchesThisSeason: number;
+  avgWinRate: number;     // 0-100
+};
+
+export async function getTennisDashboardStats(opts: SeasonScope = {}): Promise<TennisDashboardStats> {
+  const academyId = await requireAcademyId();
+  const bounds = opts.season ? seasonBounds(opts.season) : null;
+  const matches = await prisma.tennisMatch.findMany({
+    where: {
+      academyId,
+      ...(bounds ? { date: { gte: bounds.start, lte: bounds.end } } : {}),
+    },
+    select: { result: true },
+  });
+  const total = matches.length;
+  const wins = matches.filter((m) => m.result === "won").length;
+  return {
+    matchesThisSeason: total,
+    avgWinRate: total > 0 ? Math.round((wins / total) * 100) : 0,
+  };
+}
+
 // ── Reports: season-aware aggregations ─────────────────────────────────────
 // One season-of-data, computed from base tables filtered by season bounds.
 // Pure-ish on top of Prisma — same shape regardless of season, so the caller
