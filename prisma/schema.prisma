@@ -239,6 +239,12 @@ model Coach {
   sessions       TrainingSession[]
   calendarEvents CalendarEvent[]
   coachNotes     CoachNote[]
+  // Living "coaching style" — themeFrequency + recurring focus areas
+  // aggregated across every note this coach writes. The structurer feeds
+  // this back into the LLM prompt so analyses become personalised over
+  // time (Coach A → technical-heavy, Coach B → tactical-heavy, …).
+  aiStyle        Json?
+  aiStyleUpdatedAt DateTime?
   createdAt      DateTime     @default(now())
 }
 

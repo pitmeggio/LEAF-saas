@@ -40,6 +40,10 @@ export type StructureInput = {
   rawText: string;
   sport: string; // "ski" | "tennis" | future
   kindHint?: string | null;
+  // Optional one-line lens from the coach's own aiStyle ("this coach tends
+  // to focus on technical / mental"). Fed into the LLM system prompt so
+  // analyses become personalised; ignored by the deterministic engine.
+  coachLensHint?: string | null;
 };
 
 // Public entry point. Always returns a structure — never throws.
@@ -89,8 +93,15 @@ async function llmStructure(input: StructureInput): Promise<CoachNoteStructure |
     .filter(Boolean)
     .join("\n");
 
+  // Personalisation: prepend the coach's lens hint to the system prompt when
+  // we have enough signal. Keeps the structural rules intact but biases the
+  // dynamic sections toward the dimensions this coach actually cares about.
+  const system = input.coachLensHint
+    ? `${SYSTEM_PROMPT}\n\nCONTEXT\n${input.coachLensHint}`
+    : SYSTEM_PROMPT;
+
   const r = await callLlm([{ role: "user", content: user }], {
-    system: SYSTEM_PROMPT,
+    system,
     purpose: "coach-note-structurer",
     maxTokens: 1500,
     temperature: 0.2,

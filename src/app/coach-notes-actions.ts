@@ -13,6 +13,7 @@ import {
 } from "@/lib/validation";
 import { structureCoachNote } from "@/lib/ai/coachNotes";
 import { mergeNoteIntoProfile, type AthleteAiProfile } from "@/lib/ai/coachProfile";
+import { mergeCoachStyle, coachStyleHint, type CoachAiStyle } from "@/lib/ai/coachStyle";
 
 export type Result = { ok: true; id?: string } | { ok: false; error: string };
 
@@ -83,6 +84,14 @@ export async function createCoachNote(input: CoachNoteCreateInput): Promise<Resu
     },
   });
 
+  // Load the coach's living style so the LLM gets a personalisation hint
+  // ("this coach tends to focus on X / Y"). Hint stays empty for the first
+  // few notes (low-signal guard inside coachStyleHint).
+  const coachRecord = coachId
+    ? await prisma.coach.findUnique({ where: { id: coachId }, select: { aiStyle: true } })
+    : null;
+  const prevStyle = (coachRecord?.aiStyle as unknown as CoachAiStyle | null) ?? null;
+
   // Structure + merge — inline for the MVP (single request flow). Failures
   // are non-fatal: the note keeps its raw text and the UI surfaces an error.
   try {
@@ -90,6 +99,7 @@ export async function createCoachNote(input: CoachNoteCreateInput): Promise<Resu
       rawText: d.rawText,
       sport,
       kindHint: d.kind ?? null,
+      coachLensHint: coachStyleHint(prevStyle) || null,
     });
     await prisma.coachNote.update({
       where: { id: created.id },
@@ -111,6 +121,18 @@ export async function createCoachNote(input: CoachNoteCreateInput): Promise<Resu
         aiProfileUpdatedAt: new Date(),
       },
     });
+
+    // Update the coach's own aiStyle so the next note carries a sharper lens.
+    if (coachId) {
+      const nextStyle = mergeCoachStyle(prevStyle, structured, d.rawText);
+      await prisma.coach.update({
+        where: { id: coachId },
+        data: {
+          aiStyle: nextStyle as unknown as Prisma.InputJsonValue,
+          aiStyleUpdatedAt: new Date(),
+        },
+      });
+    }
   } catch (err) {
     console.error("[coach-notes] structurer failed", err);
     await prisma.coachNote.update({
