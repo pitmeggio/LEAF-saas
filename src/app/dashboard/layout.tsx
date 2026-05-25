@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { academyFeatures } from "@/lib/plans";
+import { getSeasonContext } from "@/lib/season-server";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -30,11 +31,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
     );
   }
 
+  const season = await getSeasonContext();
+
   return (
     <>
       <Sidebar
         user={{ name: user.name, role: user.role, academy: user.academy?.name ?? "—" }}
         features={academyFeatures(user.academy)}
+        season={season}
       />
       <main className="ml-60 min-h-screen">{children}</main>
     </>

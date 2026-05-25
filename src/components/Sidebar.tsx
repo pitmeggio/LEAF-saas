@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/auth-actions";
 import { LeafMark } from "@/components/LeafMark";
+import { SeasonSelector } from "@/components/SeasonSelector";
 import { initials } from "@/lib/domain";
 
 type FeatureKey = "featureRecruiting" | "featurePublicProfiles" | "featureFinance" | "featureChat";
@@ -83,7 +84,7 @@ const ROLE_LABEL: Record<string, string> = {
   recruiter: "Recruiter",
 };
 
-export function Sidebar({ user, features }: { user: { name: string; role: string; academy: string }; features: SidebarFeatures }) {
+export function Sidebar({ user, features, season }: { user: { name: string; role: string; academy: string }; features: SidebarFeatures; season: { active: string; seasons: string[]; isCurrent: boolean } }) {
   const pathname = usePathname();
   const baseSections = user.role === "academy_admin" ? ADMIN_SECTIONS : COACH_SECTIONS;
   // Hide modules the platform has switched off for this tenant; drop empty sections.
@@ -113,14 +114,15 @@ export function Sidebar({ user, features }: { user: { name: string; role: string
 
   return (
     <aside className="fixed inset-y-0 left-0 z-20 flex w-60 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-5">
-      <div className="px-2 pb-6">
-        <div className="flex items-center gap-2.5">
+      <div className="px-2 pb-4">
+        <div className="mb-4 flex items-center gap-2.5">
           <LeafMark size={26} />
           <div>
             <div className="text-sm font-bold leading-tight tracking-tight">LEAF</div>
             <div className="text-[11px] text-[var(--color-muted)] leading-tight">Academy OS</div>
           </div>
         </div>
+        <SeasonSelector active={season.active} seasons={season.seasons} isCurrent={season.isCurrent} />
       </div>
 
       <nav className="flex flex-1 flex-col gap-5 overflow-y-auto">

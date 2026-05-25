@@ -4,11 +4,16 @@ import { KanbanBoard, type Card } from "@/components/KanbanBoard";
 import { getApplications, getAcademy } from "@/lib/queries";
 import { getGroupsForAssignment } from "@/lib/ops";
 import { age, type Status } from "@/lib/domain";
+import { getActiveSeason } from "@/lib/season-server";
+import { seasonBounds } from "@/lib/season";
 
 export const dynamic = "force-dynamic";
 
 export default async function ApplicationsPage() {
-  const [apps, academy, groups] = await Promise.all([getApplications(), getAcademy(), getGroupsForAssignment()]);
+  const [allApps, academy, groups, season] = await Promise.all([getApplications(), getAcademy(), getGroupsForAssignment(), getActiveSeason()]);
+  const bounds = seasonBounds(season);
+  // Filter to applications submitted within the active season.
+  const apps = allApps.filter((a) => +new Date(a.submittedAt) >= +bounds.start && +new Date(a.submittedAt) <= +bounds.end);
   const groupName = new Map(groups.map((g) => [g.id, g.name]));
 
   const cards: Card[] = apps.map((a) => ({
@@ -33,7 +38,7 @@ export default async function ApplicationsPage() {
     <>
       <PageHeader
         title="Applications"
-        subtitle="Drag candidates across the pipeline. Status changes are saved automatically."
+        subtitle={`Season ${season} · drag candidates across the pipeline. Status changes are saved automatically.`}
         right={
           <div className="flex items-center gap-3">
             <span className="num text-sm text-[var(--color-muted)]">{cards.length} candidates</span>

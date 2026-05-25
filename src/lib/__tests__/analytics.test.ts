@@ -9,6 +9,7 @@ import { reviewApplication } from "@/lib/ai/applicationReview";
 import { buildPaymentSchedule, resolveRequiredDocs } from "@/lib/enrollmentLogic";
 import { aggregateFinance, type PaymentLike } from "@/lib/financeMath";
 import { seasonKpis, seasonHints, eventTotalCost, eventCoversDay, type EventLite } from "@/lib/planning";
+import { seasonForDate, seasonBounds, availableSeasons, formatSeason } from "@/lib/season";
 
 // ── Performance analytics (athlete results) ──────────────────────────────────
 test("computePerformance: empty input is safe (no divide-by-zero)", () => {
@@ -193,6 +194,27 @@ test("seasonKpis + hints: forecast over remaining triggers a warning", () => {
   assert.ok(k2.budgetRiskPct >= 100);
   const hints = seasonHints(k2, (n) => `${n} EUR`);
   assert.ok(hints.some((h) => h.kind === "warn" && /exceeds remaining/.test(h.text)));
+});
+
+// ── Ski-season helpers ──────────────────────────────────────────────────────
+test("seasonForDate: Aug-Dec → starts this year; Jan-Jul → started last year", () => {
+  assert.equal(seasonForDate(new Date("2026-08-01")), "2026/27");
+  assert.equal(seasonForDate(new Date("2026-12-31")), "2026/27");
+  assert.equal(seasonForDate(new Date("2027-01-15")), "2026/27");
+  assert.equal(seasonForDate(new Date("2027-07-31")), "2026/27");
+  assert.equal(seasonForDate(new Date("2027-08-01")), "2027/28");
+});
+
+test("seasonBounds: Aug 1 → Jul 31 inclusive", () => {
+  const b = seasonBounds("2026/27");
+  assert.equal(b.start.getFullYear(), 2026); assert.equal(b.start.getMonth(), 7); assert.equal(b.start.getDate(), 1);
+  assert.equal(b.end.getFullYear(), 2027); assert.equal(b.end.getMonth(), 6); assert.equal(b.end.getDate(), 31);
+});
+
+test("availableSeasons: 2 back, current, 3 forward — formatted correctly", () => {
+  const seasons = availableSeasons("2026/27");
+  assert.deepEqual(seasons, ["2024/25", "2025/26", "2026/27", "2027/28", "2028/29", "2029/30"]);
+  assert.equal(formatSeason(2099), "2099/00"); // century rollover stays 2-digit
 });
 
 test("aggregateFinance: base currency with no payments yields zeroed headline", () => {
