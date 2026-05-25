@@ -3,7 +3,6 @@ import assert from "node:assert/strict";
 
 import { deterministicStructure } from "@/lib/ai/coachNotes";
 import { mergeNoteIntoProfile, emptyAiProfile } from "@/lib/ai/coachProfile";
-import { safeFilename } from "@/lib/storage";
 
 // ── Deterministic structurer ─────────────────────────────────────────────
 test("deterministic: ski note picks technical + mental themes from coach prose", () => {
@@ -83,16 +82,6 @@ test("mergeNoteIntoProfile: injury flag marks the trend as 'watch'", () => {
   const profile = mergeNoteIntoProfile(null, s, new Date(2026, 0, 5));
   assert.ok(profile.injuryFlags.length > 0);
   assert.equal(profile.trends.injury, "watch");
-});
-
-// ── Storage helper (pure) ────────────────────────────────────────────────
-test("safeFilename: keeps the basics, collapses anything weird to underscore", () => {
-  assert.equal(safeFilename("Race report 2026/27.pdf"), "Race_report_2026_27.pdf");
-  assert.equal(safeFilename("éàü .docx"), "_.docx");
-  assert.equal(safeFilename(""), "file");
-  // Cap at 120 chars.
-  const long = "a".repeat(200) + ".pdf";
-  assert.equal(safeFilename(long).length, 120);
 });
 
 test("emptyAiProfile: deterministic shape that survives JSON round-trips", () => {

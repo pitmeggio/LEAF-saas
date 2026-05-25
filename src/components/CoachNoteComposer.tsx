@@ -20,7 +20,7 @@ const KIND_OPTIONS: { value: string; label: string }[] = [
   { value: "other", label: "Other" },
 ];
 
-type Attachment = { filename: string; url: string; mimeType?: string; size?: number };
+type Attachment = { filename: string; url: string };
 
 export function CoachNoteComposer({ athleteId, sport }: { athleteId: string; sport: string }) {
   const router = useRouter();
@@ -30,34 +30,10 @@ export function CoachNoteComposer({ athleteId, sport }: { athleteId: string; spo
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkName, setLinkName] = useState("");
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
 
-  async function uploadFile(file: File) {
-    setError(null);
-    setUploading(true);
-    try {
-      const form = new FormData();
-      form.set("file", file);
-      form.set("athleteId", athleteId);
-      const res = await fetch("/api/coach-notes/upload", { method: "POST", body: form });
-      const data = (await res.json().catch(() => ({}))) as { url?: string; filename?: string; mimeType?: string; size?: number; error?: string };
-      if (!res.ok || !data.url || !data.filename) {
-        // 501 = storage not configured — guide the user to the paste-link path instead.
-        if (res.status === 501) setError("File upload isn't configured. Paste a link below instead.");
-        else setError(data.error ?? "Upload failed.");
-        return;
-      }
-      setAttachments((prev) => [...prev, { filename: data.filename!, url: data.url!, mimeType: data.mimeType, size: data.size }]);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Upload failed.");
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  const canSubmit = rawText.trim().length >= 3 && !pending && !uploading;
+  const canSubmit = rawText.trim().length >= 3 && !pending;
 
   function addAttachment() {
     const url = linkUrl.trim();
@@ -135,32 +111,9 @@ export function CoachNoteComposer({ athleteId, sport }: { athleteId: string; spo
         </label>
       </div>
 
-      {/* Attachments — direct upload to Supabase Storage (PDF, image, video, …),
-          with paste-link as a fallback for anything hosted elsewhere
-          (Drive / Dropbox / YouTube). */}
+      {/* Attachments — paste-link MVP. Real upload to Supabase Storage lands next. */}
       <div className="mt-4 border-t border-[var(--color-border)] pt-3">
-        <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Attachments</div>
-
-        {/* File picker — uploads on selection so the coach sees instant feedback. */}
-        <div className="mb-2 flex items-center gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-1.5 text-xs font-medium hover:border-[var(--color-accent)]">
-            <span>{uploading ? "Uploading…" : "+ Upload file"}</span>
-            <input
-              type="file"
-              className="hidden"
-              accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,.csv,.txt,image/*,video/mp4,video/quicktime"
-              disabled={uploading || pending}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) uploadFile(f);
-                e.target.value = ""; // allow re-selecting the same file
-              }}
-            />
-          </label>
-          <span className="text-[10px] text-[var(--color-muted)]">PDF, Office, image, video · max 4MB</span>
-        </div>
-
-        <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--color-muted)]/70">…or paste a link</div>
+        <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Attachments (paste link)</div>
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="text"
