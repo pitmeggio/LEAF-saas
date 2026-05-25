@@ -23,8 +23,9 @@ const ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard", label: "Overview", icon: "▦" },
   ] },
   { label: "Applications", items: [
-    { href: "/dashboard/applications", label: "Pipeline", icon: "▤", feature: "featureRecruiting" },
-    { href: "/dashboard/recruiting", label: "Form & openings", icon: "✦", feature: "featureRecruiting" },
+    // Single entry — Pipeline / Openings & form / Settings live as tabs
+    // inside the Applications page so the workspace stays one module.
+    { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
   ] },
   { label: "Athletes", items: [
     { href: "/dashboard/members", label: "Active Athletes", icon: "⛷" },

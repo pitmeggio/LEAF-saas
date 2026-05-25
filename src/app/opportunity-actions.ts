@@ -14,7 +14,8 @@ function toDeadline(v: string | undefined): Date | null {
 }
 
 function revalidate(slug?: string | null) {
-  revalidatePath("/dashboard/recruiting");
+  // Openings live inside the Applications page (Openings & form tab).
+  revalidatePath("/dashboard/applications");
   if (slug) {
     revalidatePath(`/academy/${slug}`);
     revalidatePath(`/academy/${slug}/apply`);

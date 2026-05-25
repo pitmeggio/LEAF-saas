@@ -25,7 +25,7 @@ export async function updateApplicationForm(fields: unknown): Promise<Result> {
     data: { applicationConfig: toApplicationConfig(resolved) as unknown as Prisma.InputJsonValue },
   });
 
-  revalidatePath("/dashboard/recruiting");
+  revalidatePath("/dashboard/applications");
   return { ok: true };
 }
 
@@ -68,6 +68,8 @@ export async function updateRecruitingSettings(input: RecruitingSettingsInput): 
     },
   });
 
+  // Public recruiting surface lives at /recruiting; admin tab is on /dashboard/applications.
   revalidatePath("/recruiting");
+  revalidatePath("/dashboard/applications");
   return { ok: true };
 }
