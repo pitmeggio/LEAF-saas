@@ -9,7 +9,7 @@ import { reviewApplication } from "@/lib/ai/applicationReview";
 import { buildPaymentSchedule, resolveRequiredDocs } from "@/lib/enrollmentLogic";
 import { aggregateFinance, type PaymentLike } from "@/lib/financeMath";
 import { seasonKpis, seasonHints, eventTotalCost, eventCoversDay, type EventLite } from "@/lib/planning";
-import { seasonForDate, seasonBounds, availableSeasons, formatSeason } from "@/lib/season";
+import { seasonForDate, seasonBounds, availableSeasons, formatSeason, previousSeason, nextSeason, trailingSeasons } from "@/lib/season";
 
 // ── Performance analytics (athlete results) ──────────────────────────────────
 test("computePerformance: empty input is safe (no divide-by-zero)", () => {
@@ -215,6 +215,20 @@ test("availableSeasons: 2 back, current, 3 forward — formatted correctly", () 
   const seasons = availableSeasons("2026/27");
   assert.deepEqual(seasons, ["2024/25", "2025/26", "2026/27", "2027/28", "2028/29", "2029/30"]);
   assert.equal(formatSeason(2099), "2099/00"); // century rollover stays 2-digit
+});
+
+test("previousSeason / nextSeason: walk back and forward through the season axis", () => {
+  assert.equal(previousSeason("2026/27"), "2025/26");
+  assert.equal(nextSeason("2026/27"), "2027/28");
+  // Round-trip identity.
+  assert.equal(nextSeason(previousSeason("2026/27")), "2026/27");
+});
+
+test("trailingSeasons: oldest first, includes the reference season", () => {
+  const t = trailingSeasons("2026/27", 4);
+  assert.deepEqual(t, ["2023/24", "2024/25", "2025/26", "2026/27"]);
+  // Single-season slice still works.
+  assert.deepEqual(trailingSeasons("2026/27", 1), ["2026/27"]);
 });
 
 test("aggregateFinance: base currency with no payments yields zeroed headline", () => {

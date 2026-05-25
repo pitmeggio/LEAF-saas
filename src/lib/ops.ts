@@ -428,6 +428,131 @@ export async function getDashboard() {
   };
 }
 
+// ── Reports: season-aware aggregations ─────────────────────────────────────
+// One season-of-data, computed from base tables filtered by season bounds.
+// Pure-ish on top of Prisma — same shape regardless of season, so the caller
+// can do side-by-side comparison + trend strips without special-casing.
+export type SeasonReport = {
+  season: string;
+  currency: string;
+  // counts
+  newAthletes: number;            // enrollments joined in the season window
+  newApplications: number;        // applications submitted in the season window
+  acceptedApplications: number;
+  rejectedApplications: number;
+  // finance (base currency only)
+  revenueCollected: number;       // sum(paidAmount) for payments paid in window
+  revenueDue: number;             // sum(amount) for payments with dueDate in window
+  expensesApproved: number;       // sum(amount) for approved/reimbursed expenses in window
+  netResult: number;              // collected - approved expenses
+  collectionRate: number;         // collected / due (0-100, 0 if no dues)
+  // retention
+  retainedFromPrior: number;      // athletes enrolled in BOTH this season and the prior one
+  priorSeasonAthletes: number;    // base population for retention
+  retentionRate: number;          // 0-100
+  // mix
+  packageMix: { id: string; name: string; count: number }[]; // top packages by enrollments joined in window
+};
+
+export async function getSeasonReport(season: string): Promise<SeasonReport> {
+  const academyId = await requireAcademyId();
+  const { seasonBounds, previousSeason } = await import("@/lib/season");
+  const bounds = seasonBounds(season);
+  const priorBounds = seasonBounds(previousSeason(season));
+
+  const academy = await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } });
+  const baseCurrency = academy?.currency ?? "EUR";
+
+  const [enrollments, priorEnrollments, applications, payments, expenses] = await Promise.all([
+    prisma.enrollment.findMany({
+      where: { academyId, joinDate: { gte: bounds.start, lte: bounds.end } },
+      select: { id: true, athleteId: true, packageId: true, package: { select: { id: true, name: true } } },
+    }),
+    prisma.enrollment.findMany({
+      where: { academyId, joinDate: { gte: priorBounds.start, lte: priorBounds.end } },
+      select: { athleteId: true },
+    }),
+    prisma.application.findMany({
+      where: { academyId, submittedAt: { gte: bounds.start, lte: bounds.end } },
+      select: { status: true },
+    }),
+    prisma.payment.findMany({
+      where: {
+        academyId,
+        currency: baseCurrency,
+        OR: [
+          { dueDate: { gte: bounds.start, lte: bounds.end } },
+          { paidDate: { gte: bounds.start, lte: bounds.end } },
+        ],
+      },
+      select: { amount: true, paidAmount: true, dueDate: true, paidDate: true },
+    }),
+    prisma.expense.findMany({
+      where: {
+        academyId,
+        currency: baseCurrency,
+        status: { in: ["approved", "reimbursed"] },
+        // expenseDate is optional — fall back to createdAt at the call site
+      },
+      select: { amount: true, expenseDate: true, createdAt: true },
+    }),
+  ]);
+
+  const newAthletes = enrollments.length;
+  const acceptedApplications = applications.filter((a) => a.status === "accepted").length;
+  const rejectedApplications = applications.filter((a) => a.status === "rejected").length;
+
+  const revenueDue = payments
+    .filter((p) => p.dueDate >= bounds.start && p.dueDate <= bounds.end)
+    .reduce((s, p) => s + p.amount, 0);
+  const revenueCollected = payments
+    .filter((p) => p.paidDate && p.paidDate >= bounds.start && p.paidDate <= bounds.end)
+    .reduce((s, p) => s + p.paidAmount, 0);
+  const expensesApproved = expenses
+    .filter((e) => {
+      const d = e.expenseDate ?? e.createdAt;
+      return d >= bounds.start && d <= bounds.end;
+    })
+    .reduce((s, e) => s + e.amount, 0);
+  const netResult = revenueCollected - expensesApproved;
+  const collectionRate = revenueDue > 0 ? Math.round((revenueCollected / revenueDue) * 100) : 0;
+
+  // Retention: of the athletes enrolled last season, how many are still enrolled this season?
+  const priorAthletes = new Set(priorEnrollments.map((e) => e.athleteId));
+  const currentAthletes = new Set(enrollments.map((e) => e.athleteId));
+  let retained = 0;
+  priorAthletes.forEach((id) => { if (currentAthletes.has(id)) retained++; });
+  const retentionRate = priorAthletes.size > 0 ? Math.round((retained / priorAthletes.size) * 100) : 0;
+
+  // Package mix (top 5 by new enrollments joined in the window).
+  const pkgCounts = new Map<string, { id: string; name: string; count: number }>();
+  for (const e of enrollments) {
+    if (!e.package) continue;
+    const cur = pkgCounts.get(e.package.id);
+    if (cur) cur.count++;
+    else pkgCounts.set(e.package.id, { id: e.package.id, name: e.package.name, count: 1 });
+  }
+  const packageMix = Array.from(pkgCounts.values()).sort((a, b) => b.count - a.count).slice(0, 5);
+
+  return {
+    season,
+    currency: baseCurrency,
+    newAthletes,
+    newApplications: applications.length,
+    acceptedApplications,
+    rejectedApplications,
+    revenueCollected,
+    revenueDue,
+    expensesApproved,
+    netResult,
+    collectionRate,
+    retainedFromPrior: retained,
+    priorSeasonAthletes: priorAthletes.size,
+    retentionRate,
+    packageMix,
+  };
+}
+
 // ── Alerts (derived, automation-first) ──
 export type Alert = {
   id: string;

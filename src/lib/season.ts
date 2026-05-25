@@ -42,3 +42,23 @@ export function availableSeasons(reference?: Season): Season[] {
 export function seasonStartMonth(season: Season): Date {
   return seasonBounds(season).start;
 }
+
+// Adjacent seasons — used by Reports to compare two consecutive seasons
+// without forcing the caller to do string-arithmetic on the "YYYY/YY" format.
+export function previousSeason(season: Season): Season {
+  const startYear = parseInt(season.split("/")[0], 10);
+  return formatSeason(startYear - 1);
+}
+export function nextSeason(season: Season): Season {
+  const startYear = parseInt(season.split("/")[0], 10);
+  return formatSeason(startYear + 1);
+}
+
+// Last N seasons up to (and including) `season` — oldest first.
+// Useful for short trend strips ("4-season growth").
+export function trailingSeasons(season: Season, n: number): Season[] {
+  const startYear = parseInt(season.split("/")[0], 10);
+  const out: Season[] = [];
+  for (let i = n - 1; i >= 0; i--) out.push(formatSeason(startYear - i));
+  return out;
+}
