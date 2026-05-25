@@ -63,6 +63,7 @@ async function PipelinePane() {
     discipline: a.athlete.discipline,
     age: age(a.athlete.dob),
     fisPoints: a.athlete.fisPoints,
+    playingStyle: a.athlete.playingStyle,
     status: a.status as Status,
     score: a.score,
     verified: a.athlete.verified,
@@ -92,7 +93,7 @@ async function PipelinePane() {
         }
       />
       <ApplicationsTabs active="pipeline" />
-      <KanbanBoard initial={cards} />
+      <KanbanBoard initial={cards} sport={academy?.sport ?? "ski"} />
     </>
   );
 }

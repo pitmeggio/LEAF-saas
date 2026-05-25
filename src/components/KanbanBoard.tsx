@@ -11,6 +11,7 @@ import {
 import { Avatar, TrendArrow, ScorePill, Verified } from "@/components/ui";
 import { STATUSES, STATUS_LABEL, STATUS_COLOR, DISCIPLINE_LABEL, COUNTRY, fmtPoints, type Status, type Trend } from "@/lib/domain";
 import { moveApplication } from "@/app/actions";
+import { getSportModule } from "@/lib/sports/registry";
 
 export type Card = {
   id: string;
@@ -22,6 +23,9 @@ export type Card = {
   discipline: string;
   age: number;
   fisPoints: number | null;
+  // Tennis profile snippets — used by the card when the academy sport is
+  // a non-federation sport. Null for ski applications.
+  playingStyle: string | null;
   status: Status;
   score: number | null;
   verified: boolean;
@@ -30,7 +34,10 @@ export type Card = {
   suggestedGroup: string | null; // auto-placement (Smart Group Assignment)
 };
 
-export function KanbanBoard({ initial }: { initial: Card[] }) {
+export function KanbanBoard({ initial, sport = "ski" }: { initial: Card[]; sport?: string }) {
+  // Sport module decides which snippet the card surfaces — federation
+  // sports show ranking points; match-record sports show playing style.
+  const sportModule = getSportModule(sport);
   const [cards, setCards] = useState(initial);
   const [, startTransition] = useTransition();
 
@@ -99,9 +106,22 @@ export function KanbanBoard({ initial }: { initial: Card[] }) {
                             </div>
 
                             <div className="mt-3 flex items-center justify-between">
-                              <div className="num text-xs text-[var(--color-muted)]">
-                                <span className="text-[var(--color-fg)] font-semibold">{fmtPoints(c.fisPoints)}</span> FIS
-                              </div>
+                              {/* Sport-aware applicant snippet — federation
+                                  sports surface ranking points (FIS), match-
+                                  record sports surface playing style. */}
+                              {sportModule.hasFederationRanking ? (
+                                <div className="num text-xs text-[var(--color-muted)]">
+                                  <span className="text-[var(--color-fg)] font-semibold">{fmtPoints(c.fisPoints)}</span> FIS
+                                </div>
+                              ) : (
+                                <div className="truncate text-xs text-[var(--color-muted)]">
+                                  {c.playingStyle ? (
+                                    <><span className="uppercase tracking-wide text-[10px]">Style</span> <span className="text-[var(--color-fg)]">{c.playingStyle}</span></>
+                                  ) : (
+                                    <span className="text-[var(--color-muted)]">No style set</span>
+                                  )}
+                                </div>
+                              )}
                               <div className="flex items-center gap-3">
                                 {c.score != null && <ScorePill score={c.score} />}
                                 <TrendArrow trend={c.trend} />
