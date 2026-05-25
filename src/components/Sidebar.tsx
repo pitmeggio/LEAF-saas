@@ -101,7 +101,14 @@ const ROLE_LABEL: Record<string, string> = {
   recruiter: "Recruiter",
 };
 
-export function Sidebar({ user, features, season }: { user: { name: string; role: string; academy: string }; features: SidebarFeatures; season: { active: string; seasons: string[]; isCurrent: boolean } }) {
+export function Sidebar({ user, features, season, sport }: {
+  user: { name: string; role: string; academy: string };
+  features: SidebarFeatures;
+  season: { active: string; seasons: string[]; isCurrent: boolean };
+  // Active sport for this academy — drives the small workspace badge under
+  // the brand mark and (eventually) sport-specific entries in this nav.
+  sport: { key: string; label: string; short: string; icon: string };
+}) {
   const pathname = usePathname();
   const baseSections = user.role === "academy_admin" ? ADMIN_SECTIONS : COACH_SECTIONS;
   // Hide modules the platform has switched off for this tenant; drop empty sections.
@@ -138,12 +145,21 @@ export function Sidebar({ user, features, season }: { user: { name: string; role
   return (
     <aside className="fixed inset-y-0 left-0 z-20 flex w-60 flex-col border-r border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-5">
       <div className="px-2 pb-4">
-        <div className="mb-4 flex items-center gap-2.5">
+        <div className="mb-3 flex items-center gap-2.5">
           <LeafMark size={26} />
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-sm font-bold leading-tight tracking-tight">LEAF</div>
             <div className="text-[11px] text-[var(--color-muted)] leading-tight">Academy OS</div>
           </div>
+        </div>
+        {/* Active sport — tells the coach which workspace they're in. The
+            label adapts the entire UI downstream (KPIs, columns, AI lens). */}
+        <div
+          className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-[var(--color-muted)]"
+          title={`Sport-aware workspace · ${sport.label}`}
+        >
+          <span aria-hidden>{sport.icon}</span>
+          <span className="text-[var(--color-fg)]">{sport.label}</span>
         </div>
         <SeasonSelector active={season.active} seasons={season.seasons} isCurrent={season.isCurrent} />
       </div>

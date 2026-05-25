@@ -4,6 +4,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { academyFeatures } from "@/lib/plans";
 import { getSeasonContext } from "@/lib/season-server";
+import { getSportModuleForAcademy } from "@/lib/sports/registry";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
@@ -33,12 +34,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const season = await getSeasonContext();
 
+  // Sport-aware workspace — the active sport module drives sport-specific
+  // labels, KPIs, list columns, AI keyword maps and public-profile metrics.
+  // Falls back to the platform default (ski) when an academy hasn't picked
+  // a sport yet, so nothing crashes during transitions.
+  const sport = getSportModuleForAcademy(user.academy);
+
   return (
     <>
       <Sidebar
         user={{ name: user.name, role: user.role, academy: user.academy?.name ?? "—" }}
         features={academyFeatures(user.academy)}
         season={season}
+        sport={{ key: sport.key, label: sport.label, short: sport.short, icon: sport.icon }}
       />
       <main className="ml-60 min-h-screen">{children}</main>
     </>
