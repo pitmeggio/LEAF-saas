@@ -16,6 +16,7 @@ import { MyProfileEditForm } from "@/components/MyProfileEditForm";
 import { ShareButton } from "@/components/ShareButton";
 import { getCalendarEvents } from "@/lib/calendar";
 import { prisma } from "@/lib/db";
+import { athleteStatusLabel } from "@/lib/athleteStatus";
 
 const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://leaf-saas-gbf8.vercel.app";
 
@@ -96,6 +97,23 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
             <div className="kicker" style={{ color: "var(--color-accent)" }}>Welcome back</div>
             <div className="flex flex-wrap items-center gap-2.5">
               <h1 className="display text-3xl font-bold md:text-4xl">{w.firstName} {w.lastName}</h1>
+              {/* Status badge — the canonical "what tier am I" indicator.
+                  Drives section visibility downstream (lib/athleteStatus.ts):
+                  free → basic AI · premium → advanced AI · enrolled →
+                  everything + academy modules. */}
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                style={
+                  w.status === "enrolled"
+                    ? { background: "#7cff6b1a", color: "var(--color-accent)" }
+                    : w.status === "premium"
+                      ? { background: "#fde68a14", color: "#fbbf24" }
+                      : { background: "var(--color-surface-2)", color: "var(--color-muted)" }
+                }
+                title="Status drives which sections are unlocked"
+              >
+                {athleteStatusLabel(w.status)}
+              </span>
               {w.featurePublicProfilesAvailable && (
                 <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold"
                   style={w.publicProfileEnabled && w.publicVisibility === "PUBLIC"
@@ -173,15 +191,52 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
           </div>
         )}
 
-        {/* AI layer — same intelligence the athlete shows publicly */}
+        {/* ── My team — unlocked when status === 'enrolled' ────────────────
+            Shows the academy/coach/group this athlete trains with. Single
+            entry to /academy/[slug] for context, no admin actions here. */}
+        {w.capabilities.academyModules && w.enrolledAcademy && (
+          <div className="card p-5">
+            <div className="kicker mb-2" style={{ color: "var(--color-accent)" }}>My team</div>
+            <div className="flex flex-wrap items-center gap-4">
+              <div
+                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-base font-black"
+                style={{ background: w.enrolledAcademy.logoColor, color: "#0a0c10" }}
+              >
+                {w.enrolledAcademy.name.charAt(0)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-lg font-semibold">{w.enrolledAcademy.name}</div>
+                <div className="mt-0.5 text-xs text-[var(--color-muted)]">
+                  {w.groupName ? <>Group: <span className="text-[var(--color-fg)]">{w.groupName}</span></> : "No group assigned yet"}
+                  {w.coachName && <> · Coach: <span className="text-[var(--color-fg)]">{w.coachName}</span></>}
+                </div>
+              </div>
+              <Link
+                href={`/academy/${w.enrolledAcademy.slug}`}
+                target="_blank"
+                className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]"
+              >
+                Academy page ↗
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* AI layer — basic insights always render when there's data; advanced
+            forecast + recommendations are gated behind capabilities.advancedAi
+            (premium / enrolled). Free athletes see the upgrade prompt. */}
         {w.performance && (
           <div className="border-t border-[var(--color-border)] pt-8">
             <div className="kicker" style={{ color: "var(--color-accent)" }}>Your performance · by LEAF AI</div>
             <h2 className="display mt-1 text-2xl font-bold">What your record says about you</h2>
-            <p className="mt-1 text-sm text-[var(--color-muted)]">The same intelligence academies and scouts see on your profile.</p>
+            <p className="mt-1 text-sm text-[var(--color-muted)]">
+              {w.capabilities.advancedAi
+                ? "Forecast, recommendations and deep insights — the same intelligence academies see."
+                : "Basic trend insights. Upgrade for forecast, recommendations and predictive trends."}
+            </p>
           </div>
         )}
-        {w.performance && forecast && (
+        {w.performance && forecast && w.capabilities.advancedAi && (
           <section className="space-y-4">
             <ForecastCard forecast={forecast} pointsLabel={cfg.pointsLabel} />
           </section>
@@ -189,8 +244,33 @@ export default async function MyProfilePage({ searchParams }: { searchParams: Pr
         {w.performance && (
           <AthleteInsights insights={deriveAthleteInsights(w.performance, { sport: w.sport, worldRank: w.worldRank })} />
         )}
-        {w.performance && forecast && (
+        {w.performance && forecast && w.capabilities.advancedAi && (
           <RecommendationsCard recommendations={deriveRecommendations(w.performance, forecast, w.sport)} />
+        )}
+
+        {/* Premium upgrade CTA — only when the athlete is genuinely 'free'
+            (not enrolled, not yet premium). Enrolled athletes get premium for
+            free via lib/athleteStatus.ts, so the CTA stays hidden for them. */}
+        {w.capabilities.showUpgradeCTA && w.performance && (
+          <div className="card border-[#fbbf24]/30 p-5" style={{ background: "color-mix(in srgb, #fbbf24 6%, transparent)" }}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="kicker" style={{ color: "#fbbf24" }}>Unlock Premium</div>
+                <h3 className="mt-1 text-lg font-semibold">Predictive trends, season comparisons, recommendations</h3>
+                <p className="mt-1 text-xs text-[var(--color-muted)]">
+                  Get the AI forecast on where your trajectory is heading, plus the same recommendations academies use to build their plan.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled
+                title="Premium subscriptions open soon — enroll with an academy to unlock today."
+                className="shrink-0 rounded-lg border border-[#fbbf24]/40 bg-[#fbbf24]/10 px-3 py-1.5 text-xs font-semibold text-[#fbbf24] opacity-80"
+              >
+                Coming soon
+              </button>
+            </div>
+          </div>
         )}
 
         {/* My calendar — events from my groups + academy-wide */}
