@@ -8,7 +8,11 @@ import { LeafMark } from "@/components/LeafMark";
 // Ties the otherwise-separate public pages into one navigable product.
 export function PublicNav({ active }: { active?: "athletes" | "academies" }) {
   const [open, setOpen] = useState(false);
-  const signInHref = active === "academies" ? "/login" : "/login/athlete";
+  // Always land on the role picker — the user chooses Athlete vs Academy
+  // there. Direct deep-links to /login/athlete still work for the
+  // footer + "Sign in with your email to manage it" entry points where the
+  // intent is unambiguously the athlete flow.
+  const signInHref = "/login";
 
   const links = (
     <>
