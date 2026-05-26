@@ -98,6 +98,9 @@ export default async function OverviewPage() {
               outstandingTotal: f.outstandingTotal,
               unpaidAthletes: f.unpaidAthletes,
               tennisStats,
+              avgFisPoints: d.avgFisPoints,
+              injuredCount: d.injuredCount,
+              activeCoachesCount: d.activeCoachesCount,
             });
             return <StatCard key={kpi.key} {...props} />;
           })}
@@ -171,6 +174,9 @@ type KpiData = {
   outstandingTotal: number;
   unpaidAthletes: number;
   tennisStats: { matchesThisSeason: number; avgWinRate: number } | null;
+  avgFisPoints: number | null;
+  injuredCount: number;
+  activeCoachesCount: number;
 };
 
 function kpiCardProps(kpi: DashboardKpi, d: KpiData) {
@@ -195,6 +201,28 @@ function kpiCardProps(kpi: DashboardKpi, d: KpiData) {
     case "avgFisProgression":
       // Reserved for a future ski-specific aggregate; falls back gracefully.
       return { ...base, value: "—", hint: kpi.hint ?? "season progression (coming)" };
+    case "avgFisPoints":
+      return {
+        ...base,
+        value: d.avgFisPoints != null ? String(d.avgFisPoints) : "—",
+        hint: kpi.hint ?? "across the active roster",
+        href: "/dashboard/athletes",
+      };
+    case "injuredCount":
+      return {
+        ...base,
+        value: String(d.injuredCount),
+        hint: kpi.hint ?? "currently flagged",
+        danger: d.injuredCount > 0,
+        href: "/dashboard/athletes",
+      };
+    case "activeCoachesCount":
+      return {
+        ...base,
+        value: String(d.activeCoachesCount),
+        hint: kpi.hint ?? "on the team",
+        href: "/dashboard/coaches",
+      };
     default: {
       // Exhaustiveness guard — surfaced if a sport adds a new source the
       // page hasn't taught itself to render yet.

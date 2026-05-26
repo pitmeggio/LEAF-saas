@@ -38,7 +38,10 @@ export type DashboardKpi = {
     | "performanceAlerts"
     | "matchesThisSeason"   // tennis
     | "avgWinRate"          // tennis
-    | "avgFisProgression";  // ski
+    | "avgFisProgression"   // ski (reserved)
+    | "avgFisPoints"        // ski (roster avg now)
+    | "injuredCount"        // universal
+    | "activeCoachesCount"; // universal
   hint?: string;
 };
 

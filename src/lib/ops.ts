@@ -490,6 +490,20 @@ export async function getDashboard(opts: SeasonScope = {}) {
   const totalInGroups = groups.reduce((s, g) => s + g.count, 0);
   const occupancyPct = totalCapacity ? Math.round((totalInGroups / totalCapacity) * 100) : 0;
 
+  // Roster headline metrics — average FIS points + injured count + active
+  // coach count, surfaced on the Overview KPI grid. avgFisPoints ignores
+  // null values so a partially-populated team still gets a meaningful
+  // number; tennis academy will see null (no FIS data) and the page can
+  // hide the card or show a sport-aware substitute.
+  const fisPointsList = enrollments
+    .map((e) => e.athlete?.fisPoints)
+    .filter((p): p is number => typeof p === "number");
+  const avgFisPoints = fisPointsList.length
+    ? Math.round((fisPointsList.reduce((s, n) => s + n, 0) / fisPointsList.length) * 10) / 10
+    : null;
+  const injuredCount = enrollments.filter((e) => e.status === "injured" || e.athlete?.injuryFlag).length;
+  const activeCoachesCount = coaches.length;
+
   // Academy-wide budget rollup (base currency only — Groups.budget is in academy currency).
   const totalBudget = groups.reduce((s, g) => s + (g.budget ?? 0), 0);
   const usedBudget = groups.reduce((s, g) => s + g.usedBudget, 0);
@@ -530,6 +544,10 @@ export async function getDashboard(opts: SeasonScope = {}) {
     coaches: coaches.length,
     occupancyPct,
     improving,
+    // Roster headlines for the Overview KPI grid
+    avgFisPoints,
+    injuredCount,
+    activeCoachesCount,
     totalActive: enrollments.length,
     finance,
     missingDocs: docs.missing.length,

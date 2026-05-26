@@ -24,11 +24,13 @@ export const skiModule: SportModule = {
 
   dashboardKpis: [
     { key: "athletes", label: "Total athletes", source: "totalAthletes" },
+    { key: "avgFis", label: "Avg FIS points", source: "avgFisPoints", hint: "across the active roster" },
+    { key: "injured", label: "Injured", source: "injuredCount", hint: "currently flagged" },
+    { key: "coaches", label: "Coaches", source: "activeCoachesCount" },
     { key: "applications", label: "Active applications", source: "activeApplications" },
     { key: "revenue", label: "Season revenue", source: "seasonRevenue" },
     { key: "pending", label: "Pending payments", source: "pendingPayments" },
     { key: "budget", label: "Budget usage", source: "budgetUsage" },
-    { key: "alerts", label: "Performance alerts", source: "performanceAlerts", hint: "athletes trending down" },
   ],
 
   coachNotes: {
