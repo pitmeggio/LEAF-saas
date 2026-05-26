@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://leaf-saas-gbf8.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://leafos.io";
 
 export default function robots(): MetadataRoute.Robots {
   return {

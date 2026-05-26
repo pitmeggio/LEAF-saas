@@ -137,7 +137,7 @@ async function OpeningsPane() {
     applicationsCount: o._count.applications,
   }));
 
-  const appUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://leaf-saas-gbf8.vercel.app"}/academy/${academy.slug}/apply`;
+  const appUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://leafos.io"}/academy/${academy.slug}/apply`;
 
   return (
     <>

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://leaf-saas-gbf8.vercel.app";
+const SITE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://leafos.io";
 
 // Only the public marketing surface is listed. Athlete profiles are intentionally
 // absent: LEAF exposes no browsable roster — a profile is reachable only via the

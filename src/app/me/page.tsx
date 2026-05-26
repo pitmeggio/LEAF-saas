@@ -18,7 +18,7 @@ import { getCalendarEvents } from "@/lib/calendar";
 import { prisma } from "@/lib/db";
 import { athleteStatusLabel } from "@/lib/athleteStatus";
 
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://leaf-saas-gbf8.vercel.app";
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://leafos.io";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "My profile — LEAF" };
