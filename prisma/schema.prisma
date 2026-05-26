@@ -91,7 +91,52 @@ model Academy {
   calendarEvents CalendarEvent[]
   coachNotes    CoachNote[]
   tennisMatches TennisMatch[]
+  budgetBenchmarks AcademyBudgetBenchmarks?
   createdAt     DateTime       @default(now())
+}
+
+// Per-academy cost benchmarks the budget forecast engine multiplies by
+// quantities derived from the roster / season calendar / coach roster.
+// Set ONCE per academy (admin form); the engine reads them on every
+// `computeGroupBudgetForecast()` call and surfaces a per-group forecast
+// alongside actual spend. Values are stored in currency major units
+// (e.g. NOK 1000, not øre) and always interpreted in Academy.currency.
+// Adding a sport-specific rate? Keep the field name generic so other
+// sports (tennis camps, padel travel) can reuse it.
+model AcademyBudgetBenchmarks {
+  id        String  @id @default(cuid())
+  academyId String  @unique
+  academy   Academy @relation(fields: [academyId], references: [id], onDelete: Cascade)
+
+  // ── Lodging / travel rates ──
+  pricePerNight              Int @default(0)  // hotel / lodge per athlete per night on the road
+  liftPassPerDay             Int @default(0)  // per athlete per training/race day on snow
+  mealsPerDay                Int @default(0)  // per athlete per day while travelling
+  fuelPerTravelDay           Int @default(0)  // per van / per travel day
+  vanCostAnnual              Int @default(0)  // insurance + depreciation + service per academy / year
+  housingMonthly             Int @default(0)  // long-stay apartment per athlete / month (base camp)
+  housingMonthsPerSeason     Int @default(8)  // how many months the base-camp apartment runs
+  clothingPerAthlete         Int @default(0)  // team kit / season / athlete
+
+  // ── Staff rates ──
+  headCoachMonthlyRate       Int @default(0)
+  headCoachMonthsPerSeason   Int @default(12)
+  assistantCoachMonthlyRate  Int @default(0)
+  assistantCoachMonthsPerSeason Int @default(8)
+
+  // ── Academy-wide overheads (allocated per group by share-of-athletes) ──
+  miscAnnual                 Int @default(0)  // catch-all (admin, comms, etc.)
+  sportOpsAnnual             Int @default(0)  // race entries, federation fees, equipment, …
+
+  // ── Calendar fallbacks ──
+  // Used when the season calendar (CalendarEvent) is empty so the page
+  // still produces a sensible forecast on day 1. Once the calendar is
+  // populated the engine prefers the real event totals.
+  defaultTravelDaysPerSeason Int @default(0)
+  defaultRaceDaysPerSeason   Int @default(0)
+  defaultNightsPerSeason     Int @default(0)
+
+  updatedAt DateTime @updatedAt
 }
 
 // Academy-wide calendar (summer / autumn / winter / spring programmes).

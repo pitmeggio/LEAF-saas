@@ -3,7 +3,9 @@ import { PercentBar, StatCard } from "@/components/StatCard";
 import { Modal, GroupExpenseForm } from "@/components/EntityForms";
 import { FinanceSubNav } from "@/components/FinanceSubNav";
 import { RevenueLedger } from "@/components/RevenueLedger";
-import { getGroupsWithStats, getAcademyCurrency } from "@/lib/ops";
+import { BudgetForecastTotals, BudgetForecastCard } from "@/components/BudgetForecast";
+import { BudgetBenchmarksForm } from "@/components/BudgetBenchmarksForm";
+import { getGroupsWithStats, getAcademyCurrency, getBudgetForecastForAcademy, getBudgetBenchmarks } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
 import { getActiveSeason } from "@/lib/season-server";
@@ -16,10 +18,13 @@ export const dynamic = "force-dynamic";
 export default async function BudgetsPage() {
   await requireAdmin();
   const season = await getActiveSeason();
-  const [groups, currency] = await Promise.all([
+  const [groups, currency, forecast, benchmarks] = await Promise.all([
     getGroupsWithStats(null, { season }),
     getAcademyCurrency(),
+    getBudgetForecastForAcademy({ season }),
+    getBudgetBenchmarks(),
   ]);
+  const forecastById = new Map(forecast.forecasts.map((f) => [f.groupId, f]));
 
   const totals = groups.reduce(
     (acc, g) => {
@@ -67,6 +72,18 @@ export default async function BudgetsPage() {
           />
           <StatCard label="Net result" value={fmtMoney(totalResult, currency)} hint="income received − costs" danger={totalResult < 0} />
         </div>
+
+        {/* AI forecast — what the season is projected to cost vs bring in,
+            derived from the roster + season calendar + cost benchmarks. */}
+        <BudgetForecastTotals
+          totalCost={forecast.rollup.totalCost}
+          totalIncome={forecast.rollup.totalIncome}
+          totalNet={forecast.rollup.totalNet}
+          totalAthletes={forecast.rollup.totalAthletes}
+          groupCount={forecast.rollup.groupCount}
+          currency={forecast.currency}
+          configured={forecast.benchmarksConfigured}
+        />
 
         {/* Per-group cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -157,6 +174,12 @@ export default async function BudgetsPage() {
                   </div>
                 </div>
 
+                {forecast.benchmarksConfigured && forecastById.has(g.id) && (
+                  <div className="mt-3 border-t border-[var(--color-border)] pt-3">
+                    <BudgetForecastCard forecast={forecastById.get(g.id)!} currency={forecast.currency} />
+                  </div>
+                )}
+
                 <div className="mt-4 border-t border-[var(--color-border)] pt-3">
                   <Modal label="+ Add expense" title={`Add to ${g.name} budget`} className="rounded-lg border border-[#7CFF6B40] px-3 py-1.5 text-xs font-medium text-[var(--color-accent)] hover:bg-[#7cff6b12]">
                     <GroupExpenseForm groupId={g.id} currency={currency} />
@@ -165,6 +188,19 @@ export default async function BudgetsPage() {
               </div>
             );
           })}
+        </div>
+
+        {/* Cost benchmarks — set once per academy. The forecast engine
+            multiplies these rates by quantities the engine derives from
+            the roster, the season calendar and the coach roster. */}
+        <div id="benchmarks" className="card p-5">
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold">Cost benchmarks</h2>
+            <p className="mt-1 text-xs text-[var(--color-muted)]">
+              Set your academy&apos;s rates once — the forecast above recomputes from your roster + season calendar every time you load this page.
+            </p>
+          </div>
+          <BudgetBenchmarksForm initial={benchmarks} currency={currency} />
         </div>
       </div>
     </>

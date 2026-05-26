@@ -537,6 +537,31 @@ export const revenueUpdateSchema = revenueInputSchema.extend({ id: z.string().mi
 export type RevenueUpdateInput = z.infer<typeof revenueUpdateSchema>;
 export const revenueDeleteSchema = z.object({ id: z.string().min(1) });
 
+// Per-academy cost benchmarks the budget forecast engine multiplies by
+// quantities derived from the roster + calendar. All amounts are integers
+// in the academy's currency major units (NOK 1000, not øre). `int().min(0)`
+// because zero means "we don't track this line" — the engine skips it.
+export const budgetBenchmarksSchema = z.object({
+  pricePerNight: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  liftPassPerDay: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  mealsPerDay: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  fuelPerTravelDay: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  vanCostAnnual: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  housingMonthly: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  housingMonthsPerSeason: z.coerce.number().int().min(0).max(12).optional().transform((v) => v ?? 8),
+  clothingPerAthlete: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  headCoachMonthlyRate: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  headCoachMonthsPerSeason: z.coerce.number().int().min(0).max(12).optional().transform((v) => v ?? 12),
+  assistantCoachMonthlyRate: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  assistantCoachMonthsPerSeason: z.coerce.number().int().min(0).max(12).optional().transform((v) => v ?? 8),
+  miscAnnual: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  sportOpsAnnual: z.coerce.number().int().min(0).optional().transform((v) => v ?? 0),
+  defaultTravelDaysPerSeason: z.coerce.number().int().min(0).max(365).optional().transform((v) => v ?? 0),
+  defaultRaceDaysPerSeason: z.coerce.number().int().min(0).max(365).optional().transform((v) => v ?? 0),
+  defaultNightsPerSeason: z.coerce.number().int().min(0).max(365).optional().transform((v) => v ?? 0),
+});
+export type BudgetBenchmarksInput = z.infer<typeof budgetBenchmarksSchema>;
+
 export const expenseInputSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
   amount: z.number().int().min(1, "Amount must be positive"),

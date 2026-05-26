@@ -4,6 +4,14 @@ import { computeTrend } from "@/lib/queries";
 import { perfFromTrend, isOverdue, isThisMonth, type PerfStatus, type Trend } from "@/lib/domain";
 import { aggregateFinance } from "@/lib/financeMath";
 import { seasonBounds, previousSeason } from "@/lib/season";
+import {
+  computeGroupBudgetForecast,
+  rollupForecasts,
+  ZERO_BENCHMARKS,
+  daysInclusive,
+  type BudgetBenchmarks,
+  type GroupForecast,
+} from "@/lib/budgetForecast";
 
 // Shared option bag for "what season am I looking at?". All read functions
 // accept this and narrow their result set accordingly — pages just pass the
@@ -966,4 +974,172 @@ export async function computeAlerts(coachId?: string | null): Promise<Alert[]> {
 
   const order = { high: 0, medium: 1, low: 2 };
   return alerts.sort((x, y) => order[x.severity] - order[y.severity]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Budget forecast — auto-derived per-group projection (planned cost vs income),
+// powered by `computeGroupBudgetForecast` (lib/budgetForecast.ts).
+//
+// We fetch everything we need in one round-trip:
+//   • the academy's benchmarks row (or ZERO_BENCHMARKS if not set yet)
+//   • groups in the season + their active enrollments + package prices
+//   • calendar events in the season → days per group (travel / training / nights)
+//   • coaches (used to count head vs assistant coaches per group)
+//
+// Pure math then runs in lib/budgetForecast.ts so the page stays trivially
+// fast and the engine remains independently testable.
+// ─────────────────────────────────────────────────────────────────────────────
+export type BudgetForecastResult = {
+  benchmarks: BudgetBenchmarks;
+  benchmarksConfigured: boolean;   // false → no row yet, show "set up benchmarks" CTA
+  currency: string;
+  forecasts: GroupForecast[];
+  rollup: ReturnType<typeof rollupForecasts>;
+};
+
+export async function getBudgetForecastForAcademy(opts: SeasonScope = {}): Promise<BudgetForecastResult> {
+  const academyId = await requireAcademyId();
+  const academy = await prisma.academy.findUnique({
+    where: { id: academyId },
+    select: { currency: true, budgetBenchmarks: true },
+  });
+  const currency = academy?.currency ?? "EUR";
+
+  const benchmarksRow = academy?.budgetBenchmarks ?? null;
+  const benchmarks: BudgetBenchmarks = benchmarksRow
+    ? {
+        pricePerNight: benchmarksRow.pricePerNight,
+        liftPassPerDay: benchmarksRow.liftPassPerDay,
+        mealsPerDay: benchmarksRow.mealsPerDay,
+        fuelPerTravelDay: benchmarksRow.fuelPerTravelDay,
+        vanCostAnnual: benchmarksRow.vanCostAnnual,
+        housingMonthly: benchmarksRow.housingMonthly,
+        housingMonthsPerSeason: benchmarksRow.housingMonthsPerSeason,
+        clothingPerAthlete: benchmarksRow.clothingPerAthlete,
+        headCoachMonthlyRate: benchmarksRow.headCoachMonthlyRate,
+        headCoachMonthsPerSeason: benchmarksRow.headCoachMonthsPerSeason,
+        assistantCoachMonthlyRate: benchmarksRow.assistantCoachMonthlyRate,
+        assistantCoachMonthsPerSeason: benchmarksRow.assistantCoachMonthsPerSeason,
+        miscAnnual: benchmarksRow.miscAnnual,
+        sportOpsAnnual: benchmarksRow.sportOpsAnnual,
+        defaultTravelDaysPerSeason: benchmarksRow.defaultTravelDaysPerSeason,
+        defaultRaceDaysPerSeason: benchmarksRow.defaultRaceDaysPerSeason,
+        defaultNightsPerSeason: benchmarksRow.defaultNightsPerSeason,
+      }
+    : ZERO_BENCHMARKS;
+
+  const [groups, calendarEvents] = await Promise.all([
+    prisma.group.findMany({
+      where: { academyId, ...(opts.season ? { season: opts.season } : {}) },
+      include: {
+        enrollments: { include: { package: true } },
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.calendarEvent.findMany({
+      where: {
+        academyId,
+        ...(opts.season ? { OR: [{ season: opts.season }, { season: "all" }] } : {}),
+      },
+      select: { groupId: true, coachId: true, type: true, startDate: true, endDate: true },
+    }),
+  ]);
+
+  // Pre-compute per-group day buckets from the calendar in O(events).
+  type Bucket = { travelDays: number; trainingDaysOnSnow: number; nights: number; coachIds: Set<string> };
+  const byGroup = new Map<string, Bucket>();
+  const ensure = (gid: string): Bucket => {
+    let b = byGroup.get(gid);
+    if (!b) {
+      b = { travelDays: 0, trainingDaysOnSnow: 0, nights: 0, coachIds: new Set() };
+      byGroup.set(gid, b);
+    }
+    return b;
+  };
+  for (const ev of calendarEvents) {
+    if (!ev.groupId) continue; // academy-wide events don't allocate to any one group
+    const b = ensure(ev.groupId);
+    const days = daysInclusive(ev.startDate, ev.endDate);
+    const nights = Math.max(0, days - 1);
+    const type = ev.type;
+    if (type === "camp" || type === "race" || type === "travel") {
+      b.travelDays += days;
+    }
+    if (type === "training" || type === "camp" || type === "race") {
+      b.trainingDaysOnSnow += days;
+    }
+    if (nights > 0 && (type === "camp" || type === "race" || type === "travel")) {
+      b.nights += nights;
+    }
+    if (ev.coachId) b.coachIds.add(ev.coachId);
+  }
+
+  // Live roster only — churned athletes don't drive the forecast.
+  const groupInputs = groups.map((g) => {
+    const roster = g.enrollments.filter((e) => isActiveEnrollment(e.status));
+    const athletesCount = roster.length;
+    const packageRevenue = roster.reduce((s, e) => s + (e.package?.price ?? 0), 0);
+
+    const bucket = byGroup.get(g.id) ?? { travelDays: 0, trainingDaysOnSnow: 0, nights: 0, coachIds: new Set<string>() };
+    const headCoachIds = g.coachId ? [g.coachId] : [];
+    // Assistants = anyone else who taught this group on the calendar
+    // (deduplicated, head coach excluded).
+    const assistantCoachIds = [...bucket.coachIds].filter((cid) => cid !== g.coachId);
+
+    return {
+      id: g.id,
+      name: g.name,
+      athletesCount,
+      headCoachIds,
+      assistantCoachIds,
+      travelDays: bucket.travelDays,
+      trainingDaysOnSnow: bucket.trainingDaysOnSnow,
+      nights: bucket.nights,
+      packageRevenue,
+    };
+  });
+
+  const totalAthletes = groupInputs.reduce((s, g) => s + g.athletesCount, 0);
+  const forecasts = groupInputs.map((g) =>
+    computeGroupBudgetForecast(g, benchmarks, {
+      totalAthletes,
+      totalGroups: groupInputs.length,
+      currency,
+    }),
+  );
+
+  return {
+    benchmarks,
+    benchmarksConfigured: !!benchmarksRow,
+    currency,
+    forecasts,
+    rollup: rollupForecasts(forecasts),
+  };
+}
+
+// Lightweight read for the settings form (no calendar / no math). Returns null
+// when no row exists yet so the form can render zero/defaults explicitly.
+export async function getBudgetBenchmarks(): Promise<BudgetBenchmarks | null> {
+  const academyId = await requireAcademyId();
+  const row = await prisma.academyBudgetBenchmarks.findUnique({ where: { academyId } });
+  if (!row) return null;
+  return {
+    pricePerNight: row.pricePerNight,
+    liftPassPerDay: row.liftPassPerDay,
+    mealsPerDay: row.mealsPerDay,
+    fuelPerTravelDay: row.fuelPerTravelDay,
+    vanCostAnnual: row.vanCostAnnual,
+    housingMonthly: row.housingMonthly,
+    housingMonthsPerSeason: row.housingMonthsPerSeason,
+    clothingPerAthlete: row.clothingPerAthlete,
+    headCoachMonthlyRate: row.headCoachMonthlyRate,
+    headCoachMonthsPerSeason: row.headCoachMonthsPerSeason,
+    assistantCoachMonthlyRate: row.assistantCoachMonthlyRate,
+    assistantCoachMonthsPerSeason: row.assistantCoachMonthsPerSeason,
+    miscAnnual: row.miscAnnual,
+    sportOpsAnnual: row.sportOpsAnnual,
+    defaultTravelDaysPerSeason: row.defaultTravelDaysPerSeason,
+    defaultRaceDaysPerSeason: row.defaultRaceDaysPerSeason,
+    defaultNightsPerSeason: row.defaultNightsPerSeason,
+  };
 }
