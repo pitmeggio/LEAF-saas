@@ -514,6 +514,29 @@ export const conversationStatusSchema = z.object({
   status: z.enum(["open", "waiting", "resolved"]),
 });
 
+// ── Revenue (income tracker — sponsor / federation / academy allocation / …)
+// Athlete fees flow through Payment per-enrollment; everything else (sponsor
+// deals, federation grants, academy allocations, misc revenue) is captured
+// here so the Budget Tracker shows a real net result per team.
+export const REVENUE_CATEGORIES = ["athlete_fee", "sponsor", "federation", "academy_allocation", "other"] as const;
+export const REVENUE_STATUSES = ["received", "pledged", "cancelled"] as const;
+
+export const revenueInputSchema = z.object({
+  title: z.string().trim().min(1, "Title is required.").max(120),
+  amount: z.number().int().min(1, "Amount must be positive."),
+  currency: z.string().trim().optional().transform((v) => v || "EUR"),
+  category: z.enum(REVENUE_CATEGORIES).optional().transform((v) => v ?? "other"),
+  status: z.enum(REVENUE_STATUSES).optional().transform((v) => v ?? "received"),
+  groupId: nullableId,
+  source: optText(120),
+  notes: optText(1000),
+  receivedDate: z.string().trim().optional().transform((v) => (v ? v : undefined)),
+});
+export type RevenueInput = z.infer<typeof revenueInputSchema>;
+export const revenueUpdateSchema = revenueInputSchema.extend({ id: z.string().min(1) });
+export type RevenueUpdateInput = z.infer<typeof revenueUpdateSchema>;
+export const revenueDeleteSchema = z.object({ id: z.string().min(1) });
+
 export const expenseInputSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
   amount: z.number().int().min(1, "Amount must be positive"),

@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { PercentBar, StatCard } from "@/components/StatCard";
 import { Modal, GroupExpenseForm } from "@/components/EntityForms";
 import { FinanceSubNav } from "@/components/FinanceSubNav";
+import { RevenueLedger } from "@/components/RevenueLedger";
 import { getGroupsWithStats, getAcademyCurrency } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
@@ -26,14 +27,17 @@ export default async function BudgetsPage() {
       acc.used += g.usedBudget;
       acc.pending += g.pendingExpenses;
       acc.burn += g.monthlyBurnRate;
-      acc.income += g.revenue;
+      acc.athleteIncome += g.collectedRevenue;
+      acc.otherIncome += g.receivedRevenue;
+      acc.pledged += g.pledgedRevenue;
       acc.coachCost += g.coachCost;
       return acc;
     },
-    { budget: 0, used: 0, pending: 0, burn: 0, income: 0, coachCost: 0 },
+    { budget: 0, used: 0, pending: 0, burn: 0, athleteIncome: 0, otherIncome: 0, pledged: 0, coachCost: 0 },
   );
+  const totalIncome = totals.athleteIncome + totals.otherIncome;
   const totalCosts = totals.coachCost + totals.used;
-  const totalResult = totals.income - totalCosts;
+  const totalResult = totalIncome - totalCosts;
   const totalPctUsed = totals.budget > 0 ? Math.round((totals.used / totals.budget) * 100) : 0;
 
   const Row = ({ label, value, color }: { label: string; value: string; color?: string }) => (
@@ -55,8 +59,13 @@ export default async function BudgetsPage() {
           <StatCard label="Used" value={fmtMoney(totals.used, currency)} hint={`${totalPctUsed}% of budget`} danger={totalPctUsed > 100} />
           <StatCard label="Pending" value={fmtMoney(totals.pending, currency)} hint="awaiting approval" />
           <StatCard label="Monthly burn" value={fmtMoney(totals.burn, currency)} hint="last 30 days" />
-          <StatCard label="Income (contracts)" value={fmtMoney(totals.income, currency)} accent hint="all active deals" />
-          <StatCard label="Result" value={fmtMoney(totalResult, currency)} hint="income − costs" danger={totalResult < 0} />
+          <StatCard
+            label="Total income"
+            value={fmtMoney(totalIncome, currency)}
+            accent
+            hint={`${fmtMoney(totals.athleteIncome, currency)} athletes · ${fmtMoney(totals.otherIncome, currency)} other${totals.pledged > 0 ? ` · +${fmtMoney(totals.pledged, currency)} pledged` : ""}`}
+          />
+          <StatCard label="Net result" value={fmtMoney(totalResult, currency)} hint="income received − costs" danger={totalResult < 0} />
         </div>
 
         {/* Per-group cards */}
@@ -112,13 +121,39 @@ export default async function BudgetsPage() {
                   </div>
                 )}
 
+                {/* Income ledger — sponsor, federation, academy allocation,
+                    misc. Wired per-group; admin can also add academy-wide
+                    income (groupId null) from a future hub. */}
+                <div className="mt-3 border-t border-[var(--color-border)] pt-3">
+                  <RevenueLedger
+                    groupId={g.id}
+                    currency={currency}
+                    rows={g.revenues.map((r) => ({
+                      id: r.id,
+                      title: r.title,
+                      amount: r.amount,
+                      currency: r.currency,
+                      category: r.category,
+                      status: r.status,
+                      source: r.source,
+                      receivedDate: r.receivedDate,
+                      notes: r.notes,
+                    }))}
+                    title="Income"
+                  />
+                </div>
+
                 <div className="mt-3 border-t border-[var(--color-border)] pt-3 text-sm">
-                  <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Team P&amp;L</div>
-                  <Row label="Income (contracts)" value={fmtMoney(g.revenue, currency)} />
+                  <div className="mb-1 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Team P&amp;L (real)</div>
+                  <Row label="Income — athletes (paid)" value={fmtMoney(g.collectedRevenue, currency)} />
+                  <Row label="Income — other (received)" value={fmtMoney(g.receivedRevenue, currency)} />
+                  {g.pledgedRevenue > 0 && (
+                    <Row label="+ pledged (not yet received)" value={fmtMoney(g.pledgedRevenue, currency)} color="#f59e0b" />
+                  )}
                   <Row label="Costs (coach + spend)" value={fmtMoney(costs, currency)} />
                   <div className="mt-1 flex justify-between border-t border-[var(--color-border)] pt-1.5">
-                    <dt className="font-medium">Result</dt>
-                    <dd className="num font-semibold" style={{ color: result >= 0 ? "var(--color-accent)" : "#f87171" }}>{fmtMoney(result, currency)}</dd>
+                    <dt className="font-medium">Net result</dt>
+                    <dd className="num font-semibold" style={{ color: g.netResult >= 0 ? "var(--color-accent)" : "#f87171" }}>{fmtMoney(g.netResult, currency)}</dd>
                   </div>
                 </div>
 

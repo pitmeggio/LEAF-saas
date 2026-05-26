@@ -196,7 +196,7 @@ export async function getGroupsWithStats(coachId?: string | null, opts: SeasonSc
       ...(coachId ? { coachId } : {}),
       ...(opts.season ? { season: opts.season } : {}),
     },
-    include: { coach: true, enrollments: { include: { package: true, payments: true, athlete: { select: { discipline: true } } } }, expenses: true },
+    include: { coach: true, enrollments: { include: { package: true, payments: true, athlete: { select: { discipline: true } } } }, expenses: true, revenues: true },
     orderBy: { name: "asc" },
   });
   return groups.map((g) => {
@@ -239,6 +239,31 @@ export async function getGroupsWithStats(coachId?: string | null, opts: SeasonSc
     const byCat = new Map<string, number>();
     for (const e of approvedExpenses) byCat.set(e.category, (byCat.get(e.category) ?? 0) + e.amount);
     const categoryBreakdown = [...byCat.entries()].map(([category, amount]) => ({ category, amount })).sort((a, b) => b.amount - a.amount);
+
+    // Income side (Revenue ledger) — sponsor / federation / academy
+    // allocation / misc. Aggregated only in base currency to stay honest.
+    const baseRevenues = g.revenues.filter((r) => r.currency === baseCurrency);
+    const receivedRevenue = baseRevenues
+      .filter((r) => r.status === "received")
+      .reduce((s, r) => s + r.amount, 0);
+    const pledgedRevenue = baseRevenues
+      .filter((r) => r.status === "pledged")
+      .reduce((s, r) => s + r.amount, 0);
+    const revenueByCategory = new Map<string, number>();
+    for (const r of baseRevenues) {
+      if (r.status !== "received") continue;
+      revenueByCategory.set(r.category, (revenueByCategory.get(r.category) ?? 0) + r.amount);
+    }
+    const incomeBreakdown = [...revenueByCategory.entries()]
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount);
+
+    // Net result for the team: income (athletes + other) − costs (coach + spend).
+    // Differs from `margin` which is the contract view (revenue − coach − budget allocation).
+    const totalIncome = collectedRevenue + receivedRevenue;
+    const totalCosts = coachCost + usedBudget;
+    const netResult = totalIncome - totalCosts;
+
     return {
       ...g,
       count,
@@ -259,6 +284,12 @@ export async function getGroupsWithStats(coachId?: string | null, opts: SeasonSc
       categoryBreakdown,
       disciplineSplit,
       overBudget: usedBudget > budget,
+      // Income tracker
+      receivedRevenue,
+      pledgedRevenue,
+      incomeBreakdown,
+      totalIncome,
+      netResult,
     };
   });
 }
