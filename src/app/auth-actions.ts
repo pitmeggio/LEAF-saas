@@ -16,10 +16,14 @@ async function setSession(userId: string) {
   });
 }
 
-// One-click demo sign-in (the login page's demo user list). Enabled by default so
-// the showcase works everywhere; set DISABLE_DEMO_LOGIN=1 to turn it off.
+// One-click demo sign-in (the login page's demo user list). OFF by default —
+// this lists every user's email and lets anyone log in as them. Only the
+// public LEAF demo site should opt back in with LEAF_DEMO_LOGIN="1".
+//
+// Server-side guard runs even if a stale UI button leaks through: without
+// the env var, the action redirects to /login instead of issuing a session.
 export async function signIn(userId: string) {
-  if (process.env.DISABLE_DEMO_LOGIN === "1") redirect("/login");
+  if (process.env.LEAF_DEMO_LOGIN !== "1") redirect("/login");
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
   await setSession(userId);
   redirect(homeForRole(user?.role ?? "coach"));

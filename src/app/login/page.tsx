@@ -26,12 +26,18 @@ export default async function LoginPage() {
   }
   if (signedIn) redirect("/dashboard");
 
-  // Demo accounts are a convenience; if the DB is unreachable, still render the form.
+  // One-click demo buttons (lists every user with their email) are OFF by
+  // default — they only ever made sense for the public LEAF demo site. On a
+  // real tenant deployment they leak roster emails on the login screen.
+  // Opt back in with LEAF_DEMO_LOGIN="1" on the demo environment only.
+  const demoLoginEnabled = process.env.LEAF_DEMO_LOGIN === "1";
   let demoUsers: { id: string; name: string; role: string; email: string }[] = [];
-  try {
-    demoUsers = await prisma.user.findMany({ orderBy: { role: "asc" }, select: { id: true, name: true, role: true, email: true } });
-  } catch {
-    demoUsers = [];
+  if (demoLoginEnabled) {
+    try {
+      demoUsers = await prisma.user.findMany({ orderBy: { role: "asc" }, select: { id: true, name: true, role: true, email: true } });
+    } catch {
+      demoUsers = [];
+    }
   }
 
   return (
