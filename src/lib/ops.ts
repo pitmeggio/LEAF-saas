@@ -119,7 +119,9 @@ export async function getActiveAthlete(id: string, coachId?: string | null) {
     where: { id, academyId, ...(coachId ? { coachId } : {}) },
     include: {
       ...ENROLLMENT_INCLUDE,
-      athlete: { include: { rankings: { orderBy: { date: "asc" } }, results: { orderBy: { date: "desc" }, take: 6 }, media: true } },
+      // 60 results is enough for full per-discipline breakdown + 2-3 seasons
+      // of historical analytics. The recent-6 view in the UI is just sliced.
+      athlete: { include: { rankings: { orderBy: { date: "asc" } }, results: { orderBy: { date: "desc" }, take: 60 }, media: true } },
       events: { orderBy: { createdAt: "desc" } },
       application: true,
       conversations: { select: { id: true }, take: 1 },

@@ -83,6 +83,7 @@ model Academy {
   invoices      Invoice[]
   notifications Notification[]
   expenses      Expense[]
+  revenues      Revenue[]
   conversations Conversation[]
   users         User[]
   trainingSessions TrainingSession[]
@@ -275,6 +276,38 @@ model Expense {
   createdAt   DateTime @default(now())
 }
 
+// Income — non-Payment revenue streams that feed a team's budget.
+// Athlete fees flow through Payment (per-enrollment). Everything else — sponsor
+// deals, federation grants, academy allocations — lives here so the Budget
+// Tracker can show a real net result (income − expense) per team.
+// Manual entry today; future integrations (Stripe, bank import) drop in here.
+model Revenue {
+  id          String   @id @default(cuid())
+  academyId   String
+  academy     Academy  @relation(fields: [academyId], references: [id])
+  groupId     String?
+  group       Group?   @relation(fields: [groupId], references: [id])
+  title       String
+  amount      Int      // currency major units (e.g. EUR)
+  currency    String   @default("EUR")
+  // athlete_fee  = aggregated/individual fee outside the Payment flow
+  // sponsor      = sponsor contribution
+  // federation   = federation grant / contribution
+  // academy_allocation = budget allocated from the academy's general pot
+  // other        = misc
+  category    String   @default("other")
+  // received   = cash in the bank already
+  // pledged    = promised, not yet received (counts as forecast)
+  // cancelled  = killed
+  status      String   @default("received")
+  receivedDate DateTime?
+  notes       String?
+  source      String?  // free text: sponsor name, federation name, etc.
+  createdAt   DateTime @default(now())
+
+  @@index([academyId, groupId])
+}
+
 // Immutable audit trail for an expense — every status change / edit, with who + when.
 model ExpenseEvent {
   id         String   @id @default(cuid())
@@ -399,6 +432,11 @@ model Athlete {
   physicalLevel   Int?
   mentalLevel     Int?
   developmentGoals String?       // free text, multiline
+
+  // Season-level intent set by the athlete (or coach) — surfaced on /me
+  // and on the admin detail page. Free text, multiline. Drives no logic
+  // today; AI Coach Notes may align suggestions against it in the future.
+  seasonGoals     String?
 
   tennisMatches   TennisMatch[]
 
@@ -638,6 +676,7 @@ model Group {
   discipline  String? // optional discipline filter (null = any)
   enrollments   Enrollment[]
   expenses      Expense[]
+  revenues      Revenue[]
   conversations Conversation[]
   sessions      TrainingSession[]
   calendarEvents CalendarEvent[]

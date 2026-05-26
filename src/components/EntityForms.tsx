@@ -274,7 +274,7 @@ export function AthleteForm({ groups, coaches, packages }: { groups: Opt[]; coac
 }
 
 // ── Athlete identity edit ──
-export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName: string; lastName: string; email: string | null; phone: string | null; nationality: string; discipline: string; emergencyContact: string | null; guardianName: string | null; guardianContact: string | null; sport?: string; dominantHand?: string | null; playingStyle?: string | null; technicalLevel?: number | null; tacticalLevel?: number | null; physicalLevel?: number | null; mentalLevel?: number | null; developmentGoals?: string | null } }) {
+export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName: string; lastName: string; email: string | null; phone: string | null; nationality: string; discipline: string; emergencyContact: string | null; guardianName: string | null; guardianContact: string | null; sport?: string; dominantHand?: string | null; playingStyle?: string | null; technicalLevel?: number | null; tacticalLevel?: number | null; physicalLevel?: number | null; mentalLevel?: number | null; developmentGoals?: string | null; seasonGoals?: string | null } }) {
   const [f, set] = useState({
     firstName: athlete.firstName, lastName: athlete.lastName, email: athlete.email ?? "", phone: athlete.phone ?? "",
     nationality: athlete.nationality, discipline: athlete.discipline,
@@ -287,6 +287,7 @@ export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName:
     physicalLevel: athlete.physicalLevel ?? "",
     mentalLevel: athlete.mentalLevel ?? "",
     developmentGoals: athlete.developmentGoals ?? "",
+    seasonGoals: athlete.seasonGoals ?? "",
   });
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
@@ -304,6 +305,7 @@ export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName:
       physicalLevel: f.physicalLevel === "" ? undefined : Number(f.physicalLevel),
       mentalLevel: f.mentalLevel === "" ? undefined : Number(f.mentalLevel),
       developmentGoals: f.developmentGoals || undefined,
+      seasonGoals: f.seasonGoals || undefined,
     })); }} className="space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <Field label="First name *"><input className={inp} value={f.firstName} onChange={(e) => upd("firstName", e.target.value)} required /></Field>
@@ -353,6 +355,18 @@ export function AthleteEditForm({ athlete }: { athlete: { id: string; firstName:
           </Field>
         </div>
       )}
+
+      {/* Season goals — universal across sports. The narrative intent that
+          drives the athlete's season. AI coach notes align to it (Phase 2). */}
+      <Field label="Season goals">
+        <textarea
+          className={inp}
+          rows={3}
+          placeholder="e.g. Drop average FIS points below 25 in GS · Finish top-5 at regional championships · Improve SL consistency"
+          value={f.seasonGoals}
+          onChange={(e) => upd("seasonGoals", e.target.value)}
+        />
+      </Field>
 
       <Footer pending={pending} error={error} />
     </form>

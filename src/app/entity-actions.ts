@@ -205,6 +205,8 @@ export async function updateAthlete(input: unknown): Promise<Result> {
       physicalLevel: d.physicalLevel,
       mentalLevel: d.mentalLevel,
       developmentGoals: d.developmentGoals,
+      // Universal narrative intent for the season — used cross-sport.
+      seasonGoals: d.seasonGoals,
     },
   });
   revalidatePath(`/members`);

@@ -10,6 +10,8 @@ import { ContractsPanel } from "@/components/ContractsPanel";
 import { CoachIntelligencePanel } from "@/components/CoachIntelligencePanel";
 import { TennisProfileCard } from "@/components/TennisProfileCard";
 import { TennisMatchesPanel } from "@/components/TennisMatchesPanel";
+import { DisciplineBreakdownCard } from "@/components/DisciplineBreakdownCard";
+import { computeDisciplineBreakdown, disciplineHeadline, deriveDevelopmentFocus } from "@/lib/ai/disciplineAnalytics";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { deriveLevelSuggestions, type AthleteAiProfile } from "@/lib/ai/coachProfile";
 import { getActiveAthlete, getAssignmentOptions, getNotifications } from "@/lib/ops";
@@ -106,6 +108,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                     technicalLevel: a.technicalLevel, tacticalLevel: a.tacticalLevel,
                     physicalLevel: a.physicalLevel, mentalLevel: a.mentalLevel,
                     developmentGoals: a.developmentGoals,
+                    seasonGoals: a.seasonGoals,
                   }} />
                 </Modal>
               </div>
@@ -129,6 +132,31 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
               <Mini label="Team avg" value={fmtPoints(m.teamAvg)} sub={a.fisPoints != null && m.teamAvg != null ? (a.fisPoints <= m.teamAvg ? "above avg" : "below avg") : undefined} />
             </div>
           </div>
+
+          {/* Per-discipline AI analysis — ski athletes only. Breaks the
+              race history down into SL / GS / SG / DH with trends + DNF
+              ratio + suggested development focus. */}
+          {a.sport === "ski" && a.results.length > 0 && (() => {
+            const breakdown = computeDisciplineBreakdown(a.results.map((r) => ({
+              date: r.date, discipline: r.discipline, rank: r.rank, fisPoints: r.fisPoints, status: r.status,
+            })));
+            const focus = deriveDevelopmentFocus(breakdown);
+            const headline = disciplineHeadline(breakdown);
+            return <DisciplineBreakdownCard breakdown={breakdown} focus={focus} headline={headline} />;
+          })()}
+
+          {/* Season goals — athlete or coach can set them on edit.
+              Drives narrative intent for the season; surfaced for the AI
+              coach notes to align suggestions against (Phase 2). */}
+          {a.seasonGoals && (
+            <div className="card p-6">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-base" aria-hidden>🎯</span>
+                <h3 className="text-sm font-semibold">Season goals</h3>
+              </div>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--color-fg)]/85">{a.seasonGoals}</p>
+            </div>
+          )}
 
           {/* Tennis profile — only when sport === "tennis". Ski athletes keep
               the FIS-driven Performance card above as their primary profile. */}

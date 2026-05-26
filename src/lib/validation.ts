@@ -490,6 +490,9 @@ export const athleteUpdateSchema = z.object({
   physicalLevel: levelField,
   mentalLevel: levelField,
   developmentGoals: optText(1500),
+  // Season goals — narrative intent the athlete sets for the season. Used
+  // by both ski + tennis (universal). Surfaced on the athlete profile.
+  seasonGoals: optText(1500),
 });
 
 export const applicationUpdateSchema = z.object({
