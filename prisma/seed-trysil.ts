@@ -45,8 +45,29 @@ const prisma = new PrismaClient({
 
 const ACADEMY_SLUG = "trysilraceacademy";
 const MARIUS_EMAIL = "marius@trysilraceacademy.no";
+// Super-admin (platform owner). Override with SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD
+// when running the script; falls back to a sensible placeholder otherwise.
+const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL ?? "pietro@leafos.io";
+const SUPER_ADMIN_NAME = process.env.SUPER_ADMIN_NAME ?? "Pietro Meggiolaro";
 
 async function main() {
+  // ── Platform owner — reaches /super-admin, has no academyId ──────────
+  console.log("→ Upserting platform super-admin…");
+  const superAdminPassword = process.env.SUPER_ADMIN_PASSWORD || "leaf2026";
+  const superAdminHash = await bcrypt.hash(superAdminPassword, 10);
+  await prisma.user.upsert({
+    where: { email: SUPER_ADMIN_EMAIL },
+    update: { role: "super_admin", academyId: null, name: SUPER_ADMIN_NAME },
+    create: {
+      name: SUPER_ADMIN_NAME,
+      email: SUPER_ADMIN_EMAIL,
+      passwordHash: superAdminHash,
+      role: "super_admin",
+      academyId: null,
+    },
+  });
+  console.log(`  ✓ super-admin: ${SUPER_ADMIN_EMAIL} / ${superAdminPassword}`);
+
   console.log("→ Upserting Trysil Race Academy…");
 
   const academy = await prisma.academy.upsert({
