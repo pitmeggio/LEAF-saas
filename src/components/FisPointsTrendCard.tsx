@@ -125,10 +125,43 @@ export function FisPointsTrendCard({ athleteId, trends, lastSyncedAt, lastPublis
                             : "var(--color-muted)"
                     }
                   />
+                  <Field label="Active lists" value={`${t.activeChanges}/${t.sampleSize - 1}`} />
+                </div>
+                {/* Second row: best / worst / momentum / snapshots — the
+                    coach's anchor numbers for the discipline this season. */}
+                <div className="mt-2 grid grid-cols-4 gap-3 text-[11px]">
+                  <Field
+                    label="Best"
+                    value={t.best ? t.best.fisPoints.toFixed(1) : "—"}
+                    sub={t.best ? t.best.date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : undefined}
+                    color={t.best ? "var(--color-accent)" : undefined}
+                  />
+                  <Field
+                    label="Worst"
+                    value={t.worst ? t.worst.fisPoints.toFixed(1) : "—"}
+                    sub={t.worst ? t.worst.date.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : undefined}
+                    color={t.worst ? "#f87171" : undefined}
+                  />
+                  <Field
+                    label="Momentum"
+                    value={
+                      t.momentum === 0
+                        ? "±0.0"
+                        : `${t.momentum < 0 ? "↓" : "↑"}${Math.abs(t.momentum).toFixed(1)}`
+                    }
+                    color={
+                      t.momentum < 0
+                        ? "var(--color-accent)"
+                        : t.momentum > 0
+                          ? "#f87171"
+                          : "var(--color-muted)"
+                    }
+                    sub="2nd vs 1st half"
+                  />
                   <Field label="Snapshots" value={String(t.sampleSize)} />
                 </div>
                 {t.series.length > 1 && (
-                  <Sparkline series={t.series} />
+                  <TrendChart series={t.series} trend={t.trend} />
                 )}
               </div>
             );
@@ -154,38 +187,146 @@ export function FisPointsTrendCard({ athleteId, trends, lastSyncedAt, lastPublis
   );
 }
 
-function Field({ label, value, color }: { label: string; value: string; color?: string }) {
+function Field({ label, value, color, sub }: { label: string; value: string; color?: string; sub?: string }) {
   return (
     <div>
       <div className="text-[9px] uppercase tracking-wide text-[var(--color-muted)]">{label}</div>
       <div className="num mt-0.5 text-xs" style={color ? { color } : undefined}>{value}</div>
+      {sub && <div className="text-[9px] text-[var(--color-muted)]">{sub}</div>}
     </div>
   );
 }
 
-// Tiny SVG sparkline of the points series. Lower = better, so we DON'T
-// invert the y-axis here — the visual instinct of "going down means doing
-// better" matches FIS reality and is intuitive to coaches looking at FIS.
-function Sparkline({ series }: { series: { date: Date; fisPoints: number }[] }) {
+// Proper per-discipline FIS points chart. Lower = better, so we DON'T invert
+// the y-axis here — the visual instinct of "going down means doing better"
+// matches FIS reality and reads correctly to coaches.
+//
+// Features:
+//   • Dot per snapshot (one per FIS list) + native <title> hover with
+//     ISO date + FIS points
+//   • Y-axis range labels (best / worst) drawn on the side
+//   • X-axis date labels at the start and end of the series
+//   • Best snapshot highlighted in green, worst in red
+//   • Soft area fill under the curve tinted by the overall trend
+//
+// SVG uses non-stretching coordinates so dots stay round and labels readable.
+function TrendChart({
+  series,
+  trend,
+}: {
+  series: { date: Date; fisPoints: number }[];
+  trend: "improving" | "declining" | "stable" | "insufficient_data";
+}) {
   if (series.length < 2) return null;
-  const W = 200;
-  const H = 36;
+
+  const W = 320;
+  const H = 80;
+  const PAD_L = 36;
+  const PAD_R = 8;
+  const PAD_T = 6;
+  const PAD_B = 18;
+  const innerW = W - PAD_L - PAD_R;
+  const innerH = H - PAD_T - PAD_B;
+
   const pts = series.map((s) => s.fisPoints);
-  const min = Math.min(...pts);
-  const max = Math.max(...pts);
-  const range = max - min || 1;
-  const stepX = W / (series.length - 1);
-  const path = series
-    .map((s, i) => {
-      const x = i * stepX;
-      const y = H - ((s.fisPoints - min) / range) * H;
-      return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-    })
+  const minPts = Math.min(...pts);
+  const maxPts = Math.max(...pts);
+  // Pad the y-range a touch so dots never glue to the top/bottom edges.
+  const pad = (maxPts - minPts) * 0.1 || 0.5;
+  const yMin = minPts - pad;
+  const yMax = maxPts + pad;
+  const yRange = yMax - yMin || 1;
+
+  const x = (i: number) => PAD_L + (i / (series.length - 1)) * innerW;
+  const y = (v: number) => PAD_T + ((yMax - v) / yRange) * innerH; // INVERT so lower-pts is at top? we want lower=better=high on screen
+  // Actually we want lower points HIGHER on screen (better = up), so map
+  // (v - yMin) → bottom, (v - yMax) → top. Above formula does this:
+  //   v = yMax → y = PAD_T (top)            ← but this is "worst points highest"
+  // We invert: lower v → top (better up). Use (yMax - v) / range from PAD_T.
+  // The formula above already does (yMax - v) → top for the MAX value. Good.
+  // Wait: for lower v, (yMax - v) is LARGER, so y is HIGHER (further from PAD_T).
+  // That puts lower v near the bottom. WRONG. Recompute.
+  // We want: lower v = better = top. So y(v) should decrease as v decreases.
+  //   y(v) = PAD_T + ((v - yMin) / range) * innerH
+  // For v = yMin: y = PAD_T (top)              ← best at top ✓
+  // For v = yMax: y = PAD_T + innerH (bottom)  ← worst at bottom ✓
+  // Re-define:
+  const yPos = (v: number) => PAD_T + ((v - yMin) / yRange) * innerH;
+
+  const linePath = series
+    .map((s, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${yPos(s.fisPoints).toFixed(1)}`)
     .join(" ");
+  // Soft fill area under the curve (tinted by overall trend).
+  const fillPath = `${linePath} L${x(series.length - 1).toFixed(1)},${PAD_T + innerH} L${x(0).toFixed(1)},${PAD_T + innerH} Z`;
+
+  const trendStroke = trend === "declining" ? "#f87171" : "var(--color-accent)";
+  const trendFillOpacity = trend === "stable" || trend === "insufficient_data" ? 0.04 : 0.1;
+
+  // Identify best (lowest pts) and worst (highest pts) snapshots so we can
+  // dot them with a stronger colour — coaches care about anchor points.
+  let bestIdx = 0;
+  let worstIdx = 0;
+  for (let i = 1; i < series.length; i++) {
+    if (series[i].fisPoints < series[bestIdx].fisPoints) bestIdx = i;
+    if (series[i].fisPoints > series[worstIdx].fisPoints) worstIdx = i;
+  }
+
+  const fmtDate = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+  const firstLabel = fmtDate(series[0].date);
+  const lastLabel = fmtDate(series[series.length - 1].date);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 w-full" preserveAspectRatio="none">
-      <path d={path} fill="none" stroke="var(--color-accent)" strokeWidth="1.5" />
+    <svg viewBox={`0 0 ${W} ${H}`} className="mt-3 w-full" aria-label="FIS points trend">
+      {/* Y-axis range labels (FIS points min/max). Lower = better → top. */}
+      <text x={PAD_L - 4} y={PAD_T + 4} fontSize="8" textAnchor="end" fill="var(--color-muted)" className="num">
+        {minPts.toFixed(1)}
+      </text>
+      <text x={PAD_L - 4} y={PAD_T + innerH} fontSize="8" textAnchor="end" fill="var(--color-muted)" className="num">
+        {maxPts.toFixed(1)}
+      </text>
+
+      {/* Subtle horizontal grid line at the median */}
+      <line
+        x1={PAD_L}
+        x2={W - PAD_R}
+        y1={PAD_T + innerH / 2}
+        y2={PAD_T + innerH / 2}
+        stroke="var(--color-border)"
+        strokeWidth="0.5"
+        strokeDasharray="2 3"
+      />
+
+      {/* Area fill under the curve */}
+      <path d={fillPath} fill={trendStroke} fillOpacity={trendFillOpacity} />
+      {/* Line */}
+      <path d={linePath} fill="none" stroke={trendStroke} strokeWidth="1.5" />
+
+      {/* Dots per snapshot (one per FIS list) with native tooltip */}
+      {series.map((s, i) => {
+        const isBest = i === bestIdx;
+        const isWorst = i === worstIdx && worstIdx !== bestIdx;
+        const r = isBest || isWorst ? 3 : 2;
+        const fill = isBest ? "var(--color-accent)" : isWorst ? "#f87171" : trendStroke;
+        return (
+          <circle
+            key={i}
+            cx={x(i)}
+            cy={yPos(s.fisPoints)}
+            r={r}
+            fill={fill}
+            stroke="var(--color-surface-2)"
+            strokeWidth="0.8"
+          >
+            <title>
+              {fmtDate(s.date)} · {s.fisPoints.toFixed(2)} pts{isBest ? " · best" : isWorst ? " · worst" : ""}
+            </title>
+          </circle>
+        );
+      })}
+
+      {/* X-axis: first and last published date */}
+      <text x={PAD_L} y={H - 4} fontSize="8" fill="var(--color-muted)" className="num">{firstLabel}</text>
+      <text x={W - PAD_R} y={H - 4} fontSize="8" textAnchor="end" fill="var(--color-muted)" className="num">{lastLabel}</text>
     </svg>
   );
 }

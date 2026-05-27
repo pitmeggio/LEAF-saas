@@ -69,7 +69,24 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
   // academy. With the marketplace not live yet, default is OFF — surface
   // stays clean and honest.
   const publicProfilesEnabled = academy?.featurePublicProfiles ?? false;
-  const chart: Point[] = a.rankings.map((r) => ({ label: new Date(r.date).toLocaleDateString("en-GB", { month: "short" }), fisPoints: r.fisPoints }));
+  // Headline Performance chart: prefer the multi-list FIS history when we
+  // have it for the athlete's primary discipline (rich curve, ~22 points
+  // over the season). Fall back to the legacy RankingPoint trail otherwise
+  // so non-ski sports keep working. Never seed: empty = empty, by design.
+  const primaryDisciplineSnapshots = a.sport === "ski"
+    ? fisSnapshots
+        .filter((s) => s.discipline === a.discipline)
+        .sort((x, y) => x.publishedAt.getTime() - y.publishedAt.getTime())
+    : [];
+  const chart: Point[] = primaryDisciplineSnapshots.length > 1
+    ? primaryDisciplineSnapshots.map((s) => ({
+        label: new Date(s.publishedAt).toLocaleDateString("en-GB", { month: "short" }),
+        fisPoints: s.fisPoints,
+      }))
+    : a.rankings.map((r) => ({
+        label: new Date(r.date).toLocaleDateString("en-GB", { month: "short" }),
+        fisPoints: r.fisPoints,
+      }));
   const perf = perfFromTrend(m.trend);
 
   return (
@@ -150,7 +167,16 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
               </span>
             </div>
             {chart.length > 1 ? <GrowthChart data={chart} /> : (
-              <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-[var(--color-border)] text-sm text-[var(--color-muted)]">No FIS history yet.</div>
+              <div className="flex h-40 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--color-border)] px-6 text-center text-sm text-[var(--color-muted)]">
+                {a.sport === "ski" && a.fisCode ? (
+                  <>
+                    <span>No FIS history yet.</span>
+                    <span className="text-xs">Click <span className="font-medium text-[var(--color-accent)]">Sync from FIS</span> below to pull the full season trend.</span>
+                  </>
+                ) : (
+                  <span>No performance history yet.</span>
+                )}
+              </div>
             )}
             <div className="mt-4 grid grid-cols-3 gap-3 text-center">
               <Mini label="FIS points" value={fmtPoints(a.fisPoints)} />

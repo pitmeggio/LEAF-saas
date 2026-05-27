@@ -38,6 +38,19 @@ export type DisciplinePointsTrend = {
   rankDelta: number | null;
   rankTrend: PointsTrendLabel;
   sampleSize: number;        // number of snapshots feeding this trend
+  // Best (lowest) and worst (highest) snapshots across the window. Coaches
+  // anchor on these: "his best GS this season was 78.5 on Feb 26th".
+  best: { fisPoints: number; date: Date } | null;
+  worst: { fisPoints: number; date: Date } | null;
+  // Number of times the points value CHANGED from one list to the next —
+  // a proxy for "active race weeks" (FIS only recalculates points when a
+  // new result enters the rolling window). 0 = totally inactive across
+  // the window, sampleSize-1 = changed in every list (very rare).
+  activeChanges: number;
+  // Momentum = avg(second half) − avg(first half). Negative = improving
+  // recently, positive = declining recently. Captures "where the trend is
+  // headed RIGHT NOW" independently from the cumulative delta.
+  momentum: number;
   series: { date: Date; fisPoints: number }[]; // oldest → newest, for sparkline
 };
 
@@ -88,6 +101,34 @@ export function computePointsTrendByDiscipline(
       else rankTrend = "stable";
     }
 
+    // Best / worst anchors across the window.
+    let bestIdx = 0;
+    let worstIdx = 0;
+    for (let i = 1; i < series.length; i++) {
+      if (series[i].fisPoints < series[bestIdx].fisPoints) bestIdx = i;
+      if (series[i].fisPoints > series[worstIdx].fisPoints) worstIdx = i;
+    }
+
+    // Activity: count list-to-list changes (proxy for race weeks).
+    let activeChanges = 0;
+    for (let i = 1; i < series.length; i++) {
+      if (Math.abs(series[i].fisPoints - series[i - 1].fisPoints) >= 0.01) activeChanges++;
+    }
+
+    // Momentum: avg(second half) − avg(first half). Negative = improving
+    // recently. Falls back to overall delta when the window is too short
+    // to split meaningfully (≤2 snapshots).
+    let momentum = 0;
+    if (series.length >= 4) {
+      const mid = Math.floor(series.length / 2);
+      const firstHalf = series.slice(0, mid);
+      const secondHalf = series.slice(mid);
+      const avg = (arr: typeof series) => arr.reduce((s, x) => s + x.fisPoints, 0) / arr.length;
+      momentum = avg(secondHalf) - avg(firstHalf);
+    } else {
+      momentum = delta;
+    }
+
     out.push({
       discipline,
       label: DISCIPLINE_LABEL[discipline] ?? discipline,
@@ -100,6 +141,10 @@ export function computePointsTrendByDiscipline(
       rankDelta,
       rankTrend,
       sampleSize: series.length,
+      best: { fisPoints: round1(series[bestIdx].fisPoints), date: series[bestIdx].publishedAt },
+      worst: { fisPoints: round1(series[worstIdx].fisPoints), date: series[worstIdx].publishedAt },
+      activeChanges,
+      momentum: round1(momentum),
       series: series.map((s) => ({ date: s.publishedAt, fisPoints: s.fisPoints })),
     });
   }
