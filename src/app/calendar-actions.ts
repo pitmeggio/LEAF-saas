@@ -115,3 +115,96 @@ export async function deleteCalendarEvent(id: string): Promise<Result> {
   rev();
   return { ok: true };
 }
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Excel / CSV import — coach uploads a season-plan file, parser turns rows
+// into CalendarEvent records, all in one click. Lives behind the same
+// canManage() guard as manual create: a coach can only import into one of
+// their own groups; an admin can target any group or push academy-wide.
+// ─────────────────────────────────────────────────────────────────────────────
+export type ImportResult =
+  | { ok: true; created: number; skipped: number; warnings: string[]; sheetName: string }
+  | { ok: false; error: string };
+
+export async function importCalendarFromFile(formData: FormData): Promise<ImportResult> {
+  const s = await getSession();
+  if (!s) return { ok: false, error: "Not signed in" };
+  const academyId = await requireAcademyId();
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { ok: false, error: "No file uploaded." };
+  if (file.size === 0) return { ok: false, error: "File is empty." };
+  if (file.size > 10 * 1024 * 1024) return { ok: false, error: "File too large (max 10MB)." };
+
+  const rawGroupId = formData.get("groupId");
+  const groupId = typeof rawGroupId === "string" && rawGroupId.length > 0 ? rawGroupId : null;
+
+  // Tenant + role scope: coach can only target their own groups.
+  const guard = await canManage(s, academyId, groupId);
+  if (!guard.ok) return { ok: false, error: guard.error ?? "Not authorised." };
+
+  // Coach can only target THEIR group; if no groupId, we use their first
+  // assigned group rather than dropping into the academy-wide bucket
+  // (which would surprise them — academy events show up everywhere).
+  let effectiveGroupId = groupId;
+  if (!effectiveGroupId && !s.isAdmin && s.coachId) {
+    const ownGroup = await prisma.group.findFirst({
+      where: { academyId, coachId: s.coachId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    effectiveGroupId = ownGroup?.id ?? null;
+    if (!effectiveGroupId) return { ok: false, error: "You have no group assigned to import into." };
+  }
+
+  const { parseCalendarFile } = await import("@/lib/calendarImport");
+  const buffer = await file.arrayBuffer();
+  let parsed;
+  try {
+    parsed = parseCalendarFile(buffer);
+  } catch (err) {
+    return { ok: false, error: `Could not read the file. Make sure it is a valid .xlsx or .csv. (${(err as Error).message})` };
+  }
+
+  if (parsed.events.length === 0) {
+    return {
+      ok: false,
+      error: parsed.warnings[0] ?? "No events found in the file.",
+    };
+  }
+
+  // Map parsed type → schema-default season string ("all"); the calendar
+  // page filters by date, not by season label, so leaving "all" keeps
+  // imported events visible regardless of the active season cookie.
+  const academy = await prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } });
+  const currency = academy?.currency ?? "EUR";
+  let created = 0;
+  for (const ev of parsed.events) {
+    await prisma.calendarEvent.create({
+      data: {
+        academyId,
+        groupId: effectiveGroupId,
+        coachId: s.coachId ?? null,
+        title: ev.title,
+        type: ev.type,
+        season: "all",
+        startDate: ev.startDate,
+        endDate: ev.endDate ?? null,
+        location: ev.location,
+        notes: ev.notes,
+        currency,
+        createdById: s.userId,
+      },
+    });
+    created++;
+  }
+  rev();
+  return {
+    ok: true,
+    created,
+    skipped: Math.max(0, parsed.totalRows - parsed.events.length),
+    warnings: parsed.warnings,
+    sheetName: parsed.sheetName,
+  };
+}

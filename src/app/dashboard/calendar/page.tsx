@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/PageHeader";
 import { SeasonPlanner, type GroupOpt } from "@/components/SeasonPlanner";
+import { CalendarImportButton } from "@/components/CalendarImportButton";
 import { getSession, requireAcademyId } from "@/lib/auth";
 import { getCalendarEvents, type CalendarScope } from "@/lib/calendar";
 import { getAcademyCurrency, getGroupsWithStats } from "@/lib/ops";
@@ -68,6 +69,12 @@ export default async function CalendarPage() {
         subtitle={isAdmin
           ? `Season ${season} · spreadsheet-style preseason planner — events, costs and budget exposure in one view.`
           : `Season ${season} · your groups' plan — events, locations and costs.`}
+        right={
+          <CalendarImportButton
+            groups={groups.map((g) => ({ id: g.id, name: g.name }))}
+            isAdmin={isAdmin}
+          />
+        }
       />
       <div className="p-8">
         <SeasonPlanner
