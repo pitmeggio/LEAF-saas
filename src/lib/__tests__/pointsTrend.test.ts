@@ -81,3 +81,33 @@ test("headline: GS improving + SL stable produces compact string", () => {
 test("headline: empty input returns a safe sentinel", () => {
   assert.equal(pointsTrendHeadline([]), "No FIS history yet");
 });
+
+test("rank trend: points stable but rank slid down → rank declining", () => {
+  // Same points across the window but rank dropped from 50 → 80 (worse).
+  const t = computePointsTrendByDiscipline([
+    { publishedAt: new Date("2025-12-01"), discipline: "giant_slalom", fisPoints: 12.5, worldRank: 50 },
+    { publishedAt: new Date("2026-01-15"), discipline: "giant_slalom", fisPoints: 12.5, worldRank: 60 },
+    { publishedAt: new Date("2026-03-01"), discipline: "giant_slalom", fisPoints: 12.5, worldRank: 80 },
+  ]);
+  assert.equal(t[0].trend, "stable");
+  assert.equal(t[0].rankDelta, 30);
+  assert.equal(t[0].rankTrend, "declining");
+});
+
+test("rank trend: missing rank in any snapshot keeps rankDelta null", () => {
+  const t = computePointsTrendByDiscipline([
+    { publishedAt: new Date("2025-12-01"), discipline: "slalom", fisPoints: 20, worldRank: 100 },
+    { publishedAt: new Date("2026-03-01"), discipline: "slalom", fisPoints: 20, worldRank: null },
+  ]);
+  assert.equal(t[0].rankDelta, null);
+  assert.equal(t[0].rankTrend, "insufficient_data");
+});
+
+test("headline: points stable + rank improving → '↑' badge", () => {
+  const t = computePointsTrendByDiscipline([
+    { publishedAt: new Date("2025-12-01"), discipline: "giant_slalom", fisPoints: 12.5, worldRank: 80 },
+    { publishedAt: new Date("2026-03-01"), discipline: "giant_slalom", fisPoints: 12.5, worldRank: 50 },
+  ]);
+  const h = pointsTrendHeadline(t);
+  assert.match(h, /GS rank ↑/);
+});

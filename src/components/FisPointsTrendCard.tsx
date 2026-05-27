@@ -102,9 +102,29 @@ export function FisPointsTrendCard({ athleteId, trends, lastSyncedAt, lastPublis
                     <span className="ml-1 text-[10px] text-[var(--color-muted)]">FIS pts</span>
                   </div>
                 </div>
-                <div className="mt-2 grid grid-cols-3 gap-3 text-[11px]">
-                  <Field label="Δ over window" value={`${deltaSign}${deltaAbs}`} color={deltaColor} />
-                  <Field label="World rank" value={t.worldRankCurrent != null ? String(t.worldRankCurrent) : "—"} />
+                <div className="mt-2 grid grid-cols-4 gap-3 text-[11px]">
+                  <Field label="Δ pts" value={`${deltaSign}${deltaAbs}`} color={deltaColor} />
+                  <Field
+                    label="World rank"
+                    value={t.worldRankCurrent != null ? String(t.worldRankCurrent) : "—"}
+                  />
+                  <Field
+                    label="Δ rank"
+                    value={
+                      t.rankDelta == null
+                        ? "—"
+                        : `${t.rankDelta > 0 ? "+" : t.rankDelta < 0 ? "−" : "±"}${Math.abs(t.rankDelta)}`
+                    }
+                    color={
+                      t.rankDelta == null
+                        ? undefined
+                        : t.rankDelta < 0
+                          ? "var(--color-accent)"   // rank dropped (better)
+                          : t.rankDelta > 0
+                            ? "#f87171"             // rank climbed (worse)
+                            : "var(--color-muted)"
+                    }
+                  />
                   <Field label="Snapshots" value={String(t.sampleSize)} />
                 </div>
                 {t.series.length > 1 && (

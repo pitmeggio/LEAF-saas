@@ -32,6 +32,11 @@ export type DisciplinePointsTrend = {
   trend: PointsTrendLabel;
   worldRankCurrent: number | null;
   worldRankEarliest: number | null;
+  // Rank trend tells a story even when points are frozen (end-of-season,
+  // injured, taking a break): the field moves around the athlete. Positive
+  // rankDelta = sliding down the standings (worse); negative = climbing.
+  rankDelta: number | null;
+  rankTrend: PointsTrendLabel;
   sampleSize: number;        // number of snapshots feeding this trend
   series: { date: Date; fisPoints: number }[]; // oldest → newest, for sparkline
 };
@@ -44,6 +49,7 @@ const DISCIPLINE_LABEL: Record<string, string> = {
 };
 
 const TREND_BAND = 0.5; // FIS points delta that flips "stable" into a real trend
+const RANK_BAND = 5;     // world-rank delta below which we call it "stable"
 
 export function computePointsTrendByDiscipline(
   snapshots: FisSnapshotInput[],
@@ -71,6 +77,17 @@ export function computePointsTrendByDiscipline(
     else if (delta >= TREND_BAND) trend = "declining";
     else trend = "stable";
 
+    // Rank delta — lower number = better (rank 50 → 30 is improvement).
+    let rankDelta: number | null = null;
+    let rankTrend: PointsTrendLabel = "insufficient_data";
+    if (first.worldRank != null && last.worldRank != null) {
+      rankDelta = last.worldRank - first.worldRank;
+      if (series.length < 2) rankTrend = "insufficient_data";
+      else if (rankDelta <= -RANK_BAND) rankTrend = "improving";
+      else if (rankDelta >= RANK_BAND) rankTrend = "declining";
+      else rankTrend = "stable";
+    }
+
     out.push({
       discipline,
       label: DISCIPLINE_LABEL[discipline] ?? discipline,
@@ -80,6 +97,8 @@ export function computePointsTrendByDiscipline(
       trend,
       worldRankCurrent: last.worldRank,
       worldRankEarliest: first.worldRank,
+      rankDelta,
+      rankTrend,
       sampleSize: series.length,
       series: series.map((s) => ({ date: s.publishedAt, fisPoints: s.fisPoints })),
     });
@@ -100,7 +119,14 @@ export function pointsTrendHeadline(trends: DisciplinePointsTrend[]): string {
       const tag = SHORT[t.discipline] ?? t.discipline;
       if (t.trend === "improving") return `${tag} improving`;
       if (t.trend === "declining") return `${tag} declining`;
-      if (t.trend === "stable") return `${tag} stable`;
+      // Points stable but rank moved? Surface the rank signal (off-season /
+      // injured athletes keep their points but their relative position
+      // drifts as the field races on without them).
+      if (t.trend === "stable") {
+        if (t.rankTrend === "improving") return `${tag} rank ↑`;
+        if (t.rankTrend === "declining") return `${tag} rank ↓`;
+        return `${tag} stable`;
+      }
       return `${tag} —`;
     })
     .join(" · ");
