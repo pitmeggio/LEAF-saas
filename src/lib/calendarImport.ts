@@ -75,11 +75,23 @@ function normaliseType(v: unknown): string {
 }
 
 // Map header strings → RawRow field. Returns null if nothing matched.
+//
+// Real header labels are short. Match only when the cell value is itself
+// a header (≤ 20 chars) so a *data* cell like "approach to gates" does
+// not falsely hit the "to" keyword. We also require either full equality
+// or a word-boundary substring to keep the matcher honest.
 function classifyHeader(header: string): keyof RawRow | null {
-  const norm = header.trim().toLowerCase().replace(/[^a-z0-9 ]+/g, "");
+  const norm = header.trim().toLowerCase().replace(/[^a-z0-9 ]+/g, " ").replace(/\s+/g, " ").trim();
+  if (!norm || norm.length > 20) return null;
+  const tokens = new Set(norm.split(" "));
   for (const rule of HEADER_RULES) {
     for (const kw of rule.keywords) {
-      if (norm.includes(kw)) return rule.field;
+      // Multi-word keyword: still substring-match (e.g. "data inizio").
+      if (kw.includes(" ")) {
+        if (norm.includes(kw)) return rule.field;
+      } else {
+        if (tokens.has(kw)) return rule.field;
+      }
     }
   }
   return null;
@@ -124,43 +136,75 @@ function toStr(v: unknown): string {
   return String(v).trim();
 }
 
-export function parseCalendarFile(buffer: ArrayBuffer): ParseResult {
+export function parseCalendarFile(buffer: ArrayBuffer, opts: { seasonStartYear?: number } = {}): ParseResult {
   const wb = XLSX.read(buffer, { type: "array", cellDates: true });
   const sheetName = wb.SheetNames[0];
   if (!sheetName) return { events: [], warnings: ["File has no sheets."], sheetName: "", totalRows: 0 };
 
   const ws = wb.Sheets[sheetName];
-  // Get rows as arrays so we can map headers → fields ourselves rather
-  // than trust the lib's auto-keying.
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: false, defval: null });
+  // Keep raw values when possible so day-of-month integers stay numeric.
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1, raw: true, defval: null });
   if (rows.length === 0) {
     return { events: [], warnings: ["Sheet is empty."], sheetName, totalRows: 0 };
   }
 
+  // Try the row-per-event layout first; if that misses (a coach uploaded
+  // their season grid instead of a flat list), fall back to the grid
+  // parser. The two formats are visually distinct so the detection is
+  // unambiguous in practice.
+  const flat = parseFlatRows(rows);
+  if (flat.events.length > 0 || flat.headerFound) {
+    return { ...flat, sheetName, totalRows: rows.length };
+  }
+
+  const grid = parseGridCalendar(rows, opts.seasonStartYear ?? new Date().getFullYear());
+  if (grid.events.length > 0) {
+    return {
+      events: grid.events,
+      warnings: grid.warnings,
+      sheetName,
+      totalRows: rows.length,
+    };
+  }
+
+  return {
+    events: [],
+    warnings: [
+      "Could not find a header row OR a recognisable month-grid layout. Expected columns like Start / End / Type / Location, or a calendar grid with month headers (Mai, Juni, Juli, … / May, June, July, … / Maggio, Giugno, Luglio, …).",
+    ],
+    sheetName,
+    totalRows: rows.length,
+  };
+}
+
+// Row-per-event ("flat") parser — the original simple layout: a header
+// row at the top, one row per event below. Returns headerFound=false
+// when nothing looks like a header so the caller can try the grid
+// parser instead of bailing out.
+function parseFlatRows(rows: unknown[][]): { events: ParsedEvent[]; warnings: string[]; headerFound: boolean } {
   // Find the header row — typically row 0, but tolerate a 1- or 2-row
   // title block above it (common in Excel templates).
-  let headerRowIdx = 0;
+  //
+  // A legit header has DISTINCT fields (start + something else) and at
+  // least one cell classified as a start/date column — otherwise we're
+  // looking at a data row that coincidentally contains keyword-like text
+  // ("approach to gates" hitting "to" is the classic false positive).
+  let headerRowIdx = -1;
   let headerMap: (keyof RawRow | null)[] = [];
   for (let i = 0; i < Math.min(rows.length, 4); i++) {
     const candidate = (rows[i] ?? []).map((c) => toStr(c));
     const mapped = candidate.map((c) => classifyHeader(c));
-    const hits = mapped.filter((x) => x !== null).length;
-    if (hits >= 2) {
+    const distinctFields = new Set(mapped.filter((x): x is keyof RawRow => x !== null));
+    const hasStart = distinctFields.has("start");
+    if (distinctFields.size >= 2 && hasStart) {
       headerRowIdx = i;
       headerMap = mapped;
       break;
     }
   }
 
-  if (headerMap.length === 0) {
-    return {
-      events: [],
-      warnings: [
-        "Could not find a header row. Expected columns like: Start date, End date, Type, Location, Title, Notes (English or Italian).",
-      ],
-      sheetName,
-      totalRows: rows.length,
-    };
+  if (headerRowIdx === -1) {
+    return { events: [], warnings: [], headerFound: false };
   }
 
   const events: ParsedEvent[] = [];
@@ -204,9 +248,183 @@ export function parseCalendarFile(buffer: ArrayBuffer): ParseResult {
     events.push({ title, type, startDate: start, endDate: end, location, notes });
   }
 
-  if (events.length === 0 && warnings.length === 0) {
-    warnings.push("No event rows found below the header.");
+  return { events, warnings, headerFound: true };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Grid-calendar parser — alpine coaches keep a "month-block" spreadsheet:
+//
+//   |     | Mai             | Juni            | Juli            | ...
+//   |     | Plan A | Plan B | Plan A | Plan B | Plan A | Plan B
+//   |  1  | Trysil |        |        |        | Juvass |
+//   |  2  | Trysil |        |        |        | Juvass |
+//   |  3  | Trysil |        |        |        | OFF    |
+//
+// Each month block exposes Plan A (location), Plan B (backup), Info
+// (notes). Day numbers run down the leftmost column of each block. We
+// detect month headers in any of three languages (Norwegian, English,
+// Italian), find the column offsets, walk down day rows, then collapse
+// consecutive same-location days into a single multi-day event.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MONTH_MAP: Record<string, number> = {
+  // Norwegian
+  januar: 0, februar: 1, mars: 2, april: 3, mai: 4, juni: 5, juli: 6,
+  august: 7, september: 8, oktober: 9, november: 10, desember: 11,
+  // English
+  january: 0, february: 1, march: 2, may: 4, june: 5, july: 6, october: 9, december: 11,
+  // Italian
+  gennaio: 0, febbraio: 1, marzo: 2, aprile: 3, maggio: 4, giugno: 5, luglio: 6,
+  agosto: 7, settembre: 8, ottobre: 9, novembre: 10, dicembre: 11,
+};
+
+function classifyType(loc: string): { type: string; location: string | null } {
+  const lc = loc.trim().toLowerCase();
+  if (!lc || lc === "-") return { type: "training", location: null };
+  if (lc === "off" || lc === "rest" || lc === "riposo") return { type: "off", location: null };
+  if (lc.includes("arrival") || lc.includes("departure") || lc.includes("travel") || lc.includes("move to")) {
+    return { type: "travel", location: loc.trim() };
+  }
+  if (lc.includes("race") || lc.includes("fis race") || lc.includes("gara")) {
+    return { type: "race", location: loc.trim() };
+  }
+  return { type: "camp", location: loc.trim() };
+}
+
+function parseGridCalendar(rows: unknown[][], seasonStartYear: number): { events: ParsedEvent[]; warnings: string[] } {
+  const warnings: string[] = [];
+
+  // Step 1: detect month-name cells anywhere in the first 4 rows.
+  const monthCols: { col: number; month: number }[] = [];
+  let monthHeaderRow = -1;
+  for (let r = 0; r < Math.min(rows.length, 4); r++) {
+    const row = rows[r] ?? [];
+    for (let c = 0; c < row.length; c++) {
+      const name = String(row[c] ?? "").trim().toLowerCase();
+      if (MONTH_MAP[name] !== undefined) {
+        monthCols.push({ col: c, month: MONTH_MAP[name] });
+      }
+    }
+    if (monthCols.length >= 2) { monthHeaderRow = r; break; }
+  }
+  if (monthCols.length === 0) return { events: [], warnings: ["No month-name headers found."] };
+  monthCols.sort((a, b) => a.col - b.col);
+
+  // Step 2: assign a calendar YEAR to each month. The season starts in
+  // `seasonStartYear` (e.g. 2026 for "2026/27"). Months walking
+  // chronologically left-to-right: each time the month index DROPS we've
+  // crossed into the next calendar year (May 2026 → … → Dec 2026 →
+  // Jan 2027 → … → Apr 2027).
+  let curYear = seasonStartYear;
+  let prevMonth = monthCols[0].month - 1;
+  const monthSlots = monthCols.map((m) => {
+    if (m.month < prevMonth) curYear++;
+    prevMonth = m.month;
+    return { ...m, year: curYear };
+  });
+
+  // Step 3: discover the day column for each month block. Pattern in
+  // Marius's file: day_col = month_col - 2, and Plan A sits AT month_col.
+  // Validate this against the data: in any data row, the day cell should
+  // be a number 1..31. If month_col - 2 doesn't satisfy this for at
+  // least one row, we sweep within ±3 to find the right offset.
+  const startRow = monthHeaderRow + 1;
+  const findDayCol = (mc: number) => {
+    for (const offset of [-2, -1, -3, -4, 0]) {
+      const candidate = mc + offset;
+      if (candidate < 0) continue;
+      let hits = 0;
+      for (let r = startRow; r < Math.min(rows.length, startRow + 35); r++) {
+        const v = rows[r]?.[candidate];
+        if (typeof v === "number" && v >= 1 && v <= 31) hits++;
+      }
+      if (hits >= 5) return candidate;
+    }
+    return mc - 2;
+  };
+
+  const slotsWithDayCol = monthSlots.map((m) => ({ ...m, dayCol: findDayCol(m.col) }));
+
+  // Step 4: scan day rows for every month block. We treat the cell at
+  // (row, month_col) as Plan A; the cell directly to its right (or one
+  // further) as Plan B / notes — we don't depend on the exact layout
+  // because months in Marius's file alternate between with-Trenere and
+  // without.
+  type DayHit = { date: Date; planA: string; extras: string };
+  const hits: DayHit[] = [];
+  for (const slot of slotsWithDayCol) {
+    for (let r = startRow; r < rows.length; r++) {
+      const row = rows[r] ?? [];
+      const dayVal = row[slot.dayCol];
+      if (typeof dayVal !== "number" || dayVal < 1 || dayVal > 31) continue;
+      const planA = String(row[slot.col] ?? "").trim();
+      if (!planA) continue;
+      // Pull any trailing string cells in the same block (Plan B / Info)
+      // for the notes field. Limit to 3 columns to avoid bleeding into
+      // the next month.
+      const extras: string[] = [];
+      for (let c = slot.col + 1; c < slot.col + 4; c++) {
+        const v = row[c];
+        if (typeof v === "string") {
+          const t = v.trim();
+          if (t && t.toLowerCase() !== "plan b" && t !== "-") extras.push(t);
+        }
+      }
+      const date = new Date(Date.UTC(slot.year, slot.month, Math.round(dayVal)));
+      hits.push({ date, planA, extras: extras.join(" · ") });
+    }
   }
 
-  return { events, warnings, sheetName, totalRows: dataRows.length };
+  hits.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Step 5: collapse consecutive days with the same Plan A into one
+  // multi-day event. "Trysil" Jan 1 + "Trysil" Jan 2 + "Trysil" Jan 3
+  // → one camp event Jan 1–3 in Trysil.
+  const events: ParsedEvent[] = [];
+  let current: { startDate: Date; endDate: Date; planA: string; extras: Set<string>; type: string; location: string | null } | null = null;
+  const flush = () => {
+    if (!current) return;
+    const titleBase = current.type.charAt(0).toUpperCase() + current.type.slice(1);
+    const title = current.location ? `${titleBase} · ${current.location}` : titleBase;
+    const notes = current.extras.size > 0 ? [...current.extras].join(" · ") : null;
+    events.push({
+      title,
+      type: current.type,
+      startDate: current.startDate,
+      endDate: current.startDate.getTime() === current.endDate.getTime() ? null : current.endDate,
+      location: current.location,
+      notes,
+    });
+    current = null;
+  };
+
+  for (const h of hits) {
+    const { type, location } = classifyType(h.planA);
+    if (
+      current &&
+      current.planA.toLowerCase() === h.planA.toLowerCase() &&
+      current.type === type &&
+      // Consecutive day check (allow exact next-day continuation only).
+      new Date(current.endDate.getTime() + 86_400_000).getTime() === h.date.getTime()
+    ) {
+      current.endDate = h.date;
+      if (h.extras) current.extras.add(h.extras);
+      continue;
+    }
+    flush();
+    current = {
+      startDate: h.date,
+      endDate: h.date,
+      planA: h.planA,
+      extras: new Set(h.extras ? [h.extras] : []),
+      type,
+      location,
+    };
+  }
+  flush();
+
+  if (events.length === 0) {
+    warnings.push("Found month headers but no day-rows with Plan A values.");
+  }
+  return { events, warnings };
 }

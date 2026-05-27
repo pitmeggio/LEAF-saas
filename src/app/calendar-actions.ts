@@ -160,9 +160,15 @@ export async function importCalendarFromFile(formData: FormData): Promise<Import
 
   const { parseCalendarFile } = await import("@/lib/calendarImport");
   const buffer = await file.arrayBuffer();
+  // Grid layouts (Marius's calendar-grid spreadsheet) have month names
+  // but no year. Anchor them with the academy's active season — "2026/27"
+  // means May 2026 is the first month, so seasonStartYear = 2026.
+  const { getActiveSeason } = await import("@/lib/season-server");
+  const season = await getActiveSeason();
+  const seasonStartYear = parseInt(season.split("/")[0], 10);
   let parsed;
   try {
-    parsed = parseCalendarFile(buffer);
+    parsed = parseCalendarFile(buffer, { seasonStartYear });
   } catch (err) {
     return { ok: false, error: `Could not read the file. Make sure it is a valid .xlsx or .csv. (${(err as Error).message})` };
   }
