@@ -5,6 +5,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { firstError } from "@/lib/validation";
+import { parseTreningsskjema } from "@/lib/treningsskjemaParser";
 
 // LEAF OS Essential — slope + line + booking CRUD.
 //
@@ -195,7 +196,7 @@ const publicBookSchema = z.object({
 //
 // Stripe is wired but optional — for the demo, we mark as "confirmed"
 // with paidAmount=0 and the academy admin confirms reception manually.
-export async function bookSlotPublicly(input: z.infer<typeof publicBookSchema>): Promise<Result<{ bookingId: string }>> {
+export async function bookSlotPublicly(input: z.input<typeof publicBookSchema>): Promise<Result<{ bookingId: string }>> {
   const parsed = publicBookSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const d = parsed.data;
@@ -230,4 +231,140 @@ export async function bookSlotPublicly(input: z.infer<typeof publicBookSchema>):
     revalidatePath("/dashboard/lines");
   }
   return result;
+}
+
+// ── Treningsskjema Excel import ──────────────────────────────────────────
+// Accept a Treningsskjema.xlsx upload + a year (the sheet doesn't carry one),
+// auto-create any missing slopes/lines under this academy, then create one
+// LineBooking per non-empty cell. Idempotent: rows with the exact same
+// (lineId, startAt) already in the DB get skipped — re-importing the same
+// week is safe.
+const importSchema = z.object({
+  year: z.coerce.number().int().min(2020).max(2099),
+  fileName: z.string().max(200).optional(),
+});
+
+export async function importTreningsskjema(form: FormData): Promise<Result<{
+  created: number;
+  skipped: number;
+  weekNumber: number | null;
+  warnings: string[];
+  slopesCreated: number;
+  linesCreated: number;
+}>> {
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false, error: "No academy in session." };
+
+  const parsedInput = importSchema.safeParse({
+    year: form.get("year"),
+    fileName: form.get("fileName") ?? undefined,
+  });
+  if (!parsedInput.success) return { ok: false, error: firstError(parsedInput.error) };
+
+  const file = form.get("file");
+  if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Missing file." };
+  if (file.size > 2 * 1024 * 1024) return { ok: false, error: "File too large (max 2 MB)." };
+
+  const arrayBuf = await file.arrayBuffer();
+  const buf = Buffer.from(arrayBuf);
+
+  let parsed;
+  try {
+    parsed = parseTreningsskjema(buf, parsedInput.data.year);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Could not parse the Excel file." };
+  }
+  if (parsed.bookings.length === 0) {
+    return {
+      ok: false,
+      error: parsed.warnings.join(" ") || "No bookings found in the file. Check that the sheet matches the Treningsskjema layout.",
+    };
+  }
+
+  // Map slopeName → existing or freshly created TrainingSlope; lineLabel → TrainingLine.
+  const slopeNames = Array.from(new Set(parsed.bookings.map((b) => b.slopeName)));
+  let slopesCreated = 0;
+  let linesCreated = 0;
+
+  const slopeByName = new Map<string, { id: string; lines: Map<string, string> }>();
+  for (const name of slopeNames) {
+    let slope = await prisma.trainingSlope.findFirst({
+      where: { academyId: s.academyId, name },
+      include: { lines: true },
+    });
+    if (!slope) {
+      slope = await prisma.trainingSlope.create({
+        data: { academyId: s.academyId, name },
+        include: { lines: true },
+      });
+      slopesCreated++;
+    }
+    const lineMap = new Map<string, string>();
+    for (const l of slope.lines) lineMap.set(l.label, l.id);
+    slopeByName.set(name, { id: slope.id, lines: lineMap });
+  }
+
+  // Auto-create any line labels that don't exist yet on each slope.
+  for (const b of parsed.bookings) {
+    const slope = slopeByName.get(b.slopeName);
+    if (!slope) continue;
+    if (slope.lines.has(b.lineLabel)) continue;
+    const position = Number.isFinite(parseInt(b.lineLabel, 10)) ? parseInt(b.lineLabel, 10) : slope.lines.size + 1;
+    const created = await prisma.trainingLine.create({
+      data: { slopeId: slope.id, label: b.lineLabel, position },
+    });
+    slope.lines.set(b.lineLabel, created.id);
+    linesCreated++;
+  }
+
+  // Insert bookings, skipping rows that already exist for the same (line, startAt).
+  let created = 0;
+  let skipped = 0;
+  const weekLabel = parsed.weekNumber ? `imported:week-${parsed.weekNumber}` : "imported";
+
+  for (const b of parsed.bookings) {
+    const slope = slopeByName.get(b.slopeName);
+    if (!slope) {
+      skipped++;
+      continue;
+    }
+    const lineId = slope.lines.get(b.lineLabel);
+    if (!lineId) {
+      skipped++;
+      continue;
+    }
+    const exists = await prisma.lineBooking.findFirst({
+      where: { lineId, startAt: b.startAt },
+      select: { id: true },
+    });
+    if (exists) {
+      skipped++;
+      continue;
+    }
+    await prisma.lineBooking.create({
+      data: {
+        academyId: s.academyId,
+        lineId,
+        startAt: b.startAt,
+        endAt: b.endAt,
+        label: b.label,
+        notes: weekLabel,
+        createdById: s.userId,
+      },
+    });
+    created++;
+  }
+
+  rev();
+  return {
+    ok: true,
+    data: {
+      created,
+      skipped,
+      weekNumber: parsed.weekNumber,
+      warnings: parsed.warnings,
+      slopesCreated,
+      linesCreated,
+    },
+  };
 }
