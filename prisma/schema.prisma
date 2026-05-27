@@ -448,6 +448,7 @@ model Athlete {
   atpProfileUrl             String?
 
   rankings        RankingPoint[]
+  fisSnapshots    FisListSnapshot[]
   results         Result[]
   media           Media[]
   publicMedia     PublicAthleteMedia[]
@@ -518,6 +519,29 @@ model RankingPoint {
   date      DateTime
   fisPoints Float
   worldRank Int?
+}
+
+// Per-discipline FIS points snapshot, captured from a specific official FIS
+// points list (fis-ski.com publishes ~22 lists per season). Each (athlete,
+// list, discipline) tuple is unique. Stored once per sync — the live FIS
+// provider walks the most recent N lists and upserts the rows it finds.
+//
+// Powers the per-discipline trend on the athlete page (lib/ai/pointsTrend.ts)
+// without ever fabricating data: a discipline with one snapshot reads as
+// "insufficient_data", two or more drive an improving/declining trend.
+model FisListSnapshot {
+  id          String   @id @default(cuid())
+  athleteId   String
+  athlete     Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  listid      Int      // FIS source list id (e.g. 452 → "22nd FIS points list 2025/26")
+  publishedAt DateTime // list valid-from date — what the trend chart plots against
+  discipline  String   // slalom | giant_slalom | super_g | downhill
+  fisPoints   Float
+  worldRank   Int?
+  syncedAt    DateTime @default(now())
+
+  @@unique([athleteId, listid, discipline])
+  @@index([athleteId, discipline, publishedAt])
 }
 
 model Result {

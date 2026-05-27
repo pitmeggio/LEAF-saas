@@ -12,6 +12,8 @@ import { TennisProfileCard } from "@/components/TennisProfileCard";
 import { TennisMatchesPanel } from "@/components/TennisMatchesPanel";
 import { DisciplineBreakdownCard } from "@/components/DisciplineBreakdownCard";
 import { computeDisciplineBreakdown, disciplineHeadline, deriveDevelopmentFocus } from "@/lib/ai/disciplineAnalytics";
+import { FisPointsTrendCard } from "@/components/FisPointsTrendCard";
+import { computePointsTrendByDiscipline } from "@/lib/ai/pointsTrend";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { deriveLevelSuggestions, type AthleteAiProfile } from "@/lib/ai/coachProfile";
 import { getActiveAthlete, getAssignmentOptions, getNotifications } from "@/lib/ops";
@@ -34,6 +36,30 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
   if (!m) notFound();
   const [opts, notifications] = await Promise.all([getAssignmentOptions(), getNotifications({ enrollmentId: id })]);
   const a = m.athlete;
+  // FIS multi-list snapshots — populated by syncAthleteFisHistory(). Empty
+  // until the admin clicks "Sync from FIS" the first time. We never seed
+  // these rows from any other source: an empty array = no data, full stop.
+  const fisSnapshots = a.sport === "ski"
+    ? await prisma.fisListSnapshot.findMany({
+        where: { athleteId: a.id },
+        orderBy: [{ publishedAt: "asc" }],
+        select: { publishedAt: true, discipline: true, fisPoints: true, worldRank: true, syncedAt: true },
+      })
+    : [];
+  const fisTrends = fisSnapshots.length > 0
+    ? computePointsTrendByDiscipline(fisSnapshots.map((s) => ({
+        publishedAt: s.publishedAt,
+        discipline: s.discipline,
+        fisPoints: s.fisPoints,
+        worldRank: s.worldRank,
+      })))
+    : [];
+  const fisLastSyncedAt = fisSnapshots.length > 0
+    ? new Date(Math.max(...fisSnapshots.map((s) => s.syncedAt.getTime())))
+    : null;
+  const fisLastPublishedAt = fisSnapshots.length > 0
+    ? new Date(Math.max(...fisSnapshots.map((s) => s.publishedAt.getTime())))
+    : null;
   const academy = s?.academyId
     ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { currency: true, featurePublicProfiles: true } })
     : null;
@@ -132,6 +158,20 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
               <Mini label="Team avg" value={fmtPoints(m.teamAvg)} sub={a.fisPoints != null && m.teamAvg != null ? (a.fisPoints <= m.teamAvg ? "above avg" : "below avg") : undefined} />
             </div>
           </div>
+
+          {/* FIS points trend per discipline — pulled live from fis-ski.com
+              via lib/fis/liveProvider.ts. Visible for every ski athlete:
+              empty state turns into a "Sync from FIS" CTA so the data
+              source is always one click away and never fabricated. */}
+          {a.sport === "ski" && a.fisCode && (
+            <FisPointsTrendCard
+              athleteId={a.id}
+              trends={fisTrends}
+              lastSyncedAt={fisLastSyncedAt}
+              lastPublishedAt={fisLastPublishedAt}
+              canSync={!!s?.isAdmin}
+            />
+          )}
 
           {/* Per-discipline AI analysis — ski athletes only. Breaks the
               race history down into SL / GS / SG / DH with trends + DNF

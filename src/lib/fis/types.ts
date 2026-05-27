@@ -31,8 +31,25 @@ export type FisAthleteData = {
   results: FisResult[];
 };
 
+// Per-discipline multi-list history. One row per (list, discipline) the
+// athlete appears in. Populated by FisProvider.fetchHistoryByCode().
+export type FisDisciplineSnapshot = {
+  listid: number;
+  publishedAt: string; // ISO date the list went live
+  discipline: string;  // slalom | giant_slalom | super_g | downhill
+  fisPoints: number;
+  worldRank: number | null;
+};
+
 export interface FisProvider {
   /** Returns the athlete record for a FIS code, or null if not found. */
   fetchByCode(fisCode: string): Promise<FisAthleteData | null>;
+  /**
+   * Returns per-discipline points snapshots for an athlete across the last
+   * `lookbackLists` FIS points lists. Empty array when the athlete is not
+   * found or the provider does not support history (e.g. simulated mode
+   * may return a deterministic shape with `[]`).
+   */
+  fetchHistoryByCode?(fisCode: string, lookbackLists?: number): Promise<FisDisciplineSnapshot[]>;
   readonly sourceName: string;
 }
