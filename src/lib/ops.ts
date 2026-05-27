@@ -1177,10 +1177,24 @@ export async function getBudgetForecastForAcademy(opts: SeasonScope = {}): Promi
     // (deduplicated, head coach excluded).
     const assistantCoachIds = [...bucket.coachIds].filter((cid) => cid !== g.coachId);
 
+    // Per-enrolment coverage flags — drives which cost lines apply to
+    // each athlete. Tech-Elite athletes on "Academy Training" (no
+    // accommodation, no transport) generate zero hotel/housing/fuel
+    // share; Development athletes on "Academy Full Year" generate the
+    // full board. Athletes with no package fall back to "covered for
+    // coaching only" so the team still gets coach + kit + overhead.
+    const enrollments = roster.map((e) => ({
+      accommodation: e.package?.accommodation ?? false,
+      transport: e.package?.transport ?? false,
+      coaching: e.package?.coaching ?? true,
+      raceSupport: e.package?.raceSupport ?? false,
+    }));
+
     return {
       id: g.id,
       name: g.name,
       athletesCount,
+      enrollments,
       headCoachIds,
       assistantCoachIds,
       travelDays: bucket.travelDays,

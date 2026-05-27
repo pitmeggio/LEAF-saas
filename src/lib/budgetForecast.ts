@@ -39,10 +39,30 @@ export type BudgetBenchmarks = {
   defaultNightsPerSeason: number;
 };
 
+// Per-athlete cost coverage, derived from each enrolment's PACKAGE flags.
+// Each athlete only counts toward a cost line if their package opted in:
+//   • accommodation → hotel nights + base-camp housing + meals
+//   • transport     → fuel + vehicle share
+//   • coaching      → kit + per-athlete overhead share
+//   • raceSupport   → lift pass + race-day operations
+// This is what makes Trysil's Tech-Elite team (paying-athletes, no
+// accommodation included) genuinely cheaper than Development (academy
+// covers travel + housing) even on the same season calendar.
+export type EnrolledAthlete = {
+  accommodation: boolean;
+  transport: boolean;
+  coaching: boolean;
+  raceSupport: boolean;
+};
+
 export type GroupInput = {
   id: string;
   name: string;
   athletesCount: number;
+  // One entry per active athlete on the team. Optional for legacy callers
+  // (and unit tests) that pre-date per-package coverage; the engine then
+  // treats every athlete as fully covered to preserve previous semantics.
+  enrollments?: EnrolledAthlete[];
   headCoachIds: string[];          // coach IDs flagged as head_coach assigned to this group
   assistantCoachIds: string[];     // coach IDs flagged as assistant or other roles
   // Counted in days, derived from CalendarEvent.startDate/endDate where event.groupId
@@ -98,6 +118,26 @@ export function computeGroupBudgetForecast(
   const nights = group.nights > 0 ? group.nights : benchmarks.defaultNightsPerSeason;
   const n = group.athletesCount;
 
+  // Per-cost-line athlete counts derived from each enrolment's package
+  // flags. A Tech-Elite roster on "Academy Training" (no accommodation)
+  // produces accNum = 0 and pays zero hotel/housing/meals — the cost lines
+  // simply don't appear. A Development roster on "Academy Full Year"
+  // produces accNum = athletesCount and pays the full board. This is the
+  // single change that makes the forecast honest across team tiers.
+  const enr = group.enrollments ?? [];
+  const accNum = enr.filter((e) => e.accommodation).length;
+  const transNum = enr.filter((e) => e.transport).length;
+  const coachNum = enr.filter((e) => e.coaching).length;
+  const raceNum = enr.filter((e) => e.raceSupport).length;
+  // Fallback: when no enrolment metadata is available (legacy caller),
+  // treat every athlete as fully covered so the engine doesn't silently
+  // zero out a team's costs.
+  const fallback = enr.length === 0;
+  const accAth = fallback ? n : accNum;
+  const transAth = fallback ? n : transNum;
+  const coachAth = fallback ? n : coachNum;
+  const raceAth = fallback ? n : raceNum;
+
   // ── Staff ────────────────────────────────────────────────────────────────
   if (group.headCoachIds.length > 0 && benchmarks.headCoachMonthlyRate > 0) {
     const months = benchmarks.headCoachMonthsPerSeason;
@@ -122,68 +162,72 @@ export function computeGroupBudgetForecast(
     });
   }
 
-  // ── Lodging ──────────────────────────────────────────────────────────────
-  if (n > 0 && benchmarks.pricePerNight > 0 && nights > 0) {
-    const amount = n * nights * benchmarks.pricePerNight;
+  // ── Lodging — only the athletes whose package includes accommodation ────
+  if (accAth > 0 && benchmarks.pricePerNight > 0 && nights > 0) {
+    const amount = accAth * nights * benchmarks.pricePerNight;
     lines.push({
       key: "pricePerNight",
       label: "Hotel / lodge",
-      formula: `${n} ath × ${nights} nights × ${benchmarks.pricePerNight}`,
+      formula: `${accAth}/${n} ath × ${nights} nights × ${benchmarks.pricePerNight}`,
       amount,
       category: "lodging",
     });
   }
-  if (n > 0 && benchmarks.housingMonthly > 0 && benchmarks.housingMonthsPerSeason > 0) {
+  if (accAth > 0 && benchmarks.housingMonthly > 0 && benchmarks.housingMonthsPerSeason > 0) {
     const months = benchmarks.housingMonthsPerSeason;
-    const amount = n * benchmarks.housingMonthly * months;
+    const amount = accAth * benchmarks.housingMonthly * months;
     lines.push({
       key: "housing",
       label: "Base-camp housing",
-      formula: `${n} ath × ${months} mo × ${benchmarks.housingMonthly}`,
+      formula: `${accAth}/${n} ath × ${months} mo × ${benchmarks.housingMonthly}`,
       amount,
       category: "lodging",
     });
   }
 
-  // ── Travel / on-snow ─────────────────────────────────────────────────────
-  if (n > 0 && benchmarks.liftPassPerDay > 0 && trainingDays > 0) {
-    const amount = n * trainingDays * benchmarks.liftPassPerDay;
+  // ── Travel / on-snow — race support drives lift pass; accommodation
+  //    drives meals on the road; transport drives the van/fuel share.
+  if (raceAth > 0 && benchmarks.liftPassPerDay > 0 && trainingDays > 0) {
+    const amount = raceAth * trainingDays * benchmarks.liftPassPerDay;
     lines.push({
       key: "liftPass",
       label: "Lift pass",
-      formula: `${n} ath × ${trainingDays} days × ${benchmarks.liftPassPerDay}`,
+      formula: `${raceAth}/${n} ath × ${trainingDays} days × ${benchmarks.liftPassPerDay}`,
       amount,
       category: "travel",
     });
   }
-  if (n > 0 && benchmarks.mealsPerDay > 0 && travelDays > 0) {
-    const amount = n * travelDays * benchmarks.mealsPerDay;
+  if (accAth > 0 && benchmarks.mealsPerDay > 0 && travelDays > 0) {
+    const amount = accAth * travelDays * benchmarks.mealsPerDay;
     lines.push({
       key: "meals",
       label: "Meals",
-      formula: `${n} ath × ${travelDays} days × ${benchmarks.mealsPerDay}`,
+      formula: `${accAth}/${n} ath × ${travelDays} days × ${benchmarks.mealsPerDay}`,
       amount,
       category: "travel",
     });
   }
-  if (benchmarks.fuelPerTravelDay > 0 && travelDays > 0) {
+  // Fuel + the van are per-team costs (not per-athlete) but only apply
+  // when at least one athlete on the team is on the transport plan —
+  // otherwise the team is meeting at events under their own steam.
+  if (transAth > 0 && benchmarks.fuelPerTravelDay > 0 && travelDays > 0) {
     const amount = travelDays * benchmarks.fuelPerTravelDay;
     lines.push({
       key: "fuel",
-      label: "Fuel",
-      formula: `${travelDays} travel days × ${benchmarks.fuelPerTravelDay}`,
+      label: "Fuel (team van)",
+      formula: `${travelDays} travel days × ${benchmarks.fuelPerTravelDay} · for ${transAth}/${n} ath on transport`,
       amount,
       category: "travel",
     });
   }
 
-  // ── Per-athlete ops ──────────────────────────────────────────────────────
-  if (n > 0 && benchmarks.clothingPerAthlete > 0) {
-    const amount = n * benchmarks.clothingPerAthlete;
+  // ── Per-athlete ops — kit goes to anyone with a coaching plan ───────────
+  if (coachAth > 0 && benchmarks.clothingPerAthlete > 0) {
+    const amount = coachAth * benchmarks.clothingPerAthlete;
     lines.push({
       key: "clothing",
       label: "Team kit",
-      formula: `${n} ath × ${benchmarks.clothingPerAthlete}`,
+      formula: `${coachAth}/${n} ath × ${benchmarks.clothingPerAthlete}`,
       amount,
       category: "ops",
     });
@@ -194,12 +238,16 @@ export function computeGroupBudgetForecast(
   // groups in proportion to athlete share so each team's P&L is honest.
   if (academy.totalAthletes > 0) {
     const share = n / academy.totalAthletes;
-    if (benchmarks.vanCostAnnual > 0) {
-      const amount = Math.round(benchmarks.vanCostAnnual * share);
+    // The team van is only relevant for athletes on a transport plan —
+    // pure paying athletes who travel with their family don't move the
+    // share of academy vehicle costs allocated to this team.
+    if (benchmarks.vanCostAnnual > 0 && transAth > 0) {
+      const transportShare = transAth / academy.totalAthletes;
+      const amount = Math.round(benchmarks.vanCostAnnual * transportShare);
       lines.push({
         key: "vanShare",
         label: "Vehicle costs (allocated)",
-        formula: `${benchmarks.vanCostAnnual} × ${(share * 100).toFixed(0)}% (${n}/${academy.totalAthletes} ath)`,
+        formula: `${benchmarks.vanCostAnnual} × ${(transportShare * 100).toFixed(0)}% (${transAth}/${academy.totalAthletes} transported ath)`,
         amount,
         category: "overhead",
       });
