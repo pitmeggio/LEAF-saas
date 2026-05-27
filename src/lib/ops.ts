@@ -357,6 +357,10 @@ export async function getCoachesWithStats() {
       enrollments: {
         include: { athlete: { select: { id: true, discipline: true } } },
       },
+      // User accounts that can sign in AS this coach. Exposed to the UI
+      // so the Coaches page can render "Login: email" / "Create login"
+      // states without an extra query.
+      users: { select: { email: true } },
     },
     orderBy: { name: "asc" },
   });
@@ -445,6 +449,10 @@ export async function getCoachesWithStats() {
     }
     const avgDelta = avgDeltaCount > 0 ? Math.round((avgDeltaSum / avgDeltaCount) * 10) / 10 : 0;
 
+    // Login surface — first linked User's email is "the" login. UI uses
+    // this to decide between "Create login" and "Reset password".
+    const loginEmail = c.users[0]?.email ?? null;
+
     return {
       ...c,
       athleteCount: athletes,
@@ -452,6 +460,7 @@ export async function getCoachesWithStats() {
       groupNames,
       workload,
       teamTrend: { improving, stable, declining, unknown, avgDelta, sampleSize: avgDeltaCount },
+      loginEmail,
     };
   });
 }

@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/ui";
 import { Modal, CoachForm, DeleteButton } from "@/components/EntityForms";
 import { ArchiveCoachButton } from "@/components/EntityActions";
+import { CoachLoginButton } from "@/components/CoachLoginButton";
 import { getCoachesWithStats, getAcademyCurrency } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
@@ -112,6 +113,17 @@ export default async function CoachesPage() {
                 </p>
               )}
             </div>
+
+            {/* Coach login — admin creates a sign-in account for the coach
+                so they can log in to their scoped workspace. Empty state
+                shows a "Create login" CTA, populated state shows the email
+                plus a "Reset password" link. */}
+            <CoachLoginButton
+              coachId={c.id}
+              coachName={c.name}
+              existingEmail={c.loginEmail}
+              presetEmail={c.email}
+            />
 
             <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
               <Modal label="Edit" title="Edit coach" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
