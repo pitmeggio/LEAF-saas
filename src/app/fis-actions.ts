@@ -15,7 +15,9 @@ export async function importFisAction(_prev: ImportState, formData: FormData): P
   const result = await importAthleteByFisCode(code);
   if (!result) return { error: `No FIS record found for "${code}". Check the code and try again.` };
 
-  revalidatePath("/athletes");
-  revalidatePath(`/athletes/${result.athleteId}`);
-  redirect(`/athletes/${result.athleteId}?imported=${result.created ? "new" : "updated"}`);
+  // Athlete pages live under /dashboard/athletes since the great rename of
+  // task #82. Don't redirect to the old /athletes/* — it would 404.
+  revalidatePath("/dashboard/athletes");
+  revalidatePath(`/dashboard/athletes/${result.athleteId}`);
+  redirect(`/dashboard/athletes/${result.athleteId}?imported=${result.created ? "new" : "updated"}`);
 }
