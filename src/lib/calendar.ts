@@ -12,7 +12,13 @@ export type CalendarScope =
 
 export async function getCalendarEvents(scope: CalendarScope, opts: { upcomingOnly?: boolean; season?: string; groupId?: string } = {}) {
   const where: Record<string, unknown> = { academyId: scope.academyId };
-  if (opts.season && opts.season !== "all") where.season = opts.season;
+  // Season filter — include events explicitly tagged for this season AND
+  // events tagged "all" (academy-wide / multi-season). Without the "all"
+  // bucket, imported calendar plans (which we tag "all") would be invisible
+  // even when they fall inside the active-season window.
+  if (opts.season && opts.season !== "all") {
+    where.OR = [{ season: opts.season }, { season: "all" }];
+  }
   if (opts.groupId) where.groupId = opts.groupId;
   if (opts.upcomingOnly) {
     // Show events that haven't fully ended yet: endDate >= now, or no endDate and startDate >= now.

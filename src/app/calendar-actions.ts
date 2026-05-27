@@ -187,6 +187,12 @@ export async function importCalendarFromFile(formData: FormData): Promise<Import
   const currency = academy?.currency ?? "EUR";
   let created = 0;
   for (const ev of parsed.events) {
+    // Stamp each imported event with the season the start-date falls in
+    // (e.g. "2026/27" for a May 2026 event), so the season filter on the
+    // planner shows them in the right window. Fall back to active season
+    // if seasonForDate isn't conclusive.
+    const { seasonForDate } = await import("@/lib/season");
+    const eventSeason = seasonForDate(ev.startDate);
     await prisma.calendarEvent.create({
       data: {
         academyId,
@@ -194,7 +200,7 @@ export async function importCalendarFromFile(formData: FormData): Promise<Import
         coachId: s.coachId ?? null,
         title: ev.title,
         type: ev.type,
-        season: "all",
+        season: eventSeason || season,
         startDate: ev.startDate,
         endDate: ev.endDate ?? null,
         location: ev.location,

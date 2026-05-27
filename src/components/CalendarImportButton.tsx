@@ -56,16 +56,20 @@ export function CalendarImportButton({
   }
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4" onClick={() => setOpen(false)}>
-      <div
-        className="card w-full max-w-lg p-6"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div
+      className="fixed inset-0 z-[100] overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
+      onClick={() => setOpen(false)}
+    >
+      <div className="flex min-h-full items-center justify-center py-8">
+        <div
+          className="card w-full max-w-lg p-6 shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-semibold">Import calendar from Excel / CSV</h2>
             <p className="mt-1 text-xs text-[var(--color-muted)]">
-              Drop the file you already keep. Headers can be in English or Italian.
+              Drop the file you already keep. Headers can be in English or Italian — or your full month-grid spreadsheet.
             </p>
           </div>
           <button type="button" onClick={() => setOpen(false)} className="text-[var(--color-muted)] hover:text-[var(--color-fg)]">×</button>
@@ -160,6 +164,7 @@ export function CalendarImportButton({
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
