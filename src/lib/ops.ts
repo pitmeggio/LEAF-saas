@@ -238,7 +238,15 @@ export async function getGroupsWithStats(coachId?: string | null, opts: SeasonSc
     // Collected revenue = amounts actually paid (incl. partials) across the roster's payments.
     const collectedRevenue = roster.reduce((s, e) => s + e.payments.reduce((a, p) => a + p.paidAmount, 0), 0);
     const coachCost = g.coach?.cost ?? 0;
-    const budget = g.budget ?? 0;
+    const manualBudget = g.budget ?? 0;
+    // Effective budget: when an admin hasn't manually allocated a cap for
+    // the team (g.budget = 0/null), use the team's *income* from athlete
+    // packages as the implicit budget — that's what the team can spend
+    // before going negative, which is the question Marius actually asks.
+    // The flag tells the UI to label the number as "auto-derived" rather
+    // than "set by you" so we never hide that we're inferring it.
+    const budget = manualBudget > 0 ? manualBudget : revenue;
+    const budgetAutoDerived = manualBudget === 0 && revenue > 0;
     // Margin = package revenue − coach cost − allocated operating budget.
     const margin = revenue - coachCost - budget;
     // Budget usage from coach expenses — only expenses in the academy's base currency
@@ -250,8 +258,13 @@ export async function getGroupsWithStats(coachId?: string | null, opts: SeasonSc
     const usedBudget = approvedExpenses.reduce((s, e) => s + e.amount, 0);
     const pendingExpenses = baseExpenses.filter((e) => e.status === "submitted").reduce((s, e) => s + e.amount, 0);
     const foreignExpenseCount = g.expenses.length - baseExpenses.length;
-    const remainingBudget = budget - usedBudget;
-    const pctUsed = budget > 0 ? Math.round((usedBudget / budget) * 100) : 0;
+    // "Used" against the effective budget should include committed coach
+    // salary, not just operational expenses. A team that has 80% of revenue
+    // already locked into the coach contract is at 80% used, even before
+    // the first trip is booked.
+    const committedSpend = usedBudget + coachCost;
+    const remainingBudget = budget - committedSpend;
+    const pctUsed = budget > 0 ? Math.round((committedSpend / budget) * 100) : 0;
     // Monthly burn rate = approved spend in the last 30 days (base currency).
     const since30 = Date.now() - 30 * 24 * 3600 * 1000;
     const monthlyBurnRate = approvedExpenses
@@ -295,6 +308,11 @@ export async function getGroupsWithStats(coachId?: string | null, opts: SeasonSc
       collectedRevenue,
       coachCost,
       budget,
+      // Caller can show "auto-derived from package income" when the admin
+      // hasn't manually overridden the budget. Important for trust: we
+      // never silently invent a number, we just default to a sensible one.
+      budgetAutoDerived,
+      committedSpend,
       margin,
       marginPositive: margin >= 0,
       usedBudget,
@@ -305,7 +323,7 @@ export async function getGroupsWithStats(coachId?: string | null, opts: SeasonSc
       monthlyBurnRate,
       categoryBreakdown,
       disciplineSplit,
-      overBudget: usedBudget > budget,
+      overBudget: committedSpend > budget,
       // Income tracker
       receivedRevenue,
       pledgedRevenue,
