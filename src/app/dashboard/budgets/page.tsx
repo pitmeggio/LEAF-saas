@@ -3,6 +3,7 @@ import { PercentBar, StatCard } from "@/components/StatCard";
 import { Modal, GroupExpenseForm } from "@/components/EntityForms";
 import { FinanceSubNav } from "@/components/FinanceSubNav";
 import { RevenueLedger } from "@/components/RevenueLedger";
+import { ApprovedExpensesList } from "@/components/ApprovedExpensesList";
 import { BudgetForecastTotals, BudgetForecastCard } from "@/components/BudgetForecast";
 import { BudgetBenchmarksForm } from "@/components/BudgetBenchmarksForm";
 import { getGroupsWithStats, getAcademyCurrency, getBudgetForecastForAcademy, getBudgetBenchmarks } from "@/lib/ops";
@@ -167,6 +168,25 @@ export default async function BudgetsPage() {
                     </dl>
                   </div>
                 )}
+
+                {/* Itemised approved expenses — admin sees each entry and can
+                    remove a wrongly-added one without leaving the page. */}
+                <ApprovedExpensesList
+                  expenses={g.expenses
+                    .filter((e) => e.status === "approved" || e.status === "reimbursed")
+                    .map((e) => ({
+                      id: e.id,
+                      title: e.title,
+                      amount: e.amount,
+                      currency: e.currency,
+                      category: e.category,
+                      status: e.status,
+                      expenseDate: e.expenseDate,
+                      notes: e.notes,
+                    }))}
+                  currency={currency}
+                  canDelete
+                />
 
                 {/* Income ledger — sponsor, federation, academy allocation,
                     misc. Wired per-group; admin can also add academy-wide
