@@ -111,12 +111,30 @@ export function DeleteButton({ kind, id, label = "Delete", className }: { kind: 
 }
 
 // ── Coach ──
-export function CoachForm({ initial }: { initial?: { id: string; name: string; email: string | null; phone: string | null; role: string; specialization: string | null; notes: string | null; active: boolean } }) {
-  const [f, set] = useState({ name: initial?.name ?? "", email: initial?.email ?? "", phone: initial?.phone ?? "", role: initial?.role ?? "coach", specialization: initial?.specialization ?? "", notes: initial?.notes ?? "", active: initial?.active ?? true });
+export function CoachForm({ initial }: { initial?: { id: string; name: string; email: string | null; phone: string | null; role: string; specialization: string | null; notes: string | null; active: boolean; cost?: number | null } }) {
+  const [f, set] = useState({
+    name: initial?.name ?? "",
+    email: initial?.email ?? "",
+    phone: initial?.phone ?? "",
+    role: initial?.role ?? "coach",
+    specialization: initial?.specialization ?? "",
+    notes: initial?.notes ?? "",
+    active: initial?.active ?? true,
+    // Season salary in academy currency major units. Sent to budget
+    // forecast as committed-spend on every team the coach leads.
+    cost: initial?.cost ?? 0,
+  });
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
   return (
-    <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updateCoach(initial.id, f as CoachInput) : createCoach(f as CoachInput)); }} className="space-y-3">
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const payload = { ...f, cost: Number(f.cost) || 0 } as unknown as CoachInput;
+        submit(() => (initial ? updateCoach(initial.id, payload) : createCoach(payload)));
+      }}
+      className="space-y-3"
+    >
       <Field label="Name *"><input className={inp} value={f.name} onChange={(e) => upd("name", e.target.value)} required /></Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Email"><input className={inp} value={f.email} onChange={(e) => upd("email", e.target.value)} /></Field>
@@ -125,11 +143,25 @@ export function CoachForm({ initial }: { initial?: { id: string; name: string; e
       <div className="grid grid-cols-2 gap-3">
         <Field label="Role">
           <select className={inp} value={f.role} onChange={(e) => upd("role", e.target.value)}>
-            <option value="head_coach">Head coach</option><option value="coach">Coach</option><option value="physio">Physio</option><option value="s_and_c">Strength & conditioning</option>
+            <option value="head_coach">Head coach</option>
+            <option value="assistant_coach">Assistant coach</option>
+            <option value="coach">Coach</option>
+            <option value="physio">Physio</option>
+            <option value="s_and_c">Strength &amp; conditioning</option>
           </select>
         </Field>
         <Field label="Specialization"><input className={inp} value={f.specialization} onChange={(e) => upd("specialization", e.target.value)} /></Field>
       </div>
+      <Field label="Season salary (academy currency)">
+        <input
+          type="number"
+          min={0}
+          className={inp}
+          value={f.cost}
+          onChange={(e) => upd("cost", e.target.value)}
+          placeholder="e.g. 480000 for head coach 40k × 12 months"
+        />
+      </Field>
       <Field label="Notes"><textarea className={`${inp} resize-none`} rows={2} value={f.notes} onChange={(e) => upd("notes", e.target.value)} /></Field>
       <Footer pending={pending} error={error} />
     </form>

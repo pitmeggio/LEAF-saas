@@ -2,8 +2,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { Avatar } from "@/components/ui";
 import { Modal, CoachForm, DeleteButton } from "@/components/EntityForms";
 import { ArchiveCoachButton } from "@/components/EntityActions";
-import { getCoachesWithStats } from "@/lib/ops";
+import { getCoachesWithStats, getAcademyCurrency } from "@/lib/ops";
 import { requireAdmin } from "@/lib/auth";
+import { fmtMoney } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ const newBtn = "rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semib
 
 export default async function CoachesPage() {
   await requireAdmin();
-  const coaches = await getCoachesWithStats();
+  const [coaches, currency] = await Promise.all([getCoachesWithStats(), getAcademyCurrency()]);
 
   return (
     <>
@@ -70,9 +71,10 @@ export default async function CoachesPage() {
               </div>
             )}
 
-            <div className="mt-4 grid grid-cols-2 gap-2 text-center">
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
               <Stat value={c.athleteCount} label="Athletes" />
               <Stat value={c.groupCount} label="Groups" />
+              <StatMoney value={c.cost ? fmtMoney(c.cost, currency) : "—"} label="Salary / season" />
             </div>
 
             {/* Team trend — replaces the old "workload" score. Reads the FIS
@@ -113,7 +115,7 @@ export default async function CoachesPage() {
 
             <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
               <Modal label="Edit" title="Edit coach" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
-                <CoachForm initial={{ id: c.id, name: c.name, email: c.email, phone: c.phone, role: c.role, specialization: c.specialization, notes: c.notes, active: c.active }} />
+                <CoachForm initial={{ id: c.id, name: c.name, email: c.email, phone: c.phone, role: c.role, specialization: c.specialization, notes: c.notes, active: c.active, cost: c.cost }} />
               </Modal>
               <ArchiveCoachButton id={c.id} active={c.active} />
               <DeleteButton kind="coach" id={c.id} label="Delete" />
@@ -130,6 +132,18 @@ function Stat({ value, label }: { value: number; label: string }) {
   return (
     <div className="card-2 p-2">
       <div className="num text-lg font-bold">{value}</div>
+      <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">{label}</div>
+    </div>
+  );
+}
+
+// Same shell as Stat but takes a pre-formatted string (e.g. money). Keeps
+// the trio of mini-stats visually aligned even when the third number is
+// large (e.g. "NOK 480,000") — the font shrinks slightly so it still fits.
+function StatMoney({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="card-2 p-2">
+      <div className="num text-sm font-bold leading-tight">{value}</div>
       <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">{label}</div>
     </div>
   );

@@ -399,10 +399,13 @@ export const coachInputSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(80),
   email: z.string().trim().max(120).optional().transform((v) => (v ? v : null)).refine((v) => v === null || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), { message: "Invalid email" }),
   phone: optText(40),
-  role: z.enum(["head_coach", "coach", "physio", "s_and_c"]),
+  role: z.enum(["head_coach", "coach", "assistant_coach", "physio", "s_and_c"]),
   specialization: optText(120),
   notes: optText(2000),
   active: z.boolean().optional().transform((v) => v ?? true),
+  // Seasonal salary commitment — fed to the budget forecast engine as the
+  // coach's contribution to per-team costs. Stored in currency major units.
+  cost: z.coerce.number().int().min(0).max(10_000_000).nullable().optional().transform((v) => (v == null ? null : v)),
 });
 
 const optInt = (min: number, max: number) =>
