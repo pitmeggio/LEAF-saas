@@ -47,6 +47,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
         features={academyFeatures(user.academy)}
         season={season}
         sport={{ key: sport.key, label: sport.label, short: sport.short, icon: sport.icon }}
+        tier={
+          (user.academy?.tier === "essential" || user.academy?.tier === "complete"
+            ? user.academy.tier
+            : "professional") as "essential" | "professional" | "complete"
+        }
       />
       <main className="ml-60 min-h-screen">{children}</main>
     </>

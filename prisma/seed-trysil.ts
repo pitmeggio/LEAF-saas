@@ -81,6 +81,7 @@ async function main() {
       sport: "ski",
       currency: "NOK",
       status: "active",
+      tier: "complete",
     },
     create: {
       name: "Trysil Race Academy",
@@ -92,6 +93,9 @@ async function main() {
       currency: "NOK",
       status: "active",
       plan: "PRO",
+      // Trysil runs both elite teams (Pro layer) AND Pay-and-Train slots
+      // for public skiers (Essential layer) — they buy LEAF Complete.
+      tier: "complete",
       logoColor: "#0066CC",
       tagline: "Where Norway's next alpine racers are made.",
       description:
@@ -116,19 +120,21 @@ async function main() {
   });
   console.log("  ✓ Academy id:", academy.id);
 
-  // ── Marius — academy admin + head coach ────────────────────────────────
-  console.log("→ Upserting Marius (admin + head coach)…");
+  // ── Marius — academy admin only (no coach record) ──────────────────────
+  // Teams need a head coach, but Marius runs the academy as admin and is
+  // NOT on the field. We create a placeholder head + assistant coach the
+  // teams reference; Marius can rename them in the UI after the demo.
+  console.log("→ Upserting Marius (admin)…");
   const password = process.env.MARIUS_PASSWORD || "trysil2026";
   const passwordHash = await bcrypt.hash(password, 10);
 
   const headCoach = await prisma.coach.upsert({
     where: { id: `seed_trysil_head_${academy.id}` },
-    update: { name: "Marius", role: "head_coach", cost: 40_000, specialization: "GS / SL — development" },
+    update: { name: "Head Coach", role: "head_coach", cost: 40_000, specialization: "GS / SL — development" },
     create: {
       id: `seed_trysil_head_${academy.id}`,
       academyId: academy.id,
-      name: "Marius",
-      email: MARIUS_EMAIL,
+      name: "Head Coach",
       role: "head_coach",
       specialization: "GS / SL — development",
       cost: 40_000,
@@ -157,7 +163,7 @@ async function main() {
     update: {
       academyId: academy.id,
       role: "academy_admin",
-      coachId: headCoach.id,
+      coachId: null,
     },
     create: {
       name: "Marius",
@@ -165,7 +171,7 @@ async function main() {
       passwordHash,
       academyId: academy.id,
       role: "academy_admin",
-      coachId: headCoach.id,
+      coachId: null,
     },
   });
   console.log(`  ✓ Marius login: ${MARIUS_EMAIL} / ${password}`);
@@ -304,6 +310,124 @@ async function main() {
     },
   });
   console.log("  ✓ benchmarks loaded from Excel");
+
+  // ── LEAF OS Essential: slopes + lines + sample week bookings ──────────
+  // Reproduces Trysil Race Center Høgegga from the Treningsskjema.xlsx
+  // Pietro shared: Slope 63 has 5 lines, Slope 80 has 3. Idempotent: lines
+  // upserted by stable composite id so re-running doesn't duplicate.
+  console.log("→ Seeding slopes + lines (Essential)…");
+  const slope63Id = `seed_slope_63_${academy.id}`;
+  const slope80Id = `seed_slope_80_${academy.id}`;
+  await prisma.trainingSlope.upsert({
+    where: { id: slope63Id },
+    update: { name: "Slope 63", facility: "Trysil Race Center Høgegga" },
+    create: {
+      id: slope63Id,
+      academyId: academy.id,
+      name: "Slope 63",
+      facility: "Trysil Race Center Høgegga",
+      lines: {
+        create: Array.from({ length: 5 }, (_, i) => ({
+          id: `seed_slope_63_${academy.id}_L${i + 1}`,
+          label: String(i + 1),
+          position: i + 1,
+        })),
+      },
+    },
+  });
+  await prisma.trainingSlope.upsert({
+    where: { id: slope80Id },
+    update: { name: "Slope 80", facility: "Trysil Race Center Høgegga" },
+    create: {
+      id: slope80Id,
+      academyId: academy.id,
+      name: "Slope 80",
+      facility: "Trysil Race Center Høgegga",
+      lines: {
+        create: Array.from({ length: 3 }, (_, i) => ({
+          id: `seed_slope_80_${academy.id}_L${i + 1}`,
+          label: String(i + 1),
+          position: i + 1,
+        })),
+      },
+    },
+  });
+  console.log("  ✓ Slope 63 (5 lines) + Slope 80 (3 lines)");
+
+  // Sample bookings — mirror the Treningsskjema "Week 16" Pietro shared,
+  // anchored to the Monday closest to "now" so the page renders something
+  // on first load. Internal team slots (groupId set) sit alongside a few
+  // Pay-and-Train open slots so the demo shows the full split visually.
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  const day = monday.getDay();
+  monday.setDate(monday.getDate() - (day === 0 ? 6 : day - 1));
+
+  const devTeamGroupId = `seed_trysil_dev1_${academy.id}`;
+  const techTeamGroupId = `seed_trysil_tech_${academy.id}`;
+  const slope63LineIds = [1, 2, 3, 4, 5].map((i) => `seed_slope_63_${academy.id}_L${i}`);
+  const slope80LineIds = [1, 2, 3].map((i) => `seed_slope_80_${academy.id}_L${i}`);
+
+  // Helper: at day-offset from Monday, build [start, end] dates for a slot
+  const slot = (dayOffset: number, sh: number, sm: number, eh: number, em: number) => {
+    const start = new Date(monday);
+    start.setDate(start.getDate() + dayOffset);
+    start.setHours(sh, sm, 0, 0);
+    const end = new Date(monday);
+    end.setDate(end.getDate() + dayOffset);
+    end.setHours(eh, em, 0, 0);
+    return { startAt: start, endAt: end };
+  };
+
+  // Wipe any seed bookings (so re-running this script doesn't pile them up).
+  await prisma.lineBooking.deleteMany({ where: { academyId: academy.id, notes: "seed-week" } });
+
+  const sampleBookings: Array<{ lineId: string; groupId: string | null; label: string; discipline: string | null; offset: number; sh: number; sm: number; eh: number; em: number; p2t?: boolean; price?: number; customerName?: string; customerEmail?: string }> = [
+    // Monday — TRA development on Slope 63 line 1
+    { lineId: slope63LineIds[0], groupId: devTeamGroupId, label: "TRA",   discipline: "SL", offset: 0, sh: 9, sm: 0, eh: 11, em: 0 },
+    { lineId: slope63LineIds[0], groupId: devTeamGroupId, label: "TRA",   discipline: "SL", offset: 0, sh: 11, sm: 0, eh: 13, em: 0 },
+    { lineId: slope63LineIds[0], groupId: devTeamGroupId, label: "TRA",   discipline: "GS", offset: 0, sh: 13, sm: 0, eh: 15, em: 0 },
+    // Tuesday — Tech Elite on line 1 SL block, TRA on line 2
+    { lineId: slope63LineIds[0], groupId: techTeamGroupId, label: "TECH", discipline: "SL", offset: 1, sh: 8, sm: 0, eh: 11, em: 0 },
+    { lineId: slope63LineIds[1], groupId: devTeamGroupId,  label: "TRA",  discipline: "SL", offset: 1, sh: 8, sm: 0, eh: 11, em: 0 },
+    { lineId: slope63LineIds[1], groupId: devTeamGroupId,  label: "TRA",  discipline: "SL", offset: 1, sh: 11, sm: 0, eh: 13, em: 0 },
+    // Wednesday
+    { lineId: slope63LineIds[0], groupId: techTeamGroupId, label: "TECH", discipline: "SL", offset: 2, sh: 8, sm: 0, eh: 11, em: 0 },
+    { lineId: slope63LineIds[1], groupId: devTeamGroupId,  label: "TRA",  discipline: "GS", offset: 2, sh: 8, sm: 0, eh: 11, em: 0 },
+    // Friday — full house showing team layering
+    { lineId: slope63LineIds[0], groupId: techTeamGroupId, label: "TECH", discipline: "SL", offset: 4, sh: 9, sm: 0, eh: 11, em: 0 },
+    { lineId: slope63LineIds[1], groupId: devTeamGroupId,  label: "TRA",  discipline: "SL", offset: 4, sh: 9, sm: 0, eh: 11, em: 0 },
+    { lineId: slope63LineIds[2], groupId: devTeamGroupId,  label: "DEV",  discipline: "GS", offset: 4, sh: 9, sm: 0, eh: 11, em: 0 },
+    // Pay-and-Train open slots — empty lines/days that visitors can buy
+    { lineId: slope63LineIds[3], groupId: null, label: "Open",        discipline: "GS", offset: 5, sh: 11, sm: 0, eh: 13, em: 0, p2t: true, price: 1500 },
+    { lineId: slope63LineIds[4], groupId: null, label: "Open",        discipline: "SL", offset: 5, sh: 13, sm: 0, eh: 15, em: 0, p2t: true, price: 1500 },
+    { lineId: slope80LineIds[0], groupId: null, label: "Open speed",  discipline: "SG", offset: 6, sh: 11, sm: 0, eh: 13, em: 0, p2t: true, price: 2000 },
+    // One Pay-and-Train slot already sold (shows blue chip / customer)
+    { lineId: slope80LineIds[1], groupId: null, label: "Sold",        discipline: "GS", offset: 5, sh: 9, sm: 0, eh: 11, em: 0, p2t: true, price: 1500, customerName: "Anders Johansen", customerEmail: "anders@example.no" },
+  ];
+
+  for (const b of sampleBookings) {
+    const { startAt, endAt } = slot(b.offset, b.sh, b.sm, b.eh, b.em);
+    await prisma.lineBooking.create({
+      data: {
+        academyId: academy.id,
+        lineId: b.lineId,
+        groupId: b.groupId,
+        startAt,
+        endAt,
+        label: b.label,
+        discipline: b.discipline,
+        payAndTrainEnabled: b.p2t ?? false,
+        publicPrice: b.price ?? null,
+        customerName: b.customerName ?? null,
+        customerEmail: b.customerEmail ?? null,
+        status: "confirmed",
+        notes: "seed-week",
+      },
+    });
+  }
+  console.log(`  ✓ ${sampleBookings.length} sample bookings (incl. 4 Pay-and-Train slots)`);
 
   console.log("");
   console.log("✓ Trysil Race Academy ready.");

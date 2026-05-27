@@ -28,6 +28,11 @@ model Academy {
   currency     String        @default("EUR") // academy's base/operating currency (ISO 4217) — drives display + finance aggregation
   status       String        @default("active") // active | inactive  (deactivated tenants are locked out)
   plan         String        @default("BASIC") // BASIC | PRO | ELITE  (subscription tier)
+  // LEAF OS tier — drives which workspace tabs the academy can switch
+  // between in the sidebar. "professional" = performance layer only (elite
+  // academies). "essential" = ops layer only (booking-focused clubs).
+  // "complete" = both (e.g. Trysil has elite team + Pay-and-Train).
+  tier         String        @default("professional") // essential | professional | complete
 
   // ── Platform-controlled feature flags (set by super-admin per tenant) ──
   // Gate whole modules on/off independently of the academy's own settings.
@@ -92,7 +97,72 @@ model Academy {
   coachNotes    CoachNote[]
   tennisMatches TennisMatch[]
   budgetBenchmarks AcademyBudgetBenchmarks?
+  trainingSlopes TrainingSlope[]
+  lineBookings  LineBooking[]
   createdAt     DateTime       @default(now())
+}
+
+// LEAF OS Essential — Line booking & Pay-and-Train.
+//
+// Models the way an alpine race centre actually books training: each slope
+// has multiple parallel "lines" (lanes carved for a discipline) that teams
+// reserve in 2-hour blocks. Trysil's Treningsskjema.xlsx maps 1:1 here:
+// Slope 63 has 5 lines, Slope 80 has 3, slots run from 08:00 to 20:00.
+//
+// Any LineBooking with payAndTrainEnabled=true on its slot exposes that
+// time to the public Pay-and-Train widget: an outside skier can book the
+// empty lane online and the academy monetises slots that would otherwise
+// sit idle. Internal team bookings (groupId set) never appear on the
+// public widget.
+model TrainingSlope {
+  id          String   @id @default(cuid())
+  academyId   String
+  academy     Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  name        String                // "Slope 63", "Slope 80"
+  facility    String?               // "Trysil Race Center Høgegga"
+  notes       String?
+  active      Boolean  @default(true)
+  lines       TrainingLine[]
+  createdAt   DateTime @default(now())
+}
+
+model TrainingLine {
+  id          String   @id @default(cuid())
+  slopeId     String
+  slope       TrainingSlope @relation(fields: [slopeId], references: [id], onDelete: Cascade)
+  label       String                // "L1", "L2" or "1", "2"
+  position    Int                   // ordering within the slope (1..N)
+  bookings    LineBooking[]
+}
+
+model LineBooking {
+  id           String   @id @default(cuid())
+  academyId    String
+  academy      Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  lineId       String
+  line         TrainingLine @relation(fields: [lineId], references: [id], onDelete: Cascade)
+  // Either an internal team reservation OR a public Pay-and-Train booking.
+  groupId      String?
+  group        Group?   @relation(fields: [groupId], references: [id])
+  startAt      DateTime
+  endAt        DateTime
+  label        String?               // short code shown in cell: "TRA", "DEV GS", "TECH SL"
+  discipline   String?               // SL | GS | SG | DH | Speed
+  notes        String?
+  // Public booking fields — populated only when a Pay-and-Train customer buys this slot.
+  payAndTrainEnabled Boolean @default(false)  // slot is offered publicly
+  publicPrice  Int?                            // price per slot in academy currency major units
+  customerName  String?
+  customerEmail String?
+  customerPhone String?
+  status       String   @default("confirmed")  // confirmed | pending | cancelled
+  paidAmount   Int      @default(0)
+  stripePaymentId String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  @@index([academyId, startAt])
+  @@index([lineId, startAt])
 }
 
 // Per-academy cost benchmarks the budget forecast engine multiplies by
@@ -749,6 +819,7 @@ model Group {
   conversations Conversation[]
   sessions      TrainingSession[]
   calendarEvents CalendarEvent[]
+  lineBookings  LineBooking[]
   createdAt     DateTime     @default(now())
 }
 

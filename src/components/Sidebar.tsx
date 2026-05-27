@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import { signOut } from "@/app/auth-actions";
 import { LeafMark } from "@/components/LeafMark";
 import { SeasonSelector } from "@/components/SeasonSelector";
@@ -18,9 +19,12 @@ type NavItem = {
   // for hub entries (e.g. "Finance") whose sub-pages live at sibling URLs
   // (/dashboard/payments, /dashboard/budgets) rather than nested children.
   activePaths?: string[];
+  // Sport-gated entries (e.g. tennis-only court module). Empty = always shown.
+  sports?: string[];
 };
 type NavSection = { label: string; items: NavItem[] };
 export type SidebarFeatures = Record<FeatureKey, boolean>;
+export type LeafTier = "essential" | "professional" | "complete";
 
 // Grouped navigation — 4 labelled sections instead of one long flat list, so the
 // workspace reads as blocks. Items keep their per-tenant feature gating.
@@ -28,6 +32,9 @@ export type SidebarFeatures = Record<FeatureKey, boolean>;
 // Performance → Reports → Admin. Recruiting tools (opportunities, form builder,
 // publishing) sit inside Applications. Calendar / Season Planner sits under
 // Performance since it drives the season-level planning + cost forecast.
+//
+// PROFESSIONAL tab — the performance + finance workspace. Visible when the
+// academy's tier is "professional" or "complete".
 const ADMIN_SECTIONS: NavSection[] = [
   { label: "Overview", items: [
     { href: "/dashboard", label: "Overview", icon: "▦" },
@@ -69,6 +76,26 @@ const ADMIN_SECTIONS: NavSection[] = [
   ] },
 ];
 
+// ESSENTIAL tab — the booking + Pay-and-Train workspace. The Sport key
+// decides which entries appear:
+//   • ski → Line Schedule (Trysil's "Treningsskjema" lanes) + Pay-and-Train
+//   • tennis → Courts + Pay-and-Train sessions
+//   • all → Bookings inbox (incoming reservations)
+const ESSENTIAL_ADMIN_SECTIONS: NavSection[] = [
+  { label: "Facility", items: [
+    { href: "/dashboard/lines", label: "Line Schedule", icon: "≣", sports: ["ski"] },
+    { href: "/dashboard/courts", label: "Courts", icon: "◰", sports: ["tennis", "padel"] },
+    { href: "/dashboard/facilities", label: "Facilities", icon: "▥" },
+  ] },
+  { label: "Pay-and-Train", items: [
+    { href: "/dashboard/sessions", label: "Public Sessions", icon: "🛒" },
+    { href: "/dashboard/bookings", label: "Bookings", icon: "📥" },
+  ] },
+  { label: "Insights", items: [
+    { href: "/dashboard/utilization", label: "Utilization", icon: "▦" },
+  ] },
+];
+
 const COACH_SECTIONS: NavSection[] = [
   { label: "Overview", items: [
     { href: "/dashboard", label: "My Dashboard", icon: "▦" },
@@ -101,19 +128,60 @@ const ROLE_LABEL: Record<string, string> = {
   recruiter: "Recruiter",
 };
 
-export function Sidebar({ user, features, season, sport }: {
+export function Sidebar({ user, features, season, sport, tier }: {
   user: { name: string; role: string; academy: string };
   features: SidebarFeatures;
   season: { active: string; seasons: string[]; isCurrent: boolean };
   // Active sport for this academy — drives the small workspace badge under
   // the brand mark and (eventually) sport-specific entries in this nav.
   sport: { key: string; label: string; short: string; icon: string };
+  // Tier decides which workspace tabs the academy can switch between:
+  //   "professional" → only Performance OS (Athletes / Coaches / Budget / …)
+  //   "essential"    → only Essential OS (Lines / Courts / Pay-and-Train)
+  //   "complete"     → both, with a Pro/Essential tab switcher up top
+  tier: LeafTier;
 }) {
   const pathname = usePathname();
-  const baseSections = user.role === "academy_admin" ? ADMIN_SECTIONS : COACH_SECTIONS;
+  const isAdmin = user.role === "academy_admin";
+
+  // Decide which workspace is the *default* visible one based on tier.
+  // The Essential tab is only an option for admins (coach view is always
+  // Professional — coaches don't sell Pay-and-Train slots themselves).
+  const hasPro = tier === "professional" || tier === "complete";
+  const hasEssential = tier === "essential" || tier === "complete";
+  const showTabs = isAdmin && hasPro && hasEssential;
+
+  // Auto-pick the active workspace from the URL so a hard refresh on an
+  // Essential page doesn't bounce the sidebar back to Professional.
+  const onEssentialPath =
+    pathname.startsWith("/dashboard/lines") ||
+    pathname.startsWith("/dashboard/courts") ||
+    pathname.startsWith("/dashboard/facilities") ||
+    pathname.startsWith("/dashboard/sessions") ||
+    pathname.startsWith("/dashboard/bookings") ||
+    pathname.startsWith("/dashboard/utilization");
+  const initialWorkspace: "professional" | "essential" =
+    onEssentialPath && hasEssential ? "essential" : hasPro ? "professional" : "essential";
+  const [workspace, setWorkspace] = useState<"professional" | "essential">(initialWorkspace);
+
+  // Pick the right section catalogue based on selected workspace.
+  const baseSections =
+    !isAdmin
+      ? COACH_SECTIONS
+      : workspace === "essential"
+        ? ESSENTIAL_ADMIN_SECTIONS
+        : ADMIN_SECTIONS;
   // Hide modules the platform has switched off for this tenant; drop empty sections.
+  // Also filter sport-gated items (e.g. "Line Schedule" only for ski).
   const sections = baseSections
-    .map((s) => ({ ...s, items: s.items.filter((item) => !item.feature || features[item.feature]) }))
+    .map((s) => ({
+      ...s,
+      items: s.items.filter((item) => {
+        if (item.feature && !features[item.feature]) return false;
+        if (item.sports && !item.sports.includes(sport.key)) return false;
+        return true;
+      }),
+    }))
     .filter((s) => s.items.length > 0);
 
   const renderItem = (item: NavItem) => {
@@ -162,6 +230,38 @@ export function Sidebar({ user, features, season, sport }: {
           <span className="text-[var(--color-fg)]">{sport.label}</span>
         </div>
         <SeasonSelector active={season.active} seasons={season.seasons} isCurrent={season.isCurrent} />
+
+        {/* Workspace switcher — only rendered when the academy holds both
+            LEAF OS Pro AND Essential (tier="complete"). A single-tier
+            academy doesn't see the toggle; their one workspace just shows. */}
+        {showTabs && (
+          <div className="mt-3 flex gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-1 text-[11px] font-medium">
+            <button
+              type="button"
+              onClick={() => setWorkspace("professional")}
+              className={`flex-1 rounded-md px-2 py-1 transition-colors ${
+                workspace === "professional"
+                  ? "bg-[var(--color-bg)] text-[var(--color-fg)]"
+                  : "text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+              }`}
+              title="Performance + finance + AI"
+            >
+              Professional
+            </button>
+            <button
+              type="button"
+              onClick={() => setWorkspace("essential")}
+              className={`flex-1 rounded-md px-2 py-1 transition-colors ${
+                workspace === "essential"
+                  ? "bg-[var(--color-bg)] text-[var(--color-fg)]"
+                  : "text-[var(--color-muted)] hover:text-[var(--color-fg)]"
+              }`}
+              title="Booking + Pay-and-Train"
+            >
+              Essential
+            </button>
+          </div>
+        )}
       </div>
 
       <nav className="flex flex-1 flex-col gap-5 overflow-y-auto">
