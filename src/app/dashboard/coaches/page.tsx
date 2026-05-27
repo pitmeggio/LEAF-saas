@@ -56,6 +56,20 @@ export default async function CoachesPage() {
               </div>
             </div>
             {c.specialization && <div className="mt-3 text-sm text-[var(--color-muted)]">{c.specialization}</div>}
+
+            {/* Group names so the card says "Head of Development 1" rather
+                than the abstract "1 GROUPS" count — operators need to see
+                WHICH team the coach is responsible for at a glance. */}
+            {c.groupNames.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {c.groupNames.map((name) => (
+                  <span key={name} className="inline-flex items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-2)] px-2 py-0.5 text-[11px]">
+                    {name}
+                  </span>
+                ))}
+              </div>
+            )}
+
             <div className="mt-4 grid grid-cols-2 gap-2 text-center">
               <Stat value={c.athleteCount} label="Athletes" />
               <Stat value={c.groupCount} label="Groups" />

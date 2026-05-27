@@ -53,24 +53,41 @@ export function BudgetForecastTotals({
     <div className="card p-5">
       <div className="mb-1 flex items-center gap-2">
         <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
-        <h2 className="text-sm font-semibold">Forecast</h2>
+        <h2 className="text-sm font-semibold">Season forecast</h2>
         <span className="ml-auto text-[10px] text-[var(--color-muted)]">{groupCount} team{groupCount === 1 ? "" : "s"} · {totalAthletes} athletes</span>
       </div>
-      <p className="text-[11px] text-[var(--color-muted)]">Projected season P&amp;L from roster + season calendar + your cost benchmarks. Updates automatically as you add events / athletes.</p>
+      <p className="text-[11px] text-[var(--color-muted)]">
+        Where the season will land, computed from the athletes enrolled, the season calendar, the coaches you assigned and your cost rates. Recalculated every time you load this page.
+      </p>
       <div className="mt-3 grid grid-cols-3 gap-3">
-        <Stat label="Projected cost" value={fmtMoney(totalCost, currency)} />
-        <Stat label="Projected income" value={fmtMoney(totalIncome, currency)} accent />
-        <Stat label="Projected net" value={fmtMoney(totalNet, currency)} color={totalNet >= 0 ? "var(--color-accent)" : "#f87171"} />
+        <Stat
+          label="Total season cost"
+          value={fmtMoney(totalCost, currency)}
+          sub="coach + travel + housing + ops"
+        />
+        <Stat
+          label="Income from athletes"
+          value={fmtMoney(totalIncome, currency)}
+          accent
+          sub="sum of package prices"
+        />
+        <Stat
+          label="Net at season end"
+          value={fmtMoney(totalNet, currency)}
+          color={totalNet >= 0 ? "var(--color-accent)" : "#f87171"}
+          sub={totalNet >= 0 ? "income covers costs" : "shortfall to plug"}
+        />
       </div>
     </div>
   );
 }
 
-function Stat({ label, value, accent, color }: { label: string; value: string; accent?: boolean; color?: string }) {
+function Stat({ label, value, accent, color, sub }: { label: string; value: string; accent?: boolean; color?: string; sub?: string }) {
   return (
     <div>
       <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">{label}</div>
       <div className="num mt-1 text-lg font-semibold" style={color ? { color } : accent ? { color: "var(--color-accent)" } : undefined}>{value}</div>
+      {sub && <div className="mt-0.5 text-[10px] text-[var(--color-muted)]">{sub}</div>}
     </div>
   );
 }
@@ -111,7 +128,7 @@ export function BudgetForecastCard({
   return (
     <div className="text-sm">
       <div className="mb-1 flex items-center justify-between">
-        <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Forecast (projected)</div>
+        <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Season forecast — what this team will cost</div>
         <span className="text-[10px] text-[var(--color-muted)]">{forecast.athletesCount} athlete{forecast.athletesCount === 1 ? "" : "s"}</span>
       </div>
       <dl className="space-y-2">
@@ -131,15 +148,15 @@ export function BudgetForecastCard({
         ))}
       </dl>
       <div className="mt-2 flex items-center justify-between border-t border-[var(--color-border)] pt-2">
-        <dt className="text-xs font-medium">Total projected cost</dt>
+        <dt className="text-xs font-medium">Total season cost</dt>
         <dd className="num text-sm font-semibold">{fmtMoney(forecast.totalCost, currency)}</dd>
       </div>
       <div className="flex items-center justify-between">
-        <dt className="text-xs">Projected income</dt>
+        <dt className="text-xs">Income from athletes</dt>
         <dd className="num text-xs">{fmtMoney(forecast.forecastIncome, currency)}</dd>
       </div>
       <div className="flex items-center justify-between">
-        <dt className="text-xs font-medium">Projected net</dt>
+        <dt className="text-xs font-medium">Net at season end</dt>
         <dd className="num text-sm font-semibold" style={{ color: forecast.forecastNet >= 0 ? "var(--color-accent)" : "#f87171" }}>
           {fmtMoney(forecast.forecastNet, currency)}
         </dd>

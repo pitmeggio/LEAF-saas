@@ -339,7 +339,21 @@ export async function getCoachesWithStats() {
   const coaches = await prisma.coach.findMany({
     where: { academyId },
     include: {
-      groups: true,
+      // Groups where this coach is the team's head coach (Group.coachId).
+      // Athletes enrolled in those groups count toward the coach's roster
+      // even when Enrollment.coachId isn't set directly — that's the
+      // common case: a head-of-team is responsible for every athlete on
+      // the team, period.
+      groups: {
+        include: {
+          enrollments: {
+            include: { athlete: { select: { id: true, discipline: true } } },
+          },
+        },
+      },
+      // Direct enrolments where this coach is named explicitly. Captures
+      // the assistant-coach / specialist case where the head of a team
+      // delegates an individual athlete to a sidekick.
       enrollments: {
         include: { athlete: { select: { id: true, discipline: true } } },
       },
@@ -347,13 +361,35 @@ export async function getCoachesWithStats() {
     orderBy: { name: "asc" },
   });
 
+  // Effective roster = (athletes in my groups) ∪ (athletes directly
+  // assigned to me), deduped by athleteId so the coach who is both head
+  // of a group AND specifically tagged on an athlete only counts them
+  // once.
+  const effectiveRoster = (
+    c: typeof coaches[number],
+  ): { athleteId: string; discipline: string | null }[] => {
+    const seen = new Map<string, { athleteId: string; discipline: string | null }>();
+    for (const g of c.groups) {
+      for (const e of g.enrollments) {
+        if (!isActiveEnrollment(e.status)) continue;
+        seen.set(e.athleteId, { athleteId: e.athleteId, discipline: e.athlete?.discipline ?? null });
+      }
+    }
+    for (const e of c.enrollments) {
+      if (!isActiveEnrollment(e.status)) continue;
+      seen.set(e.athleteId, { athleteId: e.athleteId, discipline: e.athlete?.discipline ?? null });
+    }
+    return [...seen.values()];
+  };
+
   // Gather every coach's active athlete in one set so we can bulk-load
   // their FIS snapshots in a single query (no N+1 across coaches).
   const allAthleteIds = new Set<string>();
+  const rosterByCoach = new Map<string, { athleteId: string; discipline: string | null }[]>();
   for (const c of coaches) {
-    for (const e of c.enrollments) {
-      if (isActiveEnrollment(e.status)) allAthleteIds.add(e.athleteId);
-    }
+    const roster = effectiveRoster(c);
+    rosterByCoach.set(c.id, roster);
+    for (const r of roster) allAthleteIds.add(r.athleteId);
   }
   const snapshots = allAthleteIds.size
     ? await prisma.fisListSnapshot.findMany({
@@ -369,13 +405,24 @@ export async function getCoachesWithStats() {
     byAthlete.set(s.athleteId, arr);
   }
 
+  // Pre-build athlete metadata lookup so team-trend classification can run
+  // over the deduped effective roster.
+  const athleteMeta = new Map<string, { discipline: string | null }>();
+  for (const c of coaches) {
+    for (const r of rosterByCoach.get(c.id) ?? []) athleteMeta.set(r.athleteId, { discipline: r.discipline });
+  }
+
   return coaches.map((c) => {
-    const active = c.enrollments.filter((e) => isActiveEnrollment(e.status));
-    const athletes = active.length;
+    const roster = rosterByCoach.get(c.id) ?? [];
+    const athletes = roster.length;
     const groups = c.groups.length;
     // simple workload score: athletes weighted + groups (kept for callers
     // that still display it; the Coaches page now shows team trend instead)
     const workload = athletes + groups * 2;
+
+    // Names of the groups this coach leads. Drives the Coaches page card
+    // so the operator sees "Head of Development 1" not just "1 GROUPS".
+    const groupNames = c.groups.map((g) => g.name);
 
     // Team trend — classify each athlete by their FIS points trend in their
     // primary discipline. "Unknown" = no synced snapshots yet (needs the
@@ -386,10 +433,9 @@ export async function getCoachesWithStats() {
     let unknown = 0;
     let avgDeltaSum = 0;
     let avgDeltaCount = 0;
-    for (const e of active) {
-      const ath = e.athlete;
-      const trends = computePointsTrendByDiscipline(byAthlete.get(ath.id) ?? []);
-      const primary = trends.find((t) => t.discipline === ath.discipline) ?? trends[0];
+    for (const r of roster) {
+      const trends = computePointsTrendByDiscipline(byAthlete.get(r.athleteId) ?? []);
+      const primary = trends.find((t) => t.discipline === r.discipline) ?? trends[0];
       if (!primary || primary.trend === "insufficient_data") { unknown++; continue; }
       if (primary.trend === "improving") improving++;
       else if (primary.trend === "declining") declining++;
@@ -403,6 +449,7 @@ export async function getCoachesWithStats() {
       ...c,
       athleteCount: athletes,
       groupCount: groups,
+      groupNames,
       workload,
       teamTrend: { improving, stable, declining, unknown, avgDelta, sampleSize: avgDeltaCount },
     };
