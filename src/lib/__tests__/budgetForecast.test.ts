@@ -58,13 +58,14 @@ test("forecast: sums every active line into a single total", () => {
   assert.equal(head?.amount, 1 * 12 * 40_000); // 480_000
   assert.equal(ass?.amount, 1 * 8 * 33_000);   // 264_000
 
-  // Housing (8 ath × 8 mo × 45k = 2.88M)
+  // Housing is FLAT per team (apartment shared across the squad), 8 mo × 45k = 360k
   const housing = f.lines.find((l) => l.key === "housing");
-  assert.equal(housing?.amount, 8 * 8 * 45_000);
+  assert.equal(housing?.amount, 8 * 45_000);
 
-  // Clothing (8 × 8k = 64k)
+  // Clothing covers athletes + coaches (every person on the team gets a kit).
+  // 8 athletes + 2 coaches = 10 persons × 8k = 80k.
   const kit = f.lines.find((l) => l.key === "clothing");
-  assert.equal(kit?.amount, 8 * 8_000);
+  assert.equal(kit?.amount, 10 * 8_000);
 
   // Allocated overhead (100% share since group has all athletes)
   const van = f.lines.find((l) => l.key === "vanShare");
@@ -88,23 +89,25 @@ test("forecast: skips a line when the rate is zero", () => {
 });
 
 test("forecast: uses calendar-derived days when present, fallback when empty", () => {
-  // With calendar data: 50 nights take precedence over the 90 fallback.
+  // Hotel is now per TRAVEL DAY (not night), and counts persons on trip
+  // = athletes covered for accommodation + coaches travelling with team.
+  // 8 ath + 2 coaches = 10 persons × 70 travel days × 1000 = 700,000.
   const withCalendar = computeGroupBudgetForecast(
     trysilGroup({ nights: 50, trainingDaysOnSnow: 60, travelDays: 70 }),
     TRYSIL_BENCHMARKS,
     { totalAthletes: 8, totalGroups: 1, currency: "NOK" },
   );
   const hotelCal = withCalendar.lines.find((l) => l.key === "pricePerNight");
-  assert.equal(hotelCal?.amount, 8 * 50 * 1000); // 50 nights from calendar
+  assert.equal(hotelCal?.amount, 10 * 70 * 1000);
 
-  // Without calendar: falls back to defaultNightsPerSeason = 90.
+  // Without calendar: falls back to defaultTravelDaysPerSeason = 120.
   const withoutCalendar = computeGroupBudgetForecast(
     trysilGroup(),
     TRYSIL_BENCHMARKS,
     { totalAthletes: 8, totalGroups: 1, currency: "NOK" },
   );
   const hotelFallback = withoutCalendar.lines.find((l) => l.key === "pricePerNight");
-  assert.equal(hotelFallback?.amount, 8 * 90 * 1000);
+  assert.equal(hotelFallback?.amount, 10 * 120 * 1000);
 });
 
 test("forecast: overhead allocated proportionally across groups", () => {

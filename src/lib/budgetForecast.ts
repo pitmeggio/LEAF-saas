@@ -138,6 +138,16 @@ export function computeGroupBudgetForecast(
   const coachAth = fallback ? n : coachNum;
   const raceAth = fallback ? n : raceNum;
 
+  // Coaches travel WITH the team — they sleep in the hotel, eat with the
+  // athletes, ski the lift pass. Marius's spreadsheet uses "antall
+  // personer totalt = 10" (8 athletes + 2 coaches) for these lines, not
+  // just athletes. We mirror that: persons on trip = covered athletes
+  // PLUS the team's coaches.
+  const teamCoaches = group.headCoachIds.length + group.assistantCoachIds.length;
+  const tripPersons = accAth + teamCoaches;      // hotel / meals
+  const racePersons = raceAth + teamCoaches;     // lift pass
+  const kitPersons = coachAth + teamCoaches;     // team uniform
+
   // ── Staff ────────────────────────────────────────────────────────────────
   if (group.headCoachIds.length > 0 && benchmarks.headCoachMonthlyRate > 0) {
     const months = benchmarks.headCoachMonthsPerSeason;
@@ -162,24 +172,27 @@ export function computeGroupBudgetForecast(
     });
   }
 
-  // ── Lodging — only the athletes whose package includes accommodation ────
-  if (accAth > 0 && benchmarks.pricePerNight > 0 && nights > 0) {
-    const amount = accAth * nights * benchmarks.pricePerNight;
+  // ── Lodging — hotel uses travel DAYS (not nights) and counts persons
+  //    (covered athletes + coaches that travel with the team), matching
+  //    the way alpine academy models actually book hotels. Housing is
+  //    FLAT per team (the academy rents one apartment for the squad).
+  if (tripPersons > 0 && benchmarks.pricePerNight > 0 && travelDays > 0) {
+    const amount = tripPersons * travelDays * benchmarks.pricePerNight;
     lines.push({
       key: "pricePerNight",
       label: "Hotel / lodge",
-      formula: `${accAth}/${n} ath × ${nights} nights × ${benchmarks.pricePerNight}`,
+      formula: `${tripPersons} persons (${accAth}/${n} ath + ${teamCoaches} coach) × ${travelDays} days × ${benchmarks.pricePerNight}`,
       amount,
       category: "lodging",
     });
   }
-  if (accAth > 0 && benchmarks.housingMonthly > 0 && benchmarks.housingMonthsPerSeason > 0) {
+  if (benchmarks.housingMonthly > 0 && benchmarks.housingMonthsPerSeason > 0 && (accAth > 0 || teamCoaches > 0)) {
     const months = benchmarks.housingMonthsPerSeason;
-    const amount = accAth * benchmarks.housingMonthly * months;
+    const amount = benchmarks.housingMonthly * months;
     lines.push({
       key: "housing",
-      label: "Base-camp housing",
-      formula: `${accAth}/${n} ath × ${months} mo × ${benchmarks.housingMonthly}`,
+      label: "Base-camp housing (team apartment)",
+      formula: `${months} mo × ${benchmarks.housingMonthly}`,
       amount,
       category: "lodging",
     });
@@ -187,47 +200,49 @@ export function computeGroupBudgetForecast(
 
   // ── Travel / on-snow — race support drives lift pass; accommodation
   //    drives meals on the road; transport drives the van/fuel share.
-  if (raceAth > 0 && benchmarks.liftPassPerDay > 0 && trainingDays > 0) {
-    const amount = raceAth * trainingDays * benchmarks.liftPassPerDay;
+  if (racePersons > 0 && benchmarks.liftPassPerDay > 0 && trainingDays > 0) {
+    const amount = racePersons * trainingDays * benchmarks.liftPassPerDay;
     lines.push({
       key: "liftPass",
       label: "Lift pass",
-      formula: `${raceAth}/${n} ath × ${trainingDays} days × ${benchmarks.liftPassPerDay}`,
+      formula: `${racePersons} persons (${raceAth}/${n} ath + ${teamCoaches} coach) × ${trainingDays} days × ${benchmarks.liftPassPerDay}`,
       amount,
       category: "travel",
     });
   }
-  if (accAth > 0 && benchmarks.mealsPerDay > 0 && travelDays > 0) {
-    const amount = accAth * travelDays * benchmarks.mealsPerDay;
+  if (tripPersons > 0 && benchmarks.mealsPerDay > 0 && travelDays > 0) {
+    const amount = tripPersons * travelDays * benchmarks.mealsPerDay;
     lines.push({
       key: "meals",
       label: "Meals",
-      formula: `${accAth}/${n} ath × ${travelDays} days × ${benchmarks.mealsPerDay}`,
+      formula: `${tripPersons} persons × ${travelDays} days × ${benchmarks.mealsPerDay}`,
       amount,
       category: "travel",
     });
   }
   // Fuel + the van are per-team costs (not per-athlete) but only apply
-  // when at least one athlete on the team is on the transport plan —
-  // otherwise the team is meeting at events under their own steam.
-  if (transAth > 0 && benchmarks.fuelPerTravelDay > 0 && travelDays > 0) {
+  // when at least one athlete on the team is on the transport plan OR
+  // there are coaches travelling with the team. Otherwise the team is
+  // meeting at events under their own steam.
+  if ((transAth > 0 || teamCoaches > 0) && benchmarks.fuelPerTravelDay > 0 && travelDays > 0) {
     const amount = travelDays * benchmarks.fuelPerTravelDay;
     lines.push({
       key: "fuel",
       label: "Fuel (team van)",
-      formula: `${travelDays} travel days × ${benchmarks.fuelPerTravelDay} · for ${transAth}/${n} ath on transport`,
+      formula: `${travelDays} travel days × ${benchmarks.fuelPerTravelDay}`,
       amount,
       category: "travel",
     });
   }
 
-  // ── Per-athlete ops — kit goes to anyone with a coaching plan ───────────
-  if (coachAth > 0 && benchmarks.clothingPerAthlete > 0) {
-    const amount = coachAth * benchmarks.clothingPerAthlete;
+  // ── Per-athlete ops — kit goes to anyone with a coaching plan plus the
+  //    coaches themselves (they wear the team uniform too).
+  if (kitPersons > 0 && benchmarks.clothingPerAthlete > 0) {
+    const amount = kitPersons * benchmarks.clothingPerAthlete;
     lines.push({
       key: "clothing",
       label: "Team kit",
-      formula: `${coachAth}/${n} ath × ${benchmarks.clothingPerAthlete}`,
+      formula: `${kitPersons} persons (${coachAth}/${n} ath + ${teamCoaches} coach) × ${benchmarks.clothingPerAthlete}`,
       amount,
       category: "ops",
     });
