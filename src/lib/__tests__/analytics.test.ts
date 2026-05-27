@@ -197,18 +197,21 @@ test("seasonKpis + hints: forecast over remaining triggers a warning", () => {
 });
 
 // ── Ski-season helpers ──────────────────────────────────────────────────────
-test("seasonForDate: Aug-Dec → starts this year; Jan-Jul → started last year", () => {
+test("seasonForDate: May-Dec → starts this year; Jan-Apr → started last year", () => {
+  // May 1 = cutover (alpine reality: race calendar runs Nov–Apr, planning May).
+  assert.equal(seasonForDate(new Date("2026-04-30")), "2025/26"); // last day of old season
+  assert.equal(seasonForDate(new Date("2026-05-01")), "2026/27"); // first day of new season
   assert.equal(seasonForDate(new Date("2026-08-01")), "2026/27");
   assert.equal(seasonForDate(new Date("2026-12-31")), "2026/27");
   assert.equal(seasonForDate(new Date("2027-01-15")), "2026/27");
-  assert.equal(seasonForDate(new Date("2027-07-31")), "2026/27");
-  assert.equal(seasonForDate(new Date("2027-08-01")), "2027/28");
+  assert.equal(seasonForDate(new Date("2027-04-30")), "2026/27"); // last day
+  assert.equal(seasonForDate(new Date("2027-05-01")), "2027/28"); // rolls over again
 });
 
-test("seasonBounds: Aug 1 → Jul 31 inclusive", () => {
+test("seasonBounds: May 1 → Apr 30 inclusive", () => {
   const b = seasonBounds("2026/27");
-  assert.equal(b.start.getFullYear(), 2026); assert.equal(b.start.getMonth(), 7); assert.equal(b.start.getDate(), 1);
-  assert.equal(b.end.getFullYear(), 2027); assert.equal(b.end.getMonth(), 6); assert.equal(b.end.getDate(), 31);
+  assert.equal(b.start.getFullYear(), 2026); assert.equal(b.start.getMonth(), 4); assert.equal(b.start.getDate(), 1);
+  assert.equal(b.end.getFullYear(), 2027); assert.equal(b.end.getMonth(), 3); assert.equal(b.end.getDate(), 30);
 });
 
 test("availableSeasons: 2 back, current, 3 forward — formatted correctly", () => {
