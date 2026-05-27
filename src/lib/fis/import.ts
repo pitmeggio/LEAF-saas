@@ -4,12 +4,31 @@ import { simulatedFisProvider, colorForCode } from "./simulatedProvider";
 import { liveFisProvider } from "./liveProvider";
 import { fisAthleteDataSchema } from "@/lib/validation";
 
-// Provider selection (env: FIS_PROVIDER = live | simulated | auto, default auto):
-//  • live      — real FIS points-list data only
-//  • simulated — deterministic demo data only
-//  • auto      — try live first, fall back to simulated (keeps demo codes working
-//                offline / when FIS is unreachable, while real codes return real data)
-const mode = (process.env.FIS_PROVIDER ?? "auto").toLowerCase();
+// Provider selection (env: FIS_PROVIDER = live | simulated | auto, default LIVE):
+//  • live      — real FIS points-list data only; unknown codes return null
+//                so the user sees a real "not found" error (safe for real
+//                tenants — what you see is what FIS has)
+//  • simulated — deterministic demo data only (curated codes + hash-seeded
+//                fakes for everything else; for offline screenshots / demos)
+//  • auto      — try live first, fall back to simulated. DANGER on real
+//                tenants: a code missing from FIS returns realistic-looking
+//                fake data with no UI indication. Only the public LEAF demo
+//                site should run in this mode.
+//
+// We expose the resolved mode via `getFisProviderMode()` so the import UI
+// can badge it (Live = green, Demo = yellow) — trust matters: a coach
+// scanning the page should know immediately whether the data they're
+// about to import is real or fabricated.
+export type FisProviderMode = "live" | "simulated" | "auto";
+
+export function getFisProviderMode(): FisProviderMode {
+  const raw = (process.env.FIS_PROVIDER ?? "live").toLowerCase();
+  if (raw === "simulated") return "simulated";
+  if (raw === "auto") return "auto";
+  return "live";
+}
+
+const mode = getFisProviderMode();
 const provider: FisProvider =
   mode === "simulated"
     ? simulatedFisProvider
