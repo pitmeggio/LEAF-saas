@@ -219,10 +219,11 @@ class LiveFisProvider implements FisProvider {
   // the athlete from each. Athletes absent from a given list (e.g. before
   // they qualified) simply produce no row for that list — never fabricated.
   //
-  // Cost: ~3MB CSV × lookbackLists fetched once per serverless instance,
-  // cached for CACHE_TTL_MS. A second call for the same athlete after the
-  // cache is warm runs in milliseconds.
-  async fetchHistoryByCode(rawCode: string, lookbackLists = 4): Promise<FisDisciplineSnapshot[]> {
+  // Cost: ~3MB CSV × lookbackLists fetched once per serverless instance.
+  // Default 22 = a full alpine FIS season; that's ~66MB of CSV pulled and
+  // parsed on the first call (10–15s on cold cache). Subsequent calls for
+  // any athlete reuse the same in-memory snapshot for CACHE_TTL_MS = 6h.
+  async fetchHistoryByCode(rawCode: string, lookbackLists = 22): Promise<FisDisciplineSnapshot[]> {
     const code = rawCode.trim();
     if (!/^\d{3,}$/.test(code)) return [];
 

@@ -43,7 +43,7 @@ export function FisPointsTrendCard({ athleteId, trends, lastSyncedAt, lastPublis
     setErr(null);
     setMsg(null);
     start(async () => {
-      const r = await syncAthleteFisHistory(athleteId, 4);
+      const r = await syncAthleteFisHistory(athleteId, 22);
       if (r.ok) {
         setMsg(`Synced ${r.snapshotsAdded} snapshots from ${r.listsRead} FIS list${r.listsRead === 1 ? "" : "s"}.`);
         router.refresh();

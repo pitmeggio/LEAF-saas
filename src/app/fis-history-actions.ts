@@ -18,7 +18,10 @@ type Result =
 // Admin-only and tenant-scoped: an admin from academy A cannot sync an
 // athlete that lives under academy B (the athlete must be enrolled in a
 // group inside the caller's academy).
-export async function syncAthleteFisHistory(athleteId: string, lookbackLists = 4): Promise<Result> {
+// Default 22 lists = a full alpine FIS season (≈Sep → May). Cold sync
+// pulls all 22 CSVs in parallel once and caches in-process for 6h, so
+// repeat syncs across athletes are essentially free after the first.
+export async function syncAthleteFisHistory(athleteId: string, lookbackLists = 22): Promise<Result> {
   const session = await requireAdmin();
   if (!session.academyId) return { ok: false, error: "No academy in session." };
 
