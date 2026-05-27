@@ -10,12 +10,16 @@ export const dynamic = "force-dynamic";
 // grid (not here) so this inbox stays focused on revenue events.
 export default async function BookingsPage() {
   const academyId = await requireAcademyId();
-  const bookings = await prisma.lineBooking.findMany({
-    where: { academyId, customerEmail: { not: null } },
-    include: { line: { include: { slope: true } } },
-    orderBy: { startAt: "desc" },
-    take: 100,
-  });
+  const [academy, bookings] = await Promise.all([
+    prisma.academy.findUnique({ where: { id: academyId }, select: { currency: true } }),
+    prisma.lineBooking.findMany({
+      where: { academyId, customerEmail: { not: null } },
+      include: { line: { include: { slope: true } } },
+      orderBy: { startAt: "desc" },
+      take: 100,
+    }),
+  ]);
+  const currency = academy?.currency ?? "EUR";
 
   const fmt = (d: Date) => d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   const fmtTime = (d: Date) => d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -63,7 +67,7 @@ export default async function BookingsPage() {
                       <div className="text-[11px] text-[var(--color-muted)]">Line {b.line.label}</div>
                     </td>
                     <td className="px-4 py-2.5 text-right num">
-                      {b.publicPrice ? `€${b.publicPrice}` : "—"}
+                      {b.publicPrice ? `${currency} ${b.publicPrice.toLocaleString("en-US")}` : "—"}
                     </td>
                     <td className="px-4 py-2.5">
                       <span className={`rounded px-2 py-0.5 text-[10px] font-medium ${
