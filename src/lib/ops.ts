@@ -12,6 +12,7 @@ import {
   type BudgetBenchmarks,
   type GroupForecast,
 } from "@/lib/budgetForecast";
+import { computePointsTrendByDiscipline } from "@/lib/ai/pointsTrend";
 
 // Shared option bag for "what season am I looking at?". All read functions
 // accept this and narrow their result set accordingly — pages just pass the
@@ -204,7 +205,20 @@ export async function getGroupsWithStats(coachId?: string | null, opts: SeasonSc
       ...(coachId ? { coachId } : {}),
       ...(opts.season ? { season: opts.season } : {}),
     },
-    include: { coach: true, enrollments: { include: { package: true, payments: true, athlete: { select: { discipline: true } } } }, expenses: true, revenues: true },
+    include: {
+      coach: true,
+      enrollments: {
+        include: {
+          package: true,
+          payments: true,
+          // Surface athlete identity so the Groups page can list the roster
+          // (names + discipline + fisPoints) directly on the team card.
+          athlete: { select: { id: true, firstName: true, lastName: true, discipline: true, fisPoints: true } },
+        },
+      },
+      expenses: true,
+      revenues: true,
+    },
     orderBy: { name: "asc" },
   });
   return groups.map((g) => {
@@ -306,15 +320,74 @@ export async function getCoachesWithStats() {
   const academyId = await requireAcademyId();
   const coaches = await prisma.coach.findMany({
     where: { academyId },
-    include: { groups: true, enrollments: true },
+    include: {
+      groups: true,
+      enrollments: {
+        include: { athlete: { select: { id: true, discipline: true } } },
+      },
+    },
     orderBy: { name: "asc" },
   });
+
+  // Gather every coach's active athlete in one set so we can bulk-load
+  // their FIS snapshots in a single query (no N+1 across coaches).
+  const allAthleteIds = new Set<string>();
+  for (const c of coaches) {
+    for (const e of c.enrollments) {
+      if (isActiveEnrollment(e.status)) allAthleteIds.add(e.athleteId);
+    }
+  }
+  const snapshots = allAthleteIds.size
+    ? await prisma.fisListSnapshot.findMany({
+        where: { athleteId: { in: [...allAthleteIds] } },
+        orderBy: [{ publishedAt: "asc" }],
+        select: { athleteId: true, publishedAt: true, discipline: true, fisPoints: true, worldRank: true },
+      })
+    : [];
+  const byAthlete = new Map<string, { publishedAt: Date; discipline: string; fisPoints: number; worldRank: number | null }[]>();
+  for (const s of snapshots) {
+    const arr = byAthlete.get(s.athleteId) ?? [];
+    arr.push({ publishedAt: s.publishedAt, discipline: s.discipline, fisPoints: s.fisPoints, worldRank: s.worldRank });
+    byAthlete.set(s.athleteId, arr);
+  }
+
   return coaches.map((c) => {
-    const athletes = c.enrollments.filter((e) => isActiveEnrollment(e.status)).length;
+    const active = c.enrollments.filter((e) => isActiveEnrollment(e.status));
+    const athletes = active.length;
     const groups = c.groups.length;
-    // simple workload score: athletes weighted + groups
+    // simple workload score: athletes weighted + groups (kept for callers
+    // that still display it; the Coaches page now shows team trend instead)
     const workload = athletes + groups * 2;
-    return { ...c, athleteCount: athletes, groupCount: groups, workload };
+
+    // Team trend — classify each athlete by their FIS points trend in their
+    // primary discipline. "Unknown" = no synced snapshots yet (needs the
+    // admin to click Sync from FIS on the athlete page).
+    let improving = 0;
+    let stable = 0;
+    let declining = 0;
+    let unknown = 0;
+    let avgDeltaSum = 0;
+    let avgDeltaCount = 0;
+    for (const e of active) {
+      const ath = e.athlete;
+      const trends = computePointsTrendByDiscipline(byAthlete.get(ath.id) ?? []);
+      const primary = trends.find((t) => t.discipline === ath.discipline) ?? trends[0];
+      if (!primary || primary.trend === "insufficient_data") { unknown++; continue; }
+      if (primary.trend === "improving") improving++;
+      else if (primary.trend === "declining") declining++;
+      else stable++;
+      avgDeltaSum += primary.delta;
+      avgDeltaCount += 1;
+    }
+    const avgDelta = avgDeltaCount > 0 ? Math.round((avgDeltaSum / avgDeltaCount) * 10) / 10 : 0;
+
+    return {
+      ...c,
+      athleteCount: athletes,
+      groupCount: groups,
+      workload,
+      teamTrend: { improving, stable, declining, unknown, avgDelta, sampleSize: avgDeltaCount },
+    };
   });
 }
 

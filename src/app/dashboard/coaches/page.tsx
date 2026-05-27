@@ -7,19 +7,46 @@ import { requireAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-const ROLE_LABEL: Record<string, string> = { head_coach: "Head coach", coach: "Coach", physio: "Physio", s_and_c: "Strength & conditioning" };
+const ROLE_LABEL: Record<string, string> = { head_coach: "Head coach", coach: "Coach", physio: "Physio", s_and_c: "Strength & conditioning", assistant_coach: "Assistant coach" };
 const newBtn = "rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]";
 
 export default async function CoachesPage() {
   await requireAdmin();
   const coaches = await getCoachesWithStats();
-  const maxWorkload = Math.max(...coaches.map((c) => c.workload), 1);
 
   return (
     <>
-      <PageHeader title="Coaches" subtitle="Workload, athlete and group counts update automatically." right={<Modal label="+ New coach" title="New coach" className={newBtn}><CoachForm /></Modal>} />
+      <PageHeader
+        title="Coaches"
+        subtitle="Each card shows the coach's roster size and the FIS-trend signal of their athletes — updated automatically."
+        right={<Modal label="+ New coach" title="New coach" className={newBtn}><CoachForm /></Modal>}
+      />
       <div className="grid gap-4 p-8 sm:grid-cols-2 lg:grid-cols-3">
-        {coaches.map((c) => (
+        {coaches.map((c) => {
+          const t = c.teamTrend;
+          const tracked = t.improving + t.stable + t.declining;
+          const improvingPct = tracked > 0 ? Math.round((t.improving / tracked) * 100) : 0;
+          const decliningPct = tracked > 0 ? Math.round((t.declining / tracked) * 100) : 0;
+          const stablePct = tracked > 0 ? 100 - improvingPct - decliningPct : 0;
+          const avgSign = t.avgDelta < 0 ? "−" : t.avgDelta > 0 ? "+" : "±";
+          const avgColor = t.avgDelta < 0 ? "var(--color-accent)" : t.avgDelta > 0 ? "#f87171" : "var(--color-muted)";
+          // Headline read: choose the dominant signal.
+          let headline = "No FIS data yet";
+          let headlineColor: string = "var(--color-muted)";
+          if (tracked > 0) {
+            if (t.improving > t.declining) {
+              headline = `${t.improving} improving · ${t.declining} declining`;
+              headlineColor = "var(--color-accent)";
+            } else if (t.declining > t.improving) {
+              headline = `${t.declining} declining · ${t.improving} improving`;
+              headlineColor = "#f87171";
+            } else {
+              headline = `${t.stable} stable · ${t.improving} improving`;
+              headlineColor = "var(--color-muted)";
+            }
+          }
+
+          return (
           <div key={c.id} className="card p-5" style={!c.active ? { opacity: 0.6 } : undefined}>
             <div className="flex items-center gap-3">
               <Avatar first={c.name.split(" ")[0] ?? ""} last={c.name.split(" ")[1] ?? ""} color="#38bdf8" size={44} />
@@ -29,17 +56,47 @@ export default async function CoachesPage() {
               </div>
             </div>
             {c.specialization && <div className="mt-3 text-sm text-[var(--color-muted)]">{c.specialization}</div>}
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+            <div className="mt-4 grid grid-cols-2 gap-2 text-center">
               <Stat value={c.athleteCount} label="Athletes" />
               <Stat value={c.groupCount} label="Groups" />
-              <Stat value={c.workload} label="Workload" />
             </div>
-            <div className="mt-4">
-              <div className="mb-1 text-xs text-[var(--color-muted)]">Relative workload</div>
-              <div className="h-2 overflow-hidden rounded-full bg-[var(--color-surface-2)]">
-                <div className="h-full rounded-full" style={{ width: `${(c.workload / maxWorkload) * 100}%`, background: c.workload / maxWorkload > 0.85 ? "#f59e0b" : "var(--color-accent)" }} />
+
+            {/* Team trend — replaces the old "workload" score. Reads the FIS
+                points trend per primary discipline across the coach's active
+                roster and surfaces the dominant signal + a stacked bar of
+                improving / stable / declining shares. */}
+            <div className="mt-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+                  <span className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Team trend</span>
+                </div>
+                <span className="text-[10px] text-[var(--color-muted)]">
+                  {tracked > 0 ? `${tracked}/${c.athleteCount} synced` : "0 synced"}
+                </span>
               </div>
+              <div className="text-sm font-medium" style={{ color: headlineColor }}>{headline}</div>
+              {tracked > 0 ? (
+                <>
+                  <div className="mt-2 flex h-1.5 overflow-hidden rounded-full bg-[var(--color-surface)]">
+                    <div className="h-full" style={{ width: `${improvingPct}%`, background: "var(--color-accent)" }} title={`${t.improving} improving`} />
+                    <div className="h-full" style={{ width: `${stablePct}%`, background: "var(--color-muted)" }} title={`${t.stable} stable`} />
+                    <div className="h-full" style={{ width: `${decliningPct}%`, background: "#f87171" }} title={`${t.declining} declining`} />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[10px]">
+                    <span className="text-[var(--color-muted)]">Avg FIS Δ</span>
+                    <span className="num font-medium" style={{ color: avgColor }}>
+                      {`${avgSign}${Math.abs(t.avgDelta).toFixed(1)}`} pts
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <p className="mt-2 text-[10px] text-[var(--color-muted)]">
+                  Sync athletes from FIS on their profiles to populate this card.
+                </p>
+              )}
             </div>
+
             <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
               <Modal label="Edit" title="Edit coach" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
                 <CoachForm initial={{ id: c.id, name: c.name, email: c.email, phone: c.phone, role: c.role, specialization: c.specialization, notes: c.notes, active: c.active }} />
@@ -48,7 +105,8 @@ export default async function CoachesPage() {
               <DeleteButton kind="coach" id={c.id} label="Delete" />
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </>
   );
