@@ -36,7 +36,7 @@ export function BookSlotForm({
       });
       if (r.ok) {
         const q = weekParam ? `w=${weekParam}&ok=1` : "ok=1";
-        router.push(`/academy/${slug}/book?${q}`);
+        router.push(`/academy/${slug}/book/pay-and-train?${q}`);
         router.refresh();
       } else {
         setErr(r.error);

@@ -149,12 +149,19 @@ model LineBooking {
   label        String?               // short code shown in cell: "TRA", "DEV GS", "TECH SL"
   discipline   String?               // SL | GS | SG | DH | Speed
   notes        String?
-  // Public booking fields — populated only when a Pay-and-Train customer buys this slot.
-  payAndTrainEnabled Boolean @default(false)  // slot is offered publicly
+  // Public booking fields — populated for both Pay-and-Train customers
+  // (parents booking Jonas's sessions on pre-listed slots) and external
+  // club coaches (self-service booking of a free training line).
+  //
+  //   • payAndTrainEnabled=true                       → P&T slot (Jonas)
+  //   • bookerOrg!=null + customerEmail!=null          → external club
+  //   • groupId!=null                                  → internal team
+  payAndTrainEnabled Boolean @default(false)  // slot is offered publicly as Pay-and-Train
   publicPrice  Int?                            // price per slot in academy currency major units
   customerName  String?
   customerEmail String?
   customerPhone String?
+  bookerOrg     String?                        // club / organization name (external-coach bookings)
   status       String   @default("confirmed")  // confirmed | pending | cancelled
   paidAmount   Int      @default(0)
   stripePaymentId String?

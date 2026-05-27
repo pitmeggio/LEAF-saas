@@ -68,18 +68,22 @@ export type WeeklySchedule = {
 };
 
 export function mondayOf(d: Date): Date {
+  // Compute in UTC to stay consistent with the grid's cell math, which
+  // also operates in UTC. Mixing local-midnight with UTC-hour cell times
+  // shifts every booking by the local TZ offset and pushes them out of
+  // the queried week range — bookings made on "Mon 25 May 09:00" would
+  // land on "Sun 24 May 23:00 UTC" and disappear from the admin grid.
   const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  // Monday = 1; Sunday = 0 → previous Monday is 6 days back
-  const day = x.getDay();
+  x.setUTCHours(0, 0, 0, 0);
+  const day = x.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
-  x.setDate(x.getDate() + diff);
+  x.setUTCDate(x.getUTCDate() + diff);
   return x;
 }
 
 export function dayKey(weekStart: Date, dayIndex: number): Date {
   const d = new Date(weekStart);
-  d.setDate(d.getDate() + dayIndex);
+  d.setUTCDate(d.getUTCDate() + dayIndex);
   return d;
 }
 
@@ -95,6 +99,7 @@ export type BookingWithMeta = {
   payAndTrainEnabled: boolean;
   customerName: string | null;
   customerEmail: string | null;
+  bookerOrg: string | null;
   status: string;
   publicPrice: number | null;
   notes: string | null;
@@ -107,9 +112,9 @@ export async function getWeeklySchedule(academyId: string, weekStart: Date): Pro
   weekEnd: Date;
 }> {
   const start = new Date(weekStart);
-  start.setHours(0, 0, 0, 0);
+  start.setUTCHours(0, 0, 0, 0);
   const end = new Date(start);
-  end.setDate(end.getDate() + 7);
+  end.setUTCDate(end.getUTCDate() + 7);
 
   const [slopes, bookings] = await Promise.all([
     getSlopesWithLines(academyId),
@@ -139,6 +144,7 @@ export async function getWeeklySchedule(academyId: string, weekStart: Date): Pro
       payAndTrainEnabled: b.payAndTrainEnabled,
       customerName: b.customerName,
       customerEmail: b.customerEmail,
+      bookerOrg: b.bookerOrg,
       status: b.status,
       publicPrice: b.publicPrice,
       notes: b.notes,
@@ -157,9 +163,9 @@ export async function getPublicAvailability(academySlug: string, weekStart: Date
   if (!academy) return null;
 
   const start = new Date(weekStart);
-  start.setHours(0, 0, 0, 0);
+  start.setUTCHours(0, 0, 0, 0);
   const end = new Date(start);
-  end.setDate(end.getDate() + 7);
+  end.setUTCDate(end.getUTCDate() + 7);
 
   const [slopes, openSlots, takenSlots] = await Promise.all([
     getSlopesWithLines(academy.id),
@@ -205,5 +211,57 @@ export async function getPublicAvailability(academySlug: string, weekStart: Date
     // Used to mark "internal" cells on the public preview so the visitor
     // sees the full grid + just can't buy the academy-team slots.
     takenSlots: takenSlots.map((s) => ({ lineId: s.lineId, startAt: s.startAt, endAt: s.endAt })),
+  };
+}
+
+// Public-facing read for the line-booking page (external club coaches).
+// Returns the full weekly grid the way the admin sees it, plus which
+// cells are already booked (any reason — internal team, P&T, another
+// external coach). The client can then render any unbooked cell as a
+// "Book this line" target.
+export async function getLineBookingAvailability(academySlug: string, weekStart: Date) {
+  const academy = await prisma.academy.findUnique({
+    where: { slug: academySlug },
+    select: { id: true, name: true, currency: true, sport: true, location: true },
+  });
+  if (!academy) return null;
+
+  const start = new Date(weekStart);
+  start.setUTCHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 7);
+
+  const [slopes, bookings] = await Promise.all([
+    getSlopesWithLines(academy.id),
+    prisma.lineBooking.findMany({
+      where: {
+        academyId: academy.id,
+        startAt: { gte: start, lt: end },
+        status: { in: ["confirmed", "pending"] },
+      },
+      select: { id: true, lineId: true, startAt: true, endAt: true, groupId: true, payAndTrainEnabled: true, bookerOrg: true, customerName: true, customerEmail: true },
+    }),
+  ]);
+
+  return {
+    academy,
+    slopes,
+    weekStart: start,
+    bookings: bookings.map((b) => ({
+      lineId: b.lineId,
+      startAt: b.startAt,
+      endAt: b.endAt,
+      // What does this cell look like to a visiting coach?
+      //   "internal"  — Trysil team is training here (locked)
+      //   "pt"        — Pay-and-Train slot (don't show "book line" on this cell)
+      //   "external"  — another external club already grabbed this line
+      kind: b.groupId
+        ? ("internal" as const)
+        : b.payAndTrainEnabled
+          ? ("pt" as const)
+          : ("external" as const),
+      bookerOrg: b.bookerOrg,
+      customerName: b.customerName,
+    })),
   };
 }

@@ -28,7 +28,7 @@ export default async function BookingsPage() {
     <>
       <PageHeader
         title="Bookings"
-        subtitle="Pay-and-Train slots bought through your public booking widget."
+        subtitle="Everything booked through your public site — Pay-and-Train customers (Jonas) and visiting clubs."
       />
       <div className="p-8">
         {bookings.length === 0 ? (
@@ -36,7 +36,8 @@ export default async function BookingsPage() {
             <div className="text-2xl">📥</div>
             <h2 className="text-base font-semibold">No bookings yet</h2>
             <p className="max-w-md text-sm text-[var(--color-muted)]">
-              When a customer books a Pay-and-Train slot through your public site, the reservation lands here with their contact details.
+              The moment someone books a Pay-and-Train session or grabs a free line through your public booking
+              links, it lands here with their contact details.
             </p>
           </div>
         ) : (
@@ -44,6 +45,7 @@ export default async function BookingsPage() {
             <table className="w-full text-sm">
               <thead className="bg-[var(--color-surface-2)] text-[10px] uppercase tracking-wide text-[var(--color-muted)]">
                 <tr>
+                  <th className="px-4 py-2 text-left">Type</th>
                   <th className="px-4 py-2 text-left">Customer</th>
                   <th className="px-4 py-2 text-left">Date · Time</th>
                   <th className="px-4 py-2 text-left">Slope · Line</th>
@@ -52,11 +54,25 @@ export default async function BookingsPage() {
                 </tr>
               </thead>
               <tbody>
-                {bookings.map((b) => (
+                {bookings.map((b) => {
+                  const isExternalClub = !b.payAndTrainEnabled && b.bookerOrg != null;
+                  return (
                   <tr key={b.id} className="border-t border-[var(--color-border)]">
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-block rounded px-2 py-0.5 text-[10px] font-medium ${
+                        isExternalClub
+                          ? "bg-[#a78bfa]/15 text-[#a78bfa]"
+                          : "bg-[#38bdf8]/15 text-[#38bdf8]"
+                      }`}>
+                        {isExternalClub ? "External club" : "Pay-and-Train"}
+                      </span>
+                    </td>
                     <td className="px-4 py-2.5">
                       <div className="font-medium">{b.customerName}</div>
                       <div className="text-[11px] text-[var(--color-muted)]">{b.customerEmail}</div>
+                      {b.bookerOrg && (
+                        <div className="mt-0.5 text-[10px] text-[var(--color-muted)]">{b.bookerOrg}</div>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 text-sm">
                       <div>{fmt(b.startAt)}</div>
@@ -77,7 +93,8 @@ export default async function BookingsPage() {
                       }`}>{b.status}</span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

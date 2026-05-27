@@ -233,6 +233,81 @@ export async function bookSlotPublicly(input: z.input<typeof publicBookSchema>):
   return result;
 }
 
+// ── Public line booking (external club coach) ────────────────────────────
+// A visiting coach picks an empty cell on the public weekly grid and
+// books that line for their own team's training. No pre-listing by the
+// admin — any unbooked cell on a line that's not held by the academy or
+// already grabbed by P&T is fair game.
+const externalLineBookSchema = z.object({
+  academySlug: z.string().min(1),
+  lineId: z.string().min(1),
+  startAt: z.string().min(1),
+  endAt: z.string().min(1),
+  coachName: z.string().trim().min(2).max(80),
+  coachEmail: z.string().trim().toLowerCase().email("Invalid email").max(120),
+  clubName: z.string().trim().min(2).max(100),
+  coachPhone: z.string().trim().max(40).optional().transform((v) => (v ? v : null)),
+  discipline: z.string().trim().max(20).optional().transform((v) => (v ? v : null)),
+  notes: z.string().trim().max(500).optional().transform((v) => (v ? v : null)),
+});
+
+export async function bookLineByExternalCoach(input: z.input<typeof externalLineBookSchema>): Promise<Result<{ bookingId: string }>> {
+  const parsed = externalLineBookSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const d = parsed.data;
+
+  const startAt = new Date(d.startAt);
+  const endAt = new Date(d.endAt);
+  if (!Number.isFinite(startAt.getTime()) || !Number.isFinite(endAt.getTime())) {
+    return { ok: false, error: "Invalid start/end date." };
+  }
+  if (endAt <= startAt) return { ok: false, error: "End must be after start." };
+
+  // Resolve the academy + verify the line belongs to it.
+  const line = await prisma.trainingLine.findFirst({
+    where: { id: d.lineId, slope: { academy: { slug: d.academySlug } } },
+    select: { id: true, slope: { select: { academyId: true } } },
+  });
+  if (!line) return { ok: false, error: "Line not found at this academy." };
+
+  // Lock-in-transaction: re-check conflicts under the same tx that writes.
+  const result = await prisma.$transaction(async (tx) => {
+    const conflict = await tx.lineBooking.findFirst({
+      where: {
+        lineId: d.lineId,
+        startAt: { lt: endAt },
+        endAt: { gt: startAt },
+        status: { in: ["confirmed", "pending"] },
+      },
+      select: { id: true },
+    });
+    if (conflict) return { ok: false as const, error: "This line is already booked for that time. Pick another cell." };
+    const created = await tx.lineBooking.create({
+      data: {
+        academyId: line.slope.academyId,
+        lineId: d.lineId,
+        startAt,
+        endAt,
+        label: d.clubName.slice(0, 18).toUpperCase(),  // short chip on the admin grid
+        discipline: d.discipline,
+        notes: d.notes,
+        customerName: d.coachName,
+        customerEmail: d.coachEmail,
+        customerPhone: d.coachPhone,
+        bookerOrg: d.clubName,
+        status: "confirmed",
+      },
+    });
+    return { ok: true as const, data: { bookingId: created.id } };
+  });
+
+  if (result.ok) {
+    revalidatePath("/dashboard/lines");
+    revalidatePath("/dashboard/bookings");
+  }
+  return result;
+}
+
 // ── Treningsskjema Excel import ──────────────────────────────────────────
 // Accept a Treningsskjema.xlsx upload + a year (the sheet doesn't carry one),
 // auto-create any missing slopes/lines under this academy, then create one

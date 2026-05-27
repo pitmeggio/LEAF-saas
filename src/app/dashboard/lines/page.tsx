@@ -2,8 +2,10 @@ import { PageHeader } from "@/components/PageHeader";
 import { LineScheduleGrid } from "@/components/LineScheduleGrid";
 import { LineImportButton } from "@/components/LineImportButton";
 import { CreateSlopeButton } from "@/components/CreateSlopeButton";
+import { PublicBookingLinksCard } from "@/components/PublicBookingLinksCard";
 import { getSession, requireAcademyId } from "@/lib/auth";
 import { getWeeklySchedule, mondayOf } from "@/lib/lines";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +26,10 @@ export default async function LineSchedulePage({ searchParams }: { searchParams:
   const requested = sp.w ? new Date(sp.w) : new Date();
   const weekStart = mondayOf(Number.isFinite(requested.getTime()) ? requested : new Date());
 
-  const { slopes, bookings } = await getWeeklySchedule(academyId, weekStart);
+  const [{ slopes, bookings }, academy] = await Promise.all([
+    getWeeklySchedule(academyId, weekStart),
+    prisma.academy.findUnique({ where: { id: academyId }, select: { slug: true } }),
+  ]);
 
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
@@ -42,7 +47,8 @@ export default async function LineSchedulePage({ searchParams }: { searchParams:
           </div>
         ) : undefined}
       />
-      <div className="p-8">
+      <div className="space-y-6 p-8">
+        {isAdmin && academy && <PublicBookingLinksCard slug={academy.slug} />}
         {slopes.length === 0 ? (
           <div className="card flex flex-col items-center gap-3 p-12 text-center">
             <div className="text-2xl">🎿</div>

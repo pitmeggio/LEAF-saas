@@ -32,6 +32,7 @@ type Booking = {
   payAndTrainEnabled: boolean;
   customerName: string | null;
   customerEmail: string | null;
+  bookerOrg: string | null;
   status: string;
   publicPrice: number | null;
   notes: string | null;
@@ -75,8 +76,8 @@ export function LineScheduleGrid({
     for (const b of bookings) {
       const dayIndex = Math.floor((b.startAt.getTime() - wsTime) / (24 * 3600 * 1000));
       if (dayIndex < 0 || dayIndex > 6) continue;
-      const startH = b.startAt.getHours();
-      const startM = b.startAt.getMinutes();
+      const startH = b.startAt.getUTCHours();
+      const startM = b.startAt.getUTCMinutes();
       const slot = SLOTS.find(
         (s) =>
           (startH === s.sh && startM <= s.sm + 30) ||
@@ -95,11 +96,11 @@ export function LineScheduleGrid({
     const slot = SLOTS.find((s) => s.key === editing.slotKey);
     if (!slot) return;
     const startAt = new Date(weekStart);
-    startAt.setDate(startAt.getDate() + editing.dayIndex);
-    startAt.setHours(slot.sh, slot.sm, 0, 0);
+    startAt.setUTCDate(startAt.getUTCDate() + editing.dayIndex);
+    startAt.setUTCHours(slot.sh, slot.sm, 0, 0);
     const endAt = new Date(weekStart);
-    endAt.setDate(endAt.getDate() + editing.dayIndex);
-    endAt.setHours(slot.eh, slot.em, 0, 0);
+    endAt.setUTCDate(endAt.getUTCDate() + editing.dayIndex);
+    endAt.setUTCHours(slot.eh, slot.em, 0, 0);
     const payAndTrainEnabled = fd.get("payAndTrain") === "on";
     const publicPrice = fd.get("publicPrice") ? Number(fd.get("publicPrice")) : null;
     start(async () => {
@@ -190,7 +191,7 @@ export function LineScheduleGrid({
           {DAYS.map((day, dayIdx) =>
             SLOTS.map((slot, slotIdx) => {
               const dayDate = new Date(weekStart);
-              dayDate.setDate(dayDate.getDate() + dayIdx);
+              dayDate.setUTCDate(dayDate.getUTCDate() + dayIdx);
               const isFirstSlotOfDay = slotIdx === 0;
               return (
                 <DayRow
@@ -229,6 +230,7 @@ export function LineScheduleGrid({
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[#f59e0b]/70" /> Internal team</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[var(--color-accent)]/70" /> Pay-and-Train (open)</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[#38bdf8]/70" /> Pay-and-Train (sold)</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-[#a78bfa]/70" /> External club</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-dashed border-[var(--color-border)]" /> Free</span>
       </div>
     </>
@@ -297,24 +299,34 @@ function DayRow({
 
 function BookingChip({ booking, onClick }: { booking: Booking; onClick: () => void }) {
   const isInternal = !!booking.groupId;
-  const isSold = booking.customerEmail != null;
+  const isExternalClub = !isInternal && !booking.payAndTrainEnabled && booking.bookerOrg != null;
+  const isPtSold = booking.payAndTrainEnabled && booking.customerEmail != null;
+  // Yellow = internal team, blue = Pay-and-Train sold, purple = external
+  // club self-booked, green = Pay-and-Train slot still open.
   const bg = isInternal
     ? "bg-[#f59e0b]/15 border-[#f59e0b]/40 text-[#f59e0b]"
-    : isSold
-      ? "bg-[#38bdf8]/15 border-[#38bdf8]/40 text-[#38bdf8]"
-      : "bg-[#7cff6b]/15 border-[#7cff6b]/40 text-[var(--color-accent)]";
+    : isExternalClub
+      ? "bg-[#a78bfa]/15 border-[#a78bfa]/40 text-[#a78bfa]"
+      : isPtSold
+        ? "bg-[#38bdf8]/15 border-[#38bdf8]/40 text-[#38bdf8]"
+        : "bg-[#7cff6b]/15 border-[#7cff6b]/40 text-[var(--color-accent)]";
+  const primary = isExternalClub
+    ? booking.bookerOrg
+    : booking.label || booking.groupName || (isPtSold ? booking.customerName : "OPEN");
   return (
     <button
       type="button"
       onClick={onClick}
       className={`flex h-full min-h-[2.25rem] w-full flex-col items-start justify-center rounded border px-1.5 py-1 text-left text-[10px] font-medium ${bg}`}
-      title={booking.notes ?? booking.label ?? ""}
+      title={
+        isExternalClub
+          ? `${booking.bookerOrg} · ${booking.customerName ?? ""}`
+          : (booking.notes ?? booking.label ?? "")
+      }
     >
-      <span className="truncate leading-tight">
-        {booking.label || booking.groupName || (isSold ? booking.customerName : "OPEN")}
-      </span>
+      <span className="truncate leading-tight">{primary}</span>
       {booking.discipline && <span className="text-[9px] opacity-80">{booking.discipline}</span>}
-      {!isInternal && booking.publicPrice != null && booking.publicPrice > 0 && (
+      {isPtSold && booking.publicPrice != null && booking.publicPrice > 0 && (
         <span className="text-[9px] opacity-80">€{booking.publicPrice}</span>
       )}
     </button>

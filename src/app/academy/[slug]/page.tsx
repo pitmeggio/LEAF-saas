@@ -44,7 +44,7 @@ export default async function PublicAcademyPage({ params }: { params: Promise<{ 
           </Link>
           {payAndTrainOpen && (
             <Link href={bookHref} className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">
-              Pay-and-Train
+              Book
             </Link>
           )}
           <Link href={applyHref} className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]">
@@ -95,7 +95,7 @@ export default async function PublicAcademyPage({ params }: { params: Promise<{ 
             </Link>
             {payAndTrainOpen && (
               <Link href={bookHref} className="rounded-xl border border-[var(--color-accent)] bg-[var(--color-accent)]/10 px-6 py-3 text-center text-sm font-semibold text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20">
-                Pay-and-Train · book a slot
+                Book a session or a line
               </Link>
             )}
             <Link href={profilesHref} className="rounded-xl border border-[var(--color-border)] px-6 py-3 text-center text-sm font-semibold hover:border-[var(--color-accent)]">

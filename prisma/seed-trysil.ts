@@ -360,9 +360,9 @@ async function main() {
   // Pay-and-Train open slots so the demo shows the full split visually.
   const now = new Date();
   const monday = new Date(now);
-  monday.setHours(0, 0, 0, 0);
-  const day = monday.getDay();
-  monday.setDate(monday.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setUTCHours(0, 0, 0, 0);
+  const day = monday.getUTCDay();
+  monday.setUTCDate(monday.getUTCDate() - (day === 0 ? 6 : day - 1));
 
   const devTeamGroupId = `seed_trysil_dev1_${academy.id}`;
   const techTeamGroupId = `seed_trysil_tech_${academy.id}`;
@@ -372,11 +372,11 @@ async function main() {
   // Helper: at day-offset from Monday, build [start, end] dates for a slot
   const slot = (dayOffset: number, sh: number, sm: number, eh: number, em: number) => {
     const start = new Date(monday);
-    start.setDate(start.getDate() + dayOffset);
-    start.setHours(sh, sm, 0, 0);
+    start.setUTCDate(start.getUTCDate() + dayOffset);
+    start.setUTCHours(sh, sm, 0, 0);
     const end = new Date(monday);
-    end.setDate(end.getDate() + dayOffset);
-    end.setHours(eh, em, 0, 0);
+    end.setUTCDate(end.getUTCDate() + dayOffset);
+    end.setUTCHours(eh, em, 0, 0);
     return { startAt: start, endAt: end };
   };
 
