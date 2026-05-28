@@ -29,18 +29,17 @@ export default async function SeasonViewPage() {
         <div className="absolute inset-0 grid-bg opacity-20" />
       </div>
 
-      <div className="relative z-10 px-8 pb-3 pt-8 md:px-14">
+      <div className="relative z-10 px-8 pb-3 pt-6 md:px-14">
         <Link href="/dashboard/canvas" className="text-[10px] uppercase tracking-[0.2em] text-[var(--color-muted)] hover:text-[var(--color-fg)]">
           ← Canvas index
         </Link>
         <div className="kicker mt-3 text-[10px]" style={{ color: academy.logoColor }}>
-          Season View · LEAF OS Professional Tennis
+          Season View · {academy.name} · {season}
         </div>
-        <h1 className="mt-2 font-bold leading-[0.95] tracking-[-0.04em]" style={{ fontSize: "clamp(2.4rem, 5vw, 4.5rem)" }}>
-          <span className="opacity-95">Stagione</span>{" "}
-          <span className="opacity-60" style={{ color: academy.logoColor }}>{season}</span>
+        <h1 className="mt-2 font-semibold leading-none tracking-[-0.03em]" style={{ fontSize: "clamp(2rem, 4.2vw, 3.4rem)" }}>
+          Tutti gli atleti
         </h1>
-        <p className="mt-4 max-w-3xl text-base leading-relaxed text-[var(--color-fg)]/80 md:text-lg">
+        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-[var(--color-fg)]/75">
           {narrative}
         </p>
       </div>

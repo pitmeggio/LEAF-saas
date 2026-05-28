@@ -35,16 +35,15 @@ export default async function CanvasIndex() {
         <div className="absolute inset-0 grid-bg opacity-20" />
       </div>
 
-      <header className="relative z-10 px-8 pb-3 pt-8 md:px-14">
-        <div className="kicker mb-1.5 text-[10px]" style={{ color: academy?.logoColor ?? "#7CFF6B" }}>
-          Athlete Canvas · LEAF OS Professional Tennis
+      <header className="relative z-10 px-8 pb-3 pt-6 md:px-14">
+        <div className="kicker text-[10px]" style={{ color: academy?.logoColor ?? "#7CFF6B" }}>
+          Athlete Canvas · {academy?.name ?? "Roster"}
         </div>
-        <h1 className="font-bold leading-[0.95] tracking-[-0.04em]" style={{ fontSize: "clamp(2.4rem, 5vw, 4.5rem)" }}>
-          {academy?.name ?? "Roster"}
+        <h1 className="mt-3 font-semibold leading-none tracking-[-0.03em]" style={{ fontSize: "clamp(2rem, 4.2vw, 3.4rem)" }}>
+          Roster {plans[0]?.season ?? ""}
         </h1>
-        <p className="mt-3 max-w-2xl text-sm text-[var(--color-fg)]/75 md:text-base">
-          Apri un atleta — entra nella sua stagione vista come una storia, non una tabella.
-          Ogni canvas mostra ranking, prossimi tornei, Season Arc e insight LEAF.
+        <p className="mt-3 max-w-2xl text-sm text-[var(--color-fg)]/75">
+          Apri un atleta — entra nella sua stagione come una storia, non una tabella.
         </p>
       </header>
 
@@ -72,14 +71,11 @@ export default async function CanvasIndex() {
               />
               <div className="relative">
                 <div className="kicker">Season {p.season}</div>
-                <div className="mt-2 leading-[0.9] tracking-[-0.03em]" style={{ fontSize: "clamp(2rem, 3.5vw, 3rem)", fontWeight: 700 }}>
-                  <span className="block opacity-95">{p.athlete.firstName}</span>
-                  <span className="block opacity-60" style={{ color: academy?.logoColor ?? "#7CFF6B" }}>
-                    {p.athlete.lastName}
-                  </span>
+                <div className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.02em] md:text-3xl">
+                  {p.athlete.firstName}
                 </div>
-                <div className="mt-3 text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
-                  {p.athlete.gender ?? "—"} · {age}y · {total} entries pianificate
+                <div className="mt-1 text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
+                  {p.athlete.gender ?? "—"} · {age} anni · {total} eventi
                 </div>
                 <div className="mt-4 flex flex-wrap gap-1.5">
                   {Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, n]) => (
