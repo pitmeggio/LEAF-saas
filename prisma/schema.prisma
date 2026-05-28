@@ -99,6 +99,16 @@ model Academy {
   budgetBenchmarks AcademyBudgetBenchmarks?
   trainingSlopes TrainingSlope[]
   lineBookings  LineBooking[]
+  // LEAF OS Tennis (Professional + Essential). All purely additive — the
+  // ski side does not know these exist. Tennis-only academies (sport=tennis)
+  // get the surfaces below; ski academies don't see them. Multi-sport
+  // tenants get both, gated in the UI by sport on each entity.
+  tennisFacilities TennisFacility[]
+  tennisCourts     TennisCourt[]
+  courtBookings    CourtBooking[]
+  tennisCamps      TennisCamp[]
+  tennisTournaments TennisTournament[]
+  tennisSeasonPlans TennisSeasonPlan[]
   createdAt     DateTime       @default(now())
 }
 
@@ -562,6 +572,9 @@ model Athlete {
   seasonGoals     String?
 
   tennisMatches   TennisMatch[]
+  // Tennis season plans (LEAF OS Professional Tennis) — Max's Excel
+  // becomes one row per athlete, hosting tournament entries by week.
+  tennisSeasonPlans TennisSeasonPlan[]
 
   // Universal Athlete Performance Layer — 1:1 sport-specific extension
   // tables. New writes target these; old reads still hit the legacy columns
@@ -827,6 +840,7 @@ model Group {
   sessions      TrainingSession[]
   calendarEvents CalendarEvent[]
   lineBookings  LineBooking[]
+  courtBookings CourtBooking[]
   createdAt     DateTime     @default(now())
 }
 
@@ -1021,4 +1035,181 @@ model CoachNoteAttachment {
   size      Int       @default(0) // bytes; 0 = unknown (paste-link case)
   url       String
   createdAt DateTime  @default(now())
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LEAF OS Tennis — Professional + Essential primitives
+//
+// Mirrors the alpine architecture (Slope/Line/LineBooking) but tennis-shaped:
+//   • TennisFacility   ←→ TrainingSlope     (the physical site, e.g. "Sede Padova")
+//   • TennisCourt      ←→ TrainingLine      (a court inside the facility)
+//   • CourtBooking     ←→ LineBooking       (time-block reservation)
+// Two NEW concepts tennis needs that ski doesn't:
+//   • TennisCamp / TennisCampRegistration   (summer camps + public sign-ups)
+//   • TennisTournament + TennisSeasonPlan(Entry)
+//                                           (Max's Excel — the coach's bible)
+//
+// Everything below is purely additive. Ski tenants never see these tables.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model TennisFacility {
+  id        String   @id @default(cuid())
+  academyId String
+  academy   Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  name      String   // "Sede Centrale Padova" / "Outdoor Estivo"
+  address   String?
+  notes     String?
+  active    Boolean  @default(true)
+  courts    TennisCourt[]
+  createdAt DateTime @default(now())
+}
+
+model TennisCourt {
+  id         String   @id @default(cuid())
+  facilityId String
+  facility   TennisFacility @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  academyId  String
+  academy    Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  label      String   // "Centrale" / "Court 1" / "Indoor 2"
+  position   Int
+  surface    String?  // clay | hard | carpet | grass | padel
+  indoor     Boolean  @default(false)
+  notes      String?
+  bookings   CourtBooking[]
+}
+
+model CourtBooking {
+  id           String   @id @default(cuid())
+  academyId    String
+  academy      Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  courtId      String
+  court        TennisCourt @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  groupId      String?
+  group        Group?   @relation(fields: [groupId], references: [id])
+  startAt      DateTime
+  endAt        DateTime
+  label        String?              // "U14" / "Agonistica" / "Lez. individuale"
+  discipline   String?              // singles | doubles | lesson | sparring
+  notes        String?
+  publicBookingEnabled Boolean @default(false)
+  publicPrice  Int?
+  customerName String?
+  customerEmail String?
+  customerPhone String?
+  bookerOrg    String?
+  status       String   @default("confirmed")
+  paidAmount   Int      @default(0)
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  @@index([academyId, startAt])
+  @@index([courtId, startAt])
+}
+
+model TennisCamp {
+  id          String   @id @default(cuid())
+  academyId   String
+  academy     Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  name        String   // "Summer Camp Week 1" / "Mini-tennis U10"
+  startDate   DateTime
+  endDate     DateTime
+  ageMin      Int?
+  ageMax      Int?
+  level       String?  // beginner | intermediate | competitive
+  capacity    Int
+  price       Int
+  currency    String   @default("EUR")
+  description String?
+  coverImage  String?
+  active      Boolean  @default(true)
+  registrations TennisCampRegistration[]
+  createdAt   DateTime @default(now())
+}
+
+model TennisCampRegistration {
+  id          String   @id @default(cuid())
+  campId      String
+  camp        TennisCamp @relation(fields: [campId], references: [id], onDelete: Cascade)
+  parentName  String
+  parentEmail String
+  parentPhone String?
+  childName   String
+  childDob    DateTime
+  childLevel  String?
+  notes       String?
+  status      String   @default("pending") // pending | confirmed | cancelled | refunded
+  paidAmount  Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@index([campId, status])
+}
+
+// Catalogue of tournaments the academy tracks. Coach adds once, every
+// athlete's planner can pull from this catalogue. Imported in bulk from
+// Max's "CALENDARI TORNEI" Excel.
+model TennisTournament {
+  id          String   @id @default(cuid())
+  academyId   String
+  academy     Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  name        String   // "Open Ten Sport Center Cervia (RA)"
+  category    String   // ITF | OPEN | RODEO | CAT_2 | CAT_3 | CAT_4 | TEAM | ETA | YOUTH | ALT
+  location    String?
+  startDate   DateTime
+  endDate     DateTime
+  ageGroup    String?  // U12 | U14 | U16 | U18 | OPEN | TEAM
+  surface     String?  // clay | hard | grass | carpet
+  pointsPotential Int? // ATP/ITF/FIT ranking points to winner
+  drawSize    Int?     // 16 | 32 | 64
+  externalUrl String?  // FIT iscrizioni link
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  entries     TennisSeasonPlanEntry[]
+
+  @@index([academyId, startDate])
+}
+
+// Per-athlete season plan — Max's Excel page becomes a row.
+model TennisSeasonPlan {
+  id          String   @id @default(cuid())
+  academyId   String
+  academy     Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  athleteId   String
+  athlete     Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  season      String   // "2026" (tennis = calendar year, not split)
+  // Per-athlete column schema — Max uses different categories per athlete
+  // (ITF junior for elite, ETA U12 for kids). Stored as JSON so the
+  // planner UI can drive its own columns without hardcoded enum.
+  columns     Json     // e.g. ["ITF", "OPEN", "RODEO", "CAT_2", "CAT_3", "TEAM"]
+  entries     TennisSeasonPlanEntry[]
+  createdAt   DateTime @default(now())
+
+  @@unique([athleteId, season])
+}
+
+model TennisSeasonPlanEntry {
+  id            String  @id @default(cuid())
+  planId        String
+  plan          TennisSeasonPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  // Anchor on Monday of the planned week — week-level granularity matches
+  // how Max plans (tournaments span a weekend, training fills the week).
+  weekStart     DateTime
+  // Training phase tag — drives the Season Arc color band + AI suggestions.
+  // "Preparazione Invernale" | "TEST" | "Consolidamento" | "Mantenimento" | "Recovery"
+  trainingPhase String?
+  // Which column this entry sits in — must match plan.columns. Free-form
+  // string so the academy can name categories however they like.
+  columnKey     String
+  // Optional FK into the tournament catalogue. NULL when coach typed
+  // free-text (e.g. for a tentative entry).
+  tournamentId  String?
+  tournament    TennisTournament? @relation(fields: [tournamentId], references: [id])
+  freeText      String?
+  status        String  @default("planned") // planned | registered | confirmed | played | withdrawn
+  resultRound   String?                     // SF | F | W | R32 | R16 | QF
+  resultNotes   String?
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  @@index([planId, weekStart])
 }
