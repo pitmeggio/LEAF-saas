@@ -3,6 +3,7 @@ import Link from "next/link";
 import { requireAcademyId } from "@/lib/auth";
 import { getAthleteCanvas } from "@/lib/tennisCanvas";
 import { SeasonArc } from "@/components/SeasonArc";
+import { SeasonSchedule } from "@/components/SeasonSchedule";
 import { AiCopilotLeaf } from "@/components/AiCopilotLeaf";
 
 export const dynamic = "force-dynamic";
@@ -205,6 +206,37 @@ export default async function AthleteCanvasPage({ params }: { params: Promise<{ 
             </ul>
           </div>
         </div>
+      </section>
+
+      {/* Full month-by-month schedule — readable like Max's Excel */}
+      <section className="relative z-10 px-8 pb-24 md:px-14">
+        <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
+          <div>
+            <div className="kicker mb-1">Calendario completo</div>
+            <h2 className="text-xl font-semibold">
+              <span className="opacity-80">12 mesi ·</span>{" "}
+              <span className="opacity-60" style={{ color: academy.logoColor }}>settimana per settimana</span>
+            </h2>
+          </div>
+          <p className="max-w-md text-xs text-[var(--color-muted)]">
+            Tutto il piano di {athlete.firstName}, organizzato come il foglio Excel di Max. Le settimane vuote sono pure di allenamento.
+          </p>
+        </div>
+        <SeasonSchedule
+          season={season}
+          accent={academy.logoColor}
+          entries={entries.map((e) => ({
+            id: e.id,
+            weekStart: e.weekStart,
+            monthIdx: e.monthIdx,
+            trainingPhase: e.trainingPhase,
+            columnKey: e.columnKey,
+            tournamentName: e.tournamentName,
+            freeText: e.freeText,
+            location: e.location,
+            status: e.status,
+          }))}
+        />
       </section>
 
       {/* AI Co-pilot persistent leaf */}
