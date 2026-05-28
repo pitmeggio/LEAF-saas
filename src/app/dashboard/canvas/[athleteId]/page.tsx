@@ -55,64 +55,29 @@ export default async function AthleteCanvasPage({ params }: { params: Promise<{ 
         </div>
       </div>
 
-      {/* HERO — display typography + ranking + trajectory */}
-      <section className="relative z-10 px-8 pt-6 md:px-14">
-        <div className="kicker mb-2 text-[10px]" style={{ color: academy.logoColor }}>
-          Athlete Canvas · LEAF OS Professional Tennis
+      {/* HERO — clean, restrained. Display name only (no fake "Sport Team"
+          last name), inline meta, narrative beneath. Half the screen real
+          estate of the previous gigantic treatment, more breathing room. */}
+      <section className="relative z-10 px-8 pt-2 md:px-14">
+        <div className="kicker text-[10px]" style={{ color: academy.logoColor }}>
+          Athlete · {academy.name} · {season}
         </div>
 
-        <div className="flex flex-col-reverse gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-3xl">
-            {/* Name display — gigantic, breathing line-height */}
-            <h1
-              className="font-bold leading-[0.95] tracking-[-0.04em]"
-              style={{ fontSize: "clamp(3.5rem, 8.5vw, 7.5rem)" }}
-            >
-              <span className="block opacity-95">{athlete.firstName}</span>
-              <span
-                className="block opacity-60"
-                style={{ color: academy.logoColor }}
-              >
-                {athlete.lastName}
-              </span>
-            </h1>
-
-            {/* Subtitle: ATP rank ticker + nationality + age */}
-            <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
-              <div className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/60 px-3 py-1.5 backdrop-blur">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--color-muted)]">Nationality</span>
-                <span className="font-semibold">{athlete.nationality}</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/60 px-3 py-1.5 backdrop-blur">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--color-muted)]">Age</span>
-                <span className="font-semibold">{athlete.age}</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface)]/60 px-3 py-1.5 backdrop-blur">
-                <span className="text-[10px] uppercase tracking-wider text-[var(--color-muted)]">Sport</span>
-                <span className="font-semibold capitalize">{athlete.sport}</span>
-              </div>
-            </div>
-
-            {/* Narrative one-liner — coach-language summary */}
-            <p className="mt-6 max-w-2xl text-base leading-relaxed text-[var(--color-fg)]/80 md:text-lg">
-              {narrative}
-            </p>
-          </div>
-
-          {/* Ranking ticker — big number, mock for now (provider hook later) */}
-          <div className="relative">
-            <div className="kicker text-[10px]">ATP / ITF Ranking</div>
-            <div
-              className="display num font-bold leading-none tracking-tight"
-              style={{ fontSize: "clamp(3rem, 6vw, 5.5rem)" }}
-            >
-              –
-            </div>
-            <div className="mt-1 text-[10px] uppercase tracking-wider text-[var(--color-muted)]">
-              live sync · ATP feed pending
-            </div>
-          </div>
+        <div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-1">
+          <h1
+            className="font-semibold leading-none tracking-[-0.03em]"
+            style={{ fontSize: "clamp(2rem, 4.2vw, 3.4rem)" }}
+          >
+            {athlete.firstName}
+          </h1>
+          <span className="text-sm text-[var(--color-muted)]">
+            {athlete.age} anni · {athlete.nationality} · {athlete.sport === "tennis" ? "tennis" : athlete.sport}
+          </span>
         </div>
+
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--color-fg)]/75">
+          {narrative}
+        </p>
       </section>
 
       {/* SEASON ARC — the showpiece */}
