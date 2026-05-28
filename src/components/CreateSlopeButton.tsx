@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { createSlope } from "@/app/line-actions";
 
@@ -33,20 +34,23 @@ export function CreateSlopeButton() {
     });
   };
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface-2)]"
-      >
-        + Add slope
-      </button>
-    );
-  }
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-black/60 p-4 backdrop-blur-sm" onClick={() => setOpen(false)}>
+  const trigger = (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface-2)]"
+    >
+      + Add slope
+    </button>
+  );
+
+  if (!open) return trigger;
+
+  const overlay = (
+    <div className="fixed inset-0 z-[200] overflow-y-auto bg-black/60 p-4 backdrop-blur-sm" onClick={() => setOpen(false)}>
       <div className="flex min-h-full items-center justify-center py-8">
         <div className="card w-full max-w-md p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
           <h3 className="mb-3 text-sm font-semibold">Add slope</h3>
@@ -94,5 +98,12 @@ export function CreateSlopeButton() {
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {trigger}
+      {mounted && createPortal(overlay, document.body)}
+    </>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { importCalendarFromFile, type ImportResult } from "@/app/calendar-actions";
 
@@ -43,21 +44,28 @@ export function CalendarImportButton({
     });
   };
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-lg border border-[#7CFF6B40] bg-[#7cff6b12] px-3 py-1.5 text-sm font-medium text-[var(--color-accent)] hover:bg-[#7cff6b20]"
-      >
-        📂 Import from Excel
-      </button>
-    );
-  }
+  // Track DOM readiness so we only call createPortal on the client — the
+  // modal renders straight off document.body to escape the sticky
+  // PageHeader's backdrop-blur containing block (which otherwise traps
+  // position:fixed children inside the header and clips them).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  return (
+  const trigger = (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="rounded-lg border border-[#7CFF6B40] bg-[#7cff6b12] px-3 py-1.5 text-sm font-medium text-[var(--color-accent)] hover:bg-[#7cff6b20]"
+    >
+      📂 Import from Excel
+    </button>
+  );
+
+  if (!open) return trigger;
+
+  const overlay = (
     <div
-      className="fixed inset-0 z-[100] overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
       onClick={() => setOpen(false)}
     >
       <div className="flex min-h-full items-center justify-center py-8">
@@ -167,5 +175,12 @@ export function CalendarImportButton({
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {trigger}
+      {mounted && createPortal(overlay, document.body)}
+    </>
   );
 }

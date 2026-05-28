@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { importTreningsskjema } from "@/app/line-actions";
 
@@ -53,22 +54,25 @@ export function LineImportButton() {
     });
   };
 
-  if (!open) {
-    return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface-2)]"
-        title="Drop your Treningsskjema.xlsx and LEAF places every cell on the grid"
-      >
-        📂 Import Excel
-      </button>
-    );
-  }
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  return (
+  const trigger = (
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
+      className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-sm font-medium hover:bg-[var(--color-surface-2)]"
+      title="Drop your Treningsskjema.xlsx and LEAF places every cell on the grid"
+    >
+      📂 Import Excel
+    </button>
+  );
+
+  if (!open) return trigger;
+
+  const overlay = (
     <div
-      className="fixed inset-0 z-[100] overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[200] overflow-y-auto bg-black/60 p-4 backdrop-blur-sm"
       onClick={close}
     >
       <div className="flex min-h-full items-center justify-center py-8">
@@ -166,5 +170,12 @@ export function LineImportButton() {
         </div>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      {trigger}
+      {mounted && createPortal(overlay, document.body)}
+    </>
   );
 }
