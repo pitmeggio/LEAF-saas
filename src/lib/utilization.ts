@@ -12,6 +12,29 @@
 import { prisma } from "@/lib/db";
 import { seasonBounds, type Season } from "@/lib/season";
 
+// Pro-side revenue for the season — collected payments on athlete
+// enrollments / packages. Currency-naive (sums every paidAmount) because
+// the page already knows the academy's reporting currency and the seed
+// keeps payments single-currency per academy. Used only on tier="complete"
+// reports so we can show Pro vs Essential side by side.
+export async function getProSeasonRevenue(academyId: string, season: Season): Promise<{ collected: number; paymentCount: number }> {
+  const { start, end } = seasonBounds(season);
+  const payments = await prisma.payment.findMany({
+    where: {
+      academyId,
+      OR: [
+        { dueDate: { gte: start, lte: end } },
+        { paidDate: { gte: start, lte: end } },
+      ],
+    },
+    select: { paidAmount: true },
+  });
+  return {
+    collected: payments.reduce((s, p) => s + p.paidAmount, 0),
+    paymentCount: payments.length,
+  };
+}
+
 export type BookingKind = "internal" | "pay_and_train" | "external_club";
 
 export function classifyBookingKind(b: {

@@ -89,8 +89,8 @@ const ESSENTIAL_ADMIN_SECTIONS: NavSection[] = [
   { label: "Pay-and-Train", items: [
     { href: "/dashboard/bookings", label: "Bookings", icon: "📥" },
   ] },
-  { label: "Insights", items: [
-    { href: "/dashboard/utilization", label: "Utilization", icon: "▦" },
+  { label: "Reports", items: [
+    { href: "/dashboard/utilization", label: "Reports", icon: "▦" },
   ] },
 ];
 
