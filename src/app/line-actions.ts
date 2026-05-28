@@ -69,15 +69,17 @@ const bookingInputSchema = z.object({
   lineId: z.string().min(1),
   startAt: z.string().min(1),               // ISO date-time
   endAt: z.string().min(1),
-  groupId: z.string().nullable().optional(),
-  label: z.string().trim().max(40).optional().transform((v) => (v ? v : null)),
-  discipline: z.string().trim().max(20).optional().transform((v) => (v ? v : null)),
-  notes: z.string().trim().max(1000).optional().transform((v) => (v ? v : null)),
+  groupId: z.string().nullish(),
+  // .nullish() = string | null | undefined — the grid passes `null` for
+  // empty fields, the form sends "", so accept both and normalise to null.
+  label: z.string().trim().max(40).nullish().transform((v) => (v ? v : null)),
+  discipline: z.string().trim().max(20).nullish().transform((v) => (v ? v : null)),
+  notes: z.string().trim().max(1000).nullish().transform((v) => (v ? v : null)),
   payAndTrainEnabled: z.boolean().optional().transform((v) => v ?? false),
-  publicPrice: z.coerce.number().int().min(0).nullable().optional(),
+  publicPrice: z.coerce.number().int().min(0).nullish(),
 });
 
-export async function createLineBooking(input: z.infer<typeof bookingInputSchema>): Promise<Result<{ id: string }>> {
+export async function createLineBooking(input: z.input<typeof bookingInputSchema>): Promise<Result<{ id: string }>> {
   const parsed = bookingInputSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const s = await requireAdmin();
@@ -133,6 +135,74 @@ export async function createLineBooking(input: z.infer<typeof bookingInputSchema
   });
   rev();
   return { ok: true, data: { id: created.id } };
+}
+
+// Move a booking to a different (line, day, slot). Used by the admin
+// drag-and-drop on the line schedule grid: Marius drags "TRA SL" from
+// L4 to L2 and we rewrite lineId + startAt + endAt in one go. The new
+// cell must be empty (no conflicting booking on that line in the same
+// window) — we re-check inside a transaction so two simultaneous drags
+// can't both succeed on the same target cell.
+const moveSchema = z.object({
+  bookingId: z.string().min(1),
+  targetLineId: z.string().min(1),
+  startAt: z.string().min(1),
+  endAt: z.string().min(1),
+});
+
+export async function moveLineBooking(input: z.input<typeof moveSchema>): Promise<Result> {
+  const parsed = moveSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false, error: "No academy in session." };
+  const d = parsed.data;
+
+  const startAt = new Date(d.startAt);
+  const endAt = new Date(d.endAt);
+  if (!Number.isFinite(startAt.getTime()) || !Number.isFinite(endAt.getTime())) {
+    return { ok: false, error: "Invalid start/end date." };
+  }
+  if (endAt <= startAt) return { ok: false, error: "End must be after start." };
+
+  const result = await prisma.$transaction(async (tx) => {
+    const existing = await tx.lineBooking.findFirst({
+      where: { id: d.bookingId, academyId: s.academyId! },
+      select: { id: true, lineId: true, startAt: true, endAt: true },
+    });
+    if (!existing) return { ok: false as const, error: "Booking not found." };
+
+    const targetLine = await tx.trainingLine.findFirst({
+      where: { id: d.targetLineId, slope: { academyId: s.academyId! } },
+      select: { id: true },
+    });
+    if (!targetLine) return { ok: false as const, error: "Target line not in your academy." };
+
+    // No-op if the booking is already on the same (line, startAt).
+    if (existing.lineId === d.targetLineId && existing.startAt.getTime() === startAt.getTime()) {
+      return { ok: true as const };
+    }
+
+    const conflict = await tx.lineBooking.findFirst({
+      where: {
+        id: { not: d.bookingId },
+        lineId: d.targetLineId,
+        startAt: { lt: endAt },
+        endAt: { gt: startAt },
+        status: { in: ["confirmed", "pending"] },
+      },
+      select: { id: true },
+    });
+    if (conflict) return { ok: false as const, error: "Target cell is already booked." };
+
+    await tx.lineBooking.update({
+      where: { id: d.bookingId },
+      data: { lineId: d.targetLineId, startAt, endAt },
+    });
+    return { ok: true as const };
+  });
+
+  if (result.ok) rev();
+  return result;
 }
 
 export async function deleteLineBooking(id: string): Promise<Result> {
