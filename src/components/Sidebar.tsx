@@ -65,7 +65,12 @@ const ADMIN_SECTIONS: NavSection[] = [
     },
   ] },
   { label: "Performance", items: [
-    { href: "/dashboard/calendar", label: "Season Planner", icon: "▣" },
+    // Ski-shaped season planner — calendar of camps + race plan.
+    { href: "/dashboard/calendar", label: "Season Planner", icon: "▣", sports: ["ski"] },
+    // Tennis Professional surfaces — cinematic athlete view + tournament-driven planner.
+    { href: "/dashboard/canvas", label: "Athlete Canvas", icon: "◐", sports: ["tennis", "padel"] },
+    { href: "/dashboard/season", label: "Season View", icon: "≡", sports: ["tennis", "padel"] },
+    { href: "/dashboard/tournaments", label: "Tournaments", icon: "◇", sports: ["tennis", "padel"] },
   ] },
   { label: "Reports", items: [
     { href: "/dashboard/reports", label: "Reports", icon: "▧", feature: "featureFinance" },
@@ -87,6 +92,8 @@ const ESSENTIAL_ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard/courts", label: "Courts", icon: "◰", sports: ["tennis", "padel"] },
   ] },
   { label: "Pay-and-Train", items: [
+    // Ski: Pay-and-Train single sessions. Tennis: summer camps + groups.
+    { href: "/dashboard/camps", label: "Camps & Groups", icon: "✦", sports: ["tennis", "padel"] },
     { href: "/dashboard/bookings", label: "Bookings", icon: "📥" },
   ] },
   { label: "Reports", items: [
