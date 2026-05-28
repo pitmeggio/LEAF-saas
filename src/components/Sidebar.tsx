@@ -85,10 +85,8 @@ const ESSENTIAL_ADMIN_SECTIONS: NavSection[] = [
   { label: "Facility", items: [
     { href: "/dashboard/lines", label: "Line Schedule", icon: "≣", sports: ["ski"] },
     { href: "/dashboard/courts", label: "Courts", icon: "◰", sports: ["tennis", "padel"] },
-    { href: "/dashboard/facilities", label: "Facilities", icon: "▥" },
   ] },
   { label: "Pay-and-Train", items: [
-    { href: "/dashboard/sessions", label: "Public Sessions", icon: "🛒" },
     { href: "/dashboard/bookings", label: "Bookings", icon: "📥" },
   ] },
   { label: "Insights", items: [
