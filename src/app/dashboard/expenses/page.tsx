@@ -2,8 +2,9 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { Modal, ExpenseForm } from "@/components/EntityForms";
 import { ExpenseCoachActions, ExpenseAdminActions } from "@/components/EntityActions";
+import { ExpenseReceipts } from "@/components/ExpenseReceipts";
 import { FinanceSubNav } from "@/components/FinanceSubNav";
-import { getExpenses, getAssignmentOptions, getAcademyCurrency } from "@/lib/ops";
+import { getExpenses, getAcademyCurrency } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { fmtMoney, fmtDate } from "@/lib/domain";
@@ -51,9 +52,9 @@ export default async function ExpensesPage() {
                 </span>
               </div>
               <p className="mt-1 text-xs leading-relaxed text-[var(--color-muted)]">
-                Every coach receipt, every team expense, every reimbursement. Categorised,
-                approval queue, audit trail and reimbursement state — all reconciled
-                with the group budgets in Finance. No double-entry in another tool.
+                Coaches snap a photo of every receipt (kvittering) and it&apos;s stored on the
+                expense — categorised, approval queue, audit trail and reimbursement state,
+                all reconciled with the group budgets in Finance. No double-entry in another tool.
               </p>
             </div>
           </div>
@@ -74,13 +75,14 @@ export default async function ExpensesPage() {
                 {isAdmin && <th className="px-3 py-3 font-medium">Coach</th>}
                 <th className="px-3 py-3 font-medium">Group</th>
                 <th className="px-3 py-3 font-medium">Amount</th>
+                <th className="px-3 py-3 font-medium">Receipts</th>
                 <th className="px-3 py-3 font-medium">Status</th>
                 <th className="px-3 py-3 font-medium">Action</th>
               </tr>
             </thead>
             <tbody>
               {data.expenses.length === 0 && (
-                <tr><td colSpan={6} className="px-5 py-10 text-center text-sm text-[var(--color-muted)]">No expenses yet.</td></tr>
+                <tr><td colSpan={isAdmin ? 7 : 6} className="px-5 py-10 text-center text-sm text-[var(--color-muted)]">No expenses yet.</td></tr>
               )}
               {data.expenses.map((e) => (
                 <tr key={e.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]">
@@ -97,6 +99,13 @@ export default async function ExpensesPage() {
                   {isAdmin && <td className="px-3 py-3 text-[var(--color-muted)]">{e.coach?.name ?? "Academy"}</td>}
                   <td className="px-3 py-3 text-[var(--color-muted)]">{e.group?.name ?? "—"}</td>
                   <td className="num px-3 py-3 font-semibold">{fmtMoney(e.amount, e.currency)}</td>
+                  <td className="px-3 py-3">
+                    <ExpenseReceipts
+                      expenseId={e.id}
+                      receipts={e.receipts}
+                      canEdit={isAdmin || (e.coachId === s?.coachId && (e.status === "draft" || e.status === "submitted"))}
+                    />
+                  </td>
                   <td className="px-3 py-3"><span className="text-xs font-medium capitalize" style={{ color: STATUS_COLOR[e.status] }}>{e.status}</span></td>
                   <td className="px-3 py-3">{isAdmin ? <ExpenseAdminActions id={e.id} status={e.status} /> : <ExpenseCoachActions id={e.id} status={e.status} />}</td>
                 </tr>

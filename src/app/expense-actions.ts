@@ -202,6 +202,28 @@ export async function rejectExpense(id: string, note?: string): Promise<Result> 
   return { ok: true };
 }
 
+// Remove a receipt photo from an expense. Coach can remove receipts from their
+// own expense while it's still editable (draft / submitted); admin can remove any.
+export async function deleteExpenseReceipt(receiptId: string): Promise<Result> {
+  const s = await getSession();
+  if (!s) return { ok: false, error: "Not signed in" };
+  const academyId = await requireAcademyId();
+  const receipt = await prisma.expenseReceipt.findFirst({
+    where: { id: receiptId, academyId },
+    include: { expense: { select: { id: true, coachId: true, status: true } } },
+  });
+  if (!receipt) return { ok: false, error: "Not found" };
+  const exp = receipt.expense;
+  if (!s.isAdmin) {
+    if (exp.coachId !== s.coachId) return { ok: false, error: "Not your expense" };
+    if (exp.status !== "draft" && exp.status !== "submitted") return { ok: false, error: "This expense is locked." };
+  }
+  await prisma.expenseReceipt.delete({ where: { id: receiptId } });
+  await logEvent(exp.id, "edited", s, { note: `Removed receipt ${receipt.fileName}` });
+  revalidateExpenses();
+  return { ok: true };
+}
+
 // Mark an approved expense as reimbursed (paid back to the coach).
 export async function reimburseExpense(id: string): Promise<Result> {
   const s = await getSession();

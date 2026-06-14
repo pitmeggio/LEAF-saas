@@ -64,7 +64,14 @@ export async function getExpenses(coachId?: string | null) {
   const academyId = await requireAcademyId();
   const expenses = await prisma.expense.findMany({
     where: { academyId, ...(coachId ? { coachId } : {}) },
-    include: { coach: true, group: true, approvedBy: { select: { name: true } } },
+    include: {
+      coach: true,
+      group: true,
+      approvedBy: { select: { name: true } },
+      // Receipt metadata only — never the bytes (fetched on demand via the
+      // /api/expenses/receipt/[id] route when a photo is actually viewed).
+      receipts: { select: { id: true, fileName: true, fileMime: true, createdAt: true }, orderBy: { createdAt: "asc" } },
+    },
     orderBy: { createdAt: "desc" },
   });
   const sum = (st: string[]) => expenses.filter((e) => st.includes(e.status)).reduce((s, e) => s + e.amount, 0);

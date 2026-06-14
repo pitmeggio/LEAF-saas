@@ -439,8 +439,11 @@ export function ExpenseForm({ groups, initial, currency = "EUR" }: { groups: Opt
         <Field label="Date"><input type="date" className={inp} value={f.expenseDate} onChange={(e) => upd("expenseDate", e.target.value)} /></Field>
         <Field label="Group"><select className={inp} value={f.groupId} onChange={(e) => upd("groupId", e.target.value)}><option value="">No group</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></Field>
       </div>
-      <Field label="Receipt link"><input type="url" className={inp} value={f.receiptUrl} placeholder="https://… (upload to Drive/Dropbox and paste the link)" onChange={(e) => upd("receiptUrl", e.target.value)} /></Field>
+      <Field label="Receipt link (optional)"><input type="url" className={inp} value={f.receiptUrl} placeholder="https://… external link, if any" onChange={(e) => upd("receiptUrl", e.target.value)} /></Field>
       <Field label="Description"><textarea className={`${inp} resize-none`} rows={2} value={f.notes} onChange={(e) => upd("notes", e.target.value)} /></Field>
+      <p className="rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-[11px] leading-relaxed text-[var(--color-muted)]">
+        📷 Save the expense, then snap or upload the <span className="font-medium">receipt photo</span> from the Receipts column — it&apos;s stored in LEAF (no PowerOffice needed).
+      </p>
       <Footer pending={pending} error={error} />
     </form>
   );

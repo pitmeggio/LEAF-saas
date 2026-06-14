@@ -88,6 +88,7 @@ model Academy {
   invoices      Invoice[]
   notifications Notification[]
   expenses      Expense[]
+  expenseReceipts ExpenseReceipt[]
   revenues      Revenue[]
   conversations Conversation[]
   users         User[]
@@ -405,7 +406,29 @@ model Expense {
   approvedBy   User?    @relation("ExpenseApprover", fields: [approvedById], references: [id])
   approvedAt   DateTime?
   events      ExpenseEvent[]
+  receipts    ExpenseReceipt[]
   createdAt   DateTime @default(now())
+}
+
+// Receipt photo(s) attached to an expense — the PowerOffice "kvittering / bilag"
+// flow. Coaches snap a photo of the receipt (or upload a PDF) and the bytes live
+// in Postgres (bytea) so it works on any deploy with zero extra infra. An
+// expense can carry several receipts; admins view them in the approval queue.
+model ExpenseReceipt {
+  id             String   @id @default(cuid())
+  academyId      String
+  academy        Academy  @relation(fields: [academyId], references: [id])
+  expenseId      String
+  expense        Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  fileName       String
+  fileMime       String // image/jpeg | image/png | image/webp | image/heic | application/pdf
+  fileSize       Int
+  fileData       Bytes
+  uploadedById   String? // user who uploaded (coach or admin)
+  uploadedByName String? // denormalised — survives user deletion
+  createdAt      DateTime @default(now())
+
+  @@index([academyId, expenseId])
 }
 
 // Income — non-Payment revenue streams that feed a team's budget.
