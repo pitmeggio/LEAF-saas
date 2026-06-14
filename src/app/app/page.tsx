@@ -3,8 +3,11 @@ import { redirect } from "next/navigation";
 import { requireAthleteId } from "@/lib/auth";
 import { getAthleteWorkspace } from "@/lib/athleteWorkspace";
 import { getCalendarEvents } from "@/lib/calendar";
+import { getLatestPublishedProgram } from "@/lib/programs";
+import { programKindLabel } from "@/lib/trainingProgram";
 import { prisma } from "@/lib/db";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ProgramPop } from "@/components/app/ProgramPop";
 import { fmtPoints, fmtDate } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +30,7 @@ export default async function AppHome() {
   const upcoming = enr
     ? (await getCalendarEvents({ kind: "athlete", academyId: enr.academyId, athleteId }, { upcomingOnly: true })).slice(0, 3)
     : [];
+  const latestProgram = await getLatestPublishedProgram(athleteId);
 
   const initials = `${w.firstName[0] ?? ""}${w.lastName[0] ?? ""}`.toUpperCase();
 
@@ -45,6 +49,16 @@ export default async function AppHome() {
         </div>
         <ThemeToggle />
       </div>
+
+      {/* Coach published a programme → pop */}
+      {latestProgram && (
+        <ProgramPop
+          id={latestProgram.id}
+          dateLabel={fmtDate(latestProgram.date)}
+          kindLabel={programKindLabel(latestProgram.kind)}
+          coachName={latestProgram.coachName}
+        />
+      )}
 
       {/* Academy card */}
       {w.enrolledAcademy ? (

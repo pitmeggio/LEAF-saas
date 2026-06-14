@@ -68,6 +68,8 @@ const ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard/reports", label: "Reports", icon: "▦", feature: "featureFinance" },
   ] },
   { label: "Performance", items: [
+    // Training / race programmes the coach publishes to the athlete app.
+    { href: "/dashboard/programs", label: "Programmi", icon: "▤" },
     // Ski-shaped season planner — calendar of camps + race plan.
     { href: "/dashboard/calendar", label: "Season Planner", icon: "▣", sports: ["ski"] },
     // Tennis Professional surfaces — cinematic athlete view + tournament-driven planner.
@@ -114,6 +116,7 @@ const COACH_SECTIONS: NavSection[] = [
     { href: "/dashboard/groups", label: "My Groups", icon: "⬡" },
   ] },
   { label: "Performance", items: [
+    { href: "/dashboard/programs", label: "Programmi", icon: "▤" },
     { href: "/dashboard/calendar", label: "Season Planner", icon: "▣" },
   ] },
   { label: "Finance", items: [

@@ -1258,3 +1258,31 @@ model TennisSeasonPlanEntry {
 
   @@index([planId, weekStart])
 }
+
+// Training / race programme the coach sends out (replaces Marius's WhatsApp
+// Excel). The coach builds it in the OS for a group + date; on publish, the
+// athletes in that group see it in the LEAF APP with a pop. The template has
+// ~30 labelled rows that differ between training and race, so we store them as
+// a key→value JSON (`fields`, driven by lib/trainingProgram.ts) plus the
+// bib/goals lineup as JSON — no 60-column table. Scalar ids (no relations) to
+// stay additive; group/coach names resolved on read.
+model TrainingProgram {
+  id          String    @id @default(cuid())
+  academyId   String
+  coachId     String? // who published it
+  coachName   String? // denormalised — survives coach edits
+  groupId     String? // target group → its enrolled athletes receive it
+  kind        String    @default("training") // training | race
+  title       String?
+  place       String?
+  discipline  String?
+  date        DateTime // the day this programme is for
+  status      String    @default("draft") // draft | published
+  publishedAt DateTime?
+  fields      Json      @default("{}") // template row key → value
+  lineup      Json      @default("[]") // [{ bib, athleteId, name, goals }]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([academyId, groupId, status])
+}

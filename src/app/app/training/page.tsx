@@ -1,7 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireAthleteId } from "@/lib/auth";
 import { getAthleteWorkspace } from "@/lib/athleteWorkspace";
 import { getCalendarEvents } from "@/lib/calendar";
+import { getAthletePrograms } from "@/lib/programs";
+import { programKindLabel } from "@/lib/trainingProgram";
 import { prisma } from "@/lib/db";
 import { fmtDate } from "@/lib/domain";
 
@@ -16,14 +19,34 @@ export default async function AppTraining() {
   if (!w) redirect("/login");
 
   const enr = await prisma.enrollment.findFirst({ where: { athleteId }, select: { academyId: true } });
-  const events = enr
-    ? await getCalendarEvents({ kind: "athlete", academyId: enr.academyId, athleteId }, { upcomingOnly: true })
-    : [];
+  const [events, programs] = await Promise.all([
+    enr ? getCalendarEvents({ kind: "athlete", academyId: enr.academyId, athleteId }, { upcomingOnly: true }) : Promise.resolve([]),
+    getAthletePrograms(athleteId),
+  ]);
 
   return (
     <div className="px-5 pt-5">
       <h1 className="mb-1 text-xl font-bold">Allenamenti</h1>
-      <p className="mb-4 text-xs text-[var(--color-muted)]">Camp, gare e sessioni programmate dal tuo coach.</p>
+      <p className="mb-4 text-xs text-[var(--color-muted)]">Programmi e sessioni pubblicati dal tuo coach.</p>
+
+      {/* Published programmes from the coach */}
+      {programs.length > 0 && (
+        <div className="mb-5 space-y-2">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted)]">Programmi del coach</div>
+          {programs.map((p) => (
+            <Link key={p.id} href={`/app/programs/${p.id}`} className="card card-hover flex items-center gap-3 p-4">
+              <span className="text-xl" aria-hidden>{p.kind === "race" ? "🏁" : "🎿"}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{p.title || p.place || programKindLabel(p.kind)}</div>
+                <div className="text-[11px] text-[var(--color-muted)]">{fmtDate(p.date)}{p.discipline ? ` · ${p.discipline}` : ""}</div>
+              </div>
+              <span className="text-[var(--color-accent)]">→</span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      <div className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted)]">Calendario</div>
 
       {events.length === 0 ? (
         <div className="card p-6 text-center text-sm text-[var(--color-muted)]">Nessun allenamento in programma.</div>
