@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -29,6 +29,15 @@ export const metadata: Metadata = {
     title: "LEAF — Where athlete performance becomes intelligence",
     description: "Verified athlete profiles, AI performance analytics, and the academy operating system.",
   },
+  // PWA: installable on a phone, full-screen, leaf icon (apple-icon.png is
+  // auto-served by Next for iOS "Add to Home Screen").
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "LEAF", statusBarStyle: "black-translucent" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0c0f17",
+  viewportFit: "cover", // draw under the iPhone notch / safe areas (the app uses env(safe-area-inset))
 };
 
 // Inline script that runs BEFORE React hydrates. Reads the user's stored
