@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { ProgramFormButton } from "@/components/ProgramFormButton";
 import { ProgramActions } from "@/components/ProgramActions";
@@ -14,9 +15,11 @@ const editBtn = "rounded-md border border-[var(--color-border)] px-2.5 py-1 text
 
 export default async function ProgramsPage() {
   const s = await getSession();
-  const isAdmin = s?.isAdmin ?? false;
-  const coachId = isAdmin ? null : s?.coachId ?? null;
-  const academyId = s?.academyId ?? "";
+  // Coach-only tool — the academy admin doesn't publish training/race
+  // programmes, so a non-coach (e.g. pure academy_admin) is bounced out.
+  if (!s?.coachId) redirect("/dashboard");
+  const coachId = s.coachId;
+  const academyId = s.academyId ?? "";
 
   const [programs, groups] = await Promise.all([
     getProgramsForOps(coachId),

@@ -68,8 +68,9 @@ const ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard/reports", label: "Reports", icon: "▦", feature: "featureFinance" },
   ] },
   { label: "Performance", items: [
-    // Training / race programmes the coach publishes to the athlete app.
-    { href: "/dashboard/programs", label: "Programmi", icon: "▤" },
+    // Note: "Programmi" (training/race programmes) is a COACH-only tool — it
+    // lives in COACH_SECTIONS, not here. The academy admin doesn't publish
+    // sessions, so it's intentionally absent from the admin workspace.
     // Ski-shaped season planner — calendar of camps + race plan.
     { href: "/dashboard/calendar", label: "Season Planner", icon: "▣", sports: ["ski"] },
     // Tennis Professional surfaces — cinematic athlete view + tournament-driven planner.
