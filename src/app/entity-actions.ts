@@ -19,6 +19,19 @@ function revalidateAll() {
   }
 }
 
+// When packages change, the academy's PUBLIC apply page also has to refresh
+// so prospective athletes see the new pricing / new package on the form.
+// We resolve the academy slug and revalidate the public path specifically —
+// without this, package edits only show up after the next deploy or
+// background revalidation tick.
+async function revalidatePublicAcademy(academyId: string) {
+  const a = await prisma.academy.findUnique({ where: { id: academyId }, select: { slug: true } });
+  if (!a?.slug) return;
+  for (const p of [`/academy/${a.slug}`, `/academy/${a.slug}/apply`, `/academy/${a.slug}/profiles`]) {
+    revalidatePath(p);
+  }
+}
+
 // ── Coaches ──
 export async function createCoach(input: CoachInput): Promise<Result> {
   const parsed = coachInputSchema.safeParse(input);
@@ -112,6 +125,7 @@ export async function createPackage(input: PackageInput): Promise<Result> {
   // Packages are the academy's own pricing → always in its national currency.
   const p = await prisma.package.create({ data: { ...parsed.data, currency, academyId, order: count + 1 } });
   revalidateAll();
+  await revalidatePublicAcademy(academyId);
   return { ok: true, id: p.id };
 }
 
@@ -124,6 +138,7 @@ export async function updatePackage(id: string, input: PackageInput): Promise<Re
   const currency = await academyCurrency(academyId);
   await prisma.package.update({ where: { id }, data: { ...parsed.data, currency } });
   revalidateAll();
+  await revalidatePublicAcademy(academyId);
   return { ok: true };
 }
 
@@ -135,6 +150,7 @@ export async function deletePackage(id: string): Promise<Result> {
   await prisma.application.updateMany({ where: { packageId: id }, data: { packageId: null } });
   await prisma.package.delete({ where: { id } });
   revalidateAll();
+  await revalidatePublicAcademy(academyId);
   return { ok: true };
 }
 

@@ -8,6 +8,11 @@ import { getSportModule } from "@/lib/sports/registry";
 // Coach Intelligence — wraps the composer, the structured-notes list and the
 // living AI profile. Server component: reads the latest notes + profile from
 // Prisma so the page revalidate cascade keeps it fresh after every action.
+//
+// Permission model: by request, the academy_admin role (when not also a
+// coach) gets VIEW-ONLY access. Notes are coach-authored intelligence; an
+// admin who isn't field-side should not edit them. We gate via canWrite —
+// true only when the current user has a Coach record (s.coachId set).
 
 export async function CoachIntelligencePanel({
   athleteId,
@@ -15,12 +20,14 @@ export async function CoachIntelligencePanel({
   sport,
   canDeleteAuthorId,
   isAdmin,
+  canWrite,
 }: {
   athleteId: string;
   academyId: string;
   sport: string;
   canDeleteAuthorId: string | null; // current user id, for "delete own note"
   isAdmin: boolean;
+  canWrite: boolean; // true when the current user has a Coach record
 }) {
   const [athlete, notes] = await Promise.all([
     prisma.athlete.findUnique({
@@ -50,11 +57,24 @@ export async function CoachIntelligencePanel({
         <span className="text-[10px] text-[var(--color-muted)]">{notes.length} note{notes.length === 1 ? "" : "s"} on file</span>
       </div>
 
-      <CoachNoteComposer
-        athleteId={athleteId}
-        sport={sport}
-        placeholder={getSportModule(sport).coachNotes.composerPlaceholder}
-      />
+      {canWrite ? (
+        <CoachNoteComposer
+          athleteId={athleteId}
+          sport={sport}
+          placeholder={getSportModule(sport).coachNotes.composerPlaceholder}
+        />
+      ) : (
+        <div className="card flex items-start gap-3 p-4 text-xs text-[var(--color-muted)]">
+          <span aria-hidden className="mt-0.5">👁</span>
+          <div>
+            <div className="font-medium text-[var(--color-fg)]/85">View only</div>
+            <p className="mt-0.5 leading-relaxed">
+              Coach intelligence is authored by the coach on the field. Sign in as
+              the assigned coach to add or edit notes for this athlete.
+            </p>
+          </div>
+        </div>
+      )}
 
       {profile && profile.noteCount > 0 && <AthleteAiProfileCard profile={profile} />}
 
@@ -81,6 +101,7 @@ export async function CoachIntelligencePanel({
                 ownedByMe: !!canDeleteAuthorId && n.authorId === canDeleteAuthorId,
               }}
               isAdmin={isAdmin}
+              canWrite={canWrite}
             />
           ))}
         </div>
@@ -179,9 +200,10 @@ type NoteCardProps = {
     ownedByMe: boolean;
   };
   isAdmin: boolean;
+  canWrite: boolean;
 };
 
-function CoachNoteCard({ note, isAdmin }: NoteCardProps) {
+function CoachNoteCard({ note, isAdmin, canWrite }: NoteCardProps) {
   const date = new Date(note.createdAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
   const time = new Date(note.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   const isStructured = note.status === "structured" && note.summary;
@@ -202,7 +224,9 @@ function CoachNoteCard({ note, isAdmin }: NoteCardProps) {
           {note.summary && typeof note.summary.confidence === "number" && (
             <span className="text-[10px] text-[var(--color-muted)]">conf. {Math.round(note.summary.confidence * 100)}%</span>
           )}
-          {(isAdmin || note.ownedByMe) && <DeleteCoachNoteButton id={note.id} />}
+          {/* Delete only when the current user can actually author. An admin
+              who can't write notes shouldn't be able to delete them either. */}
+          {canWrite && (isAdmin || note.ownedByMe) && <DeleteCoachNoteButton id={note.id} />}
         </div>
       </header>
 

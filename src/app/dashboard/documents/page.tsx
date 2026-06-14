@@ -20,6 +20,35 @@ export default async function DocumentsPage() {
     <>
       <PageHeader title="Documents" subtitle="Missing and expired documents are detected automatically per athlete." />
       <div className="space-y-6 p-8">
+        {/* How-it-works banner — answers "what does Documents actually do?".
+            LEAF currently TRACKS document compliance (which athlete has
+            which doc, expiry windows, alerts on missing/expired) but does
+            NOT host the files. "App Documents" is the upcoming add-on
+            that adds in-app storage + signed download URLs. */}
+        <div className="card flex items-start gap-3 p-4 text-xs">
+          <span aria-hidden className="mt-0.5">▢</span>
+          <div className="flex-1">
+            <div className="font-medium text-[var(--color-fg)]/90">How Documents works today</div>
+            <p className="mt-0.5 leading-relaxed text-[var(--color-muted)]">
+              LEAF auto-detects which documents each athlete still needs (medical,
+              parental consent, FIS / FIT licence, insurance) and tracks expiry. The
+              file lives on your existing storage (Drive, Dropbox, the academy ERP);
+              LEAF stores the reference and the status.
+            </p>
+            <p className="mt-1.5 leading-relaxed text-[var(--color-muted)]">
+              <span className="font-medium" style={{ color: "var(--color-accent)" }}>App Documents</span> — in-app upload + signed-link sharing — ships as a paid add-on next iteration.
+            </p>
+          </div>
+          <button
+            type="button"
+            disabled
+            title="App Documents add-on — coming next iteration"
+            className="cursor-not-allowed rounded-lg border border-dashed border-[var(--color-border)] px-3 py-1.5 text-xs font-medium text-[var(--color-muted)]/70"
+          >
+            + Upload file · coming
+          </button>
+        </div>
+
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <StatCard label="Total documents" value={String(docs.length)} />
           <StatCard label="Verified" value={String(verified)} accent />

@@ -253,7 +253,9 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
             <TennisMatchesPanel athleteId={a.id} academyId={s.academyId} />
           )}
 
-          {/* Coach Intelligence — adaptive notes + living AI profile */}
+          {/* Coach Intelligence — adaptive notes + living AI profile.
+              Write access gated on s.coachId by request: admin-only users
+              (no Coach record) see the panel in view-only mode. */}
           {s?.academyId && (
             <CoachIntelligencePanel
               athleteId={a.id}
@@ -261,6 +263,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
               sport={m.group?.sport ?? a.sport ?? "ski"}
               canDeleteAuthorId={s.userId ?? null}
               isAdmin={s.isAdmin ?? false}
+              canWrite={Boolean(s.coachId)}
             />
           )}
 
