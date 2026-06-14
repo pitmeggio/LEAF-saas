@@ -565,6 +565,8 @@ export const budgetBenchmarksSchema = z.object({
 });
 export type BudgetBenchmarksInput = z.infer<typeof budgetBenchmarksSchema>;
 
+const optStr = (max: number) => z.string().trim().max(max).optional().transform((v) => (v ? v : undefined));
+
 export const expenseInputSchema = z.object({
   title: z.string().trim().min(1, "Title is required").max(120),
   amount: z.number().int().min(1, "Amount must be positive"),
@@ -577,6 +579,17 @@ export const expenseInputSchema = z.object({
   notes: optText(1000),
   expenseDate: z.string().trim().optional().transform((v) => (v ? v : undefined)),
   receiptUrl: optionalUrl,
+  // ── Accounting layer ──
+  kind: z.enum(["expense", "mileage"]).optional().transform((v) => v ?? "expense"),
+  supplier: optStr(120),
+  accountCode: optStr(20),
+  vatRate: z.coerce.number().int().min(0).max(99).nullable().optional().transform((v) => (v == null ? undefined : v)),
+  paymentMethod: z.enum(["private_outlay", "company_card", "cash", "bank_transfer"]).optional(),
+  // Mileage — when kind = "mileage", amount is recomputed server-side from these.
+  distanceKm: z.coerce.number().int().min(0).max(100000).nullable().optional().transform((v) => (v == null ? undefined : v)),
+  ratePerKmCents: z.coerce.number().int().min(0).max(100000).nullable().optional().transform((v) => (v == null ? undefined : v)),
+  fromPlace: optStr(120),
+  toPlace: optStr(120),
 });
 export type ExpenseInput = z.infer<typeof expenseInputSchema>;
 

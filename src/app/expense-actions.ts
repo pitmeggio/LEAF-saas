@@ -3,7 +3,29 @@
 import { prisma } from "@/lib/db";
 import { getSession, requireAcademyId, type Session } from "@/lib/auth";
 import { expenseInputSchema, firstError, type ExpenseInput } from "@/lib/validation";
+import { mileageAmount } from "@/lib/accounting";
 import { revalidatePath } from "next/cache";
+
+// Accounting fields shared by create + update. For mileage, the gross amount is
+// computed from distance × rate (never trusted from the client) and VAT is 0.
+function accountingData(d: ExpenseInput) {
+  const isMileage = d.kind === "mileage";
+  const amount = isMileage && d.distanceKm != null && d.ratePerKmCents != null
+    ? mileageAmount(d.distanceKm, d.ratePerKmCents)
+    : d.amount;
+  return {
+    amount: Math.max(amount, isMileage ? 0 : 1),
+    kind: d.kind,
+    supplier: d.supplier ?? null,
+    accountCode: d.accountCode ?? null,
+    vatRate: isMileage ? 0 : (d.vatRate ?? null),
+    paymentMethod: d.paymentMethod ?? null,
+    distanceKm: isMileage ? (d.distanceKm ?? null) : null,
+    ratePerKmCents: isMileage ? (d.ratePerKmCents ?? null) : null,
+    fromPlace: isMileage ? (d.fromPlace ?? null) : null,
+    toPlace: isMileage ? (d.toPlace ?? null) : null,
+  };
+}
 
 export type Result = { ok: boolean; error?: string; warning?: string };
 
@@ -51,8 +73,10 @@ export async function createExpense(input: ExpenseInput & { coachId?: string }):
   if (!s) return { ok: false, error: "Not signed in" };
   const academyId = await requireAcademyId();
 
-  const coachId = s.coachId ?? input.coachId;
-  if (!coachId) return { ok: false, error: "No coach linked to this account" };
+  // Coaches file against their own coachId; an admin without a coach record
+  // files an "Academy" expense (coachId null) — same as a group budget line.
+  const coachId = s.coachId ?? input.coachId ?? null;
+  if (!coachId && !s.isAdmin) return { ok: false, error: "No coach linked to this account" };
 
   // A coach can only create against a group they own.
   if (parsed.data.groupId && !s.isAdmin) {
@@ -63,10 +87,11 @@ export async function createExpense(input: ExpenseInput & { coachId?: string }):
   const d = parsed.data;
   const exp = await prisma.expense.create({
     data: {
-      academyId, coachId, groupId: d.groupId, title: d.title, amount: d.amount, currency: d.currency,
+      academyId, coachId, groupId: d.groupId, title: d.title, currency: d.currency,
       category: d.category, notes: d.notes, status: "draft",
       expenseDate: d.expenseDate ? new Date(d.expenseDate) : null,
       receiptUrl: d.receiptUrl ?? null,
+      ...accountingData(d),
     },
   });
   await logEvent(exp.id, "created", s, { to: "draft" });
@@ -118,9 +143,10 @@ export async function updateExpense(id: string, input: ExpenseInput): Promise<Re
   await prisma.expense.update({
     where: { id },
     data: {
-      title: d.title, amount: d.amount, currency: d.currency, category: d.category, groupId: d.groupId, notes: d.notes,
+      title: d.title, currency: d.currency, category: d.category, groupId: d.groupId, notes: d.notes,
       expenseDate: d.expenseDate ? new Date(d.expenseDate) : exp.expenseDate,
       receiptUrl: d.receiptUrl ?? exp.receiptUrl,
+      ...accountingData(d),
     },
   });
   await logEvent(id, "edited", s);

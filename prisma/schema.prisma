@@ -402,6 +402,20 @@ model Expense {
   notes       String?
   expenseDate DateTime? // when the cost was incurred (defaults to createdAt if unset)
   receiptUrl  String? // link to the uploaded receipt
+  // ── Accounting layer (PowerOffice replacement) ──
+  // amount is the GROSS (VAT-inclusive) cost in major units. net/VAT are derived
+  // from vatRate at read/export time (see lib/accounting.splitVat).
+  kind          String  @default("expense") // expense | mileage
+  supplier      String? // leverandør / vendor name
+  accountCode   String? // kontonummer (chart-of-accounts code)
+  vatRate       Int? // MVA / IVA percent: 25 | 15 | 12 | 0 | 22 | 10 | 4
+  paymentMethod String? // private_outlay | company_card | cash | bank_transfer
+  // Mileage (kjøregodtgjørelse) — set when kind = "mileage". amount is computed
+  // server-side as round(distanceKm × ratePerKmCents / 100).
+  distanceKm     Int?
+  ratePerKmCents Int? // rate per km in minor units (350 = 3.50 / km)
+  fromPlace      String?
+  toPlace        String?
   approvedById String? // user (academy admin) who approved/rejected
   approvedBy   User?    @relation("ExpenseApprover", fields: [approvedById], references: [id])
   approvedAt   DateTime?

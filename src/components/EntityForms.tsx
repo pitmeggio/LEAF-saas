@@ -16,6 +16,10 @@ import { createExpense, updateExpense, addGroupExpense } from "@/app/expense-act
 import type { CoachInput, GroupInput, PackageInput, ManualAthleteInput, ExpenseInput } from "@/lib/validation";
 import { COUNTRY, DISCIPLINE_LABEL, fmtMoney } from "@/lib/domain";
 import { buildPaymentSchedule, REQUIRED_DOC_TYPES, DOC_LABEL } from "@/lib/enrollmentLogic";
+import {
+  ACCOUNT_CODES, PAYMENT_METHODS, vatRatesForCountry, vatLabel, categoryDefaults,
+  defaultMileageRateCents, mileageAmount, splitVat,
+} from "@/lib/accounting";
 
 type Opt = { id: string; name: string };
 
@@ -420,29 +424,99 @@ const EXPENSE_CATEGORIES: { value: string; label: string }[] = [
   { value: "sport_ops", label: "Sport / operations" },
   { value: "other", label: "Other" },
 ];
-export function ExpenseForm({ groups, initial, currency = "EUR" }: { groups: Opt[]; initial?: { id: string; title: string; amount: number; category: string; groupId: string | null; notes: string | null; currency?: string; expenseDate?: string | null; receiptUrl?: string | null }; currency?: string }) {
-  const [f, set] = useState({ title: initial?.title ?? "", amount: initial?.amount ?? 0, category: initial?.category ?? "hotel", groupId: initial?.groupId ?? "", notes: initial?.notes ?? "", currency: initial?.currency ?? currency, expenseDate: initial?.expenseDate ?? "", receiptUrl: initial?.receiptUrl ?? "" });
+export function ExpenseForm({ groups, initial, currency = "EUR", country }: { groups: Opt[]; initial?: { id: string; title: string; amount: number; category: string; groupId: string | null; notes: string | null; currency?: string; expenseDate?: string | null; receiptUrl?: string | null; kind?: string | null; supplier?: string | null; accountCode?: string | null; vatRate?: number | null; paymentMethod?: string | null; distanceKm?: number | null; ratePerKmCents?: number | null; fromPlace?: string | null; toPlace?: string | null }; currency?: string; country?: string | null }) {
+  const cat0 = initial?.category ?? "hotel";
+  const def0 = categoryDefaults(cat0, country);
+  const [f, set] = useState({
+    kind: initial?.kind ?? "expense",
+    title: initial?.title ?? "", amount: initial?.amount ?? 0, category: cat0,
+    groupId: initial?.groupId ?? "", notes: initial?.notes ?? "", currency: initial?.currency ?? currency,
+    expenseDate: initial?.expenseDate ?? "", receiptUrl: initial?.receiptUrl ?? "",
+    supplier: initial?.supplier ?? "", accountCode: initial?.accountCode ?? def0.account,
+    vatRate: initial?.vatRate ?? def0.vat, paymentMethod: initial?.paymentMethod ?? "private_outlay",
+    distanceKm: initial?.distanceKm ?? 0, ratePerKmCents: initial?.ratePerKmCents ?? defaultMileageRateCents(country),
+    fromPlace: initial?.fromPlace ?? "", toPlace: initial?.toPlace ?? "",
+  });
   const { pending, error, submit } = useSubmit();
   const upd = (k: string, v: unknown) => set((s) => ({ ...s, [k]: v }));
-  const payload = (): ExpenseInput => ({ title: f.title, amount: Number(f.amount) || 0, category: f.category, groupId: f.groupId || undefined, notes: f.notes || undefined, currency: f.currency, expenseDate: f.expenseDate || undefined, receiptUrl: f.receiptUrl || undefined }) as unknown as ExpenseInput;
-  // Currency options always include the academy's own currency, even if not in the preset list.
-  const currencyOptions = EXPENSE_CURRENCIES.includes(currency) ? EXPENSE_CURRENCIES : [currency, ...EXPENSE_CURRENCIES];
+  // Picking a category pre-fills the accounting account + VAT (PowerOffice-style).
+  const onCategory = (cat: string) => { const d = categoryDefaults(cat, country); set((s) => ({ ...s, category: cat, accountCode: d.account, vatRate: d.vat })); };
+
+  const isMileage = f.kind === "mileage";
+  const mileageGross = mileageAmount(Number(f.distanceKm) || 0, Number(f.ratePerKmCents) || 0);
+  const gross = isMileage ? mileageGross : (Number(f.amount) || 0);
+  const { net, vat } = splitVat(gross, isMileage ? 0 : Number(f.vatRate));
+  const vatRates = vatRatesForCountry(country);
+  const vlabel = vatLabel(country);
+
+  const payload = (): ExpenseInput => ({
+    kind: f.kind, title: f.title, amount: gross, category: isMileage ? "transport" : f.category,
+    groupId: f.groupId || undefined, notes: f.notes || undefined, currency: f.currency,
+    expenseDate: f.expenseDate || undefined, receiptUrl: f.receiptUrl || undefined,
+    supplier: f.supplier || undefined, accountCode: f.accountCode || undefined,
+    vatRate: isMileage ? 0 : Number(f.vatRate), paymentMethod: f.paymentMethod || undefined,
+    distanceKm: isMileage ? Number(f.distanceKm) || 0 : undefined,
+    ratePerKmCents: isMileage ? Number(f.ratePerKmCents) || 0 : undefined,
+    fromPlace: isMileage ? f.fromPlace || undefined : undefined,
+    toPlace: isMileage ? f.toPlace || undefined : undefined,
+  }) as unknown as ExpenseInput;
+
+  const currencyOptions = EXPENSE_CURRENCIES.includes(f.currency) ? EXPENSE_CURRENCIES : [f.currency, ...EXPENSE_CURRENCIES];
+  const tab = (k: string, label: string) => (
+    <button type="button" onClick={() => upd("kind", k)} className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${f.kind === k ? "bg-[var(--color-accent)] text-[#0a0c10]" : "text-[var(--color-muted)] hover:text-[var(--color-fg)]"}`}>{label}</button>
+  );
+
   return (
     <form onSubmit={(e) => { e.preventDefault(); submit(() => initial ? updateExpense(initial.id, payload()) : createExpense(payload())); }} className="space-y-3">
-      <Field label="Title *"><input className={inp} value={f.title} onChange={(e) => upd("title", e.target.value)} required /></Field>
-      <div className="grid grid-cols-3 gap-3">
-        <Field label="Amount *"><input type="number" min={1} className={inp} value={f.amount} onChange={(e) => upd("amount", e.target.value)} required /></Field>
-        <Field label="Currency"><select className={inp} value={f.currency} onChange={(e) => upd("currency", e.target.value)}>{currencyOptions.map((c) => <option key={c} value={c}>{c}</option>)}</select></Field>
-        <Field label="Category"><select className={inp} value={f.category} onChange={(e) => upd("category", e.target.value)}>{EXPENSE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></Field>
+      <div className="flex gap-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-1">
+        {tab("expense", "💳 Expense")}{tab("mileage", "🚗 Mileage")}
       </div>
+
+      {isMileage ? (
+        <>
+          <Field label="Purpose *"><input className={inp} value={f.title} placeholder="e.g. Drive to Hafjell race" onChange={(e) => upd("title", e.target.value)} required /></Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="From"><input className={inp} value={f.fromPlace} placeholder="Trysil" onChange={(e) => upd("fromPlace", e.target.value)} /></Field>
+            <Field label="To"><input className={inp} value={f.toPlace} placeholder="Hafjell" onChange={(e) => upd("toPlace", e.target.value)} /></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Distance (km) *"><input type="number" min={1} className={inp} value={f.distanceKm} onChange={(e) => upd("distanceKm", e.target.value)} required /></Field>
+            <Field label={`Rate (${f.currency}/km)`}><input type="number" min={0} step="0.01" className={inp} value={(Number(f.ratePerKmCents) / 100).toString()} onChange={(e) => upd("ratePerKmCents", Math.round((Number(e.target.value) || 0) * 100))} /></Field>
+          </div>
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm">
+            <span className="text-[var(--color-muted)]">Reimbursement</span> · <span className="num font-semibold">{f.distanceKm || 0} km × {(Number(f.ratePerKmCents) / 100).toFixed(2)} = {fmtMoney(mileageGross, f.currency)}</span> <span className="text-[10px] text-[var(--color-muted)]">(VAT-free)</span>
+          </div>
+        </>
+      ) : (
+        <>
+          <Field label="Title *"><input className={inp} value={f.title} onChange={(e) => upd("title", e.target.value)} required /></Field>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Gross amount *"><input type="number" min={1} className={inp} value={f.amount} onChange={(e) => upd("amount", e.target.value)} required /></Field>
+            <Field label="Currency"><select className={inp} value={f.currency} onChange={(e) => upd("currency", e.target.value)}>{currencyOptions.map((c) => <option key={c} value={c}>{c}</option>)}</select></Field>
+            <Field label="Category"><select className={inp} value={f.category} onChange={(e) => onCategory(e.target.value)}>{EXPENSE_CATEGORIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Supplier"><input className={inp} value={f.supplier} placeholder="Vendor name" onChange={(e) => upd("supplier", e.target.value)} /></Field>
+            <Field label="Payment"><select className={inp} value={f.paymentMethod} onChange={(e) => upd("paymentMethod", e.target.value)}>{PAYMENT_METHODS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}</select></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Account (kontonummer)"><select className={inp} value={f.accountCode} onChange={(e) => upd("accountCode", e.target.value)}>{ACCOUNT_CODES.map((a) => <option key={a.code} value={a.code}>{a.code} · {a.label}</option>)}</select></Field>
+            <Field label={`${vlabel} rate`}><select className={inp} value={String(f.vatRate)} onChange={(e) => upd("vatRate", Number(e.target.value))}>{vatRates.map((r) => <option key={r} value={r}>{r}%</option>)}</select></Field>
+          </div>
+          <div className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-xs text-[var(--color-muted)]">
+            Net <span className="num font-semibold text-[var(--color-fg)]">{fmtMoney(net, f.currency)}</span> · {vlabel} ({Number(f.vatRate)}%) <span className="num font-semibold text-[var(--color-fg)]">{fmtMoney(vat, f.currency)}</span> · Gross <span className="num font-semibold text-[var(--color-fg)]">{fmtMoney(gross, f.currency)}</span>
+          </div>
+        </>
+      )}
+
       <div className="grid grid-cols-2 gap-3">
         <Field label="Date"><input type="date" className={inp} value={f.expenseDate} onChange={(e) => upd("expenseDate", e.target.value)} /></Field>
         <Field label="Group"><select className={inp} value={f.groupId} onChange={(e) => upd("groupId", e.target.value)}><option value="">No group</option>{groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></Field>
       </div>
-      <Field label="Receipt link (optional)"><input type="url" className={inp} value={f.receiptUrl} placeholder="https://… external link, if any" onChange={(e) => upd("receiptUrl", e.target.value)} /></Field>
+      {!isMileage && <Field label="Receipt link (optional)"><input type="url" className={inp} value={f.receiptUrl} placeholder="https://… external link, if any" onChange={(e) => upd("receiptUrl", e.target.value)} /></Field>}
       <Field label="Description"><textarea className={`${inp} resize-none`} rows={2} value={f.notes} onChange={(e) => upd("notes", e.target.value)} /></Field>
       <p className="rounded-lg border border-dashed border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-[11px] leading-relaxed text-[var(--color-muted)]">
-        📷 Save the expense, then snap or upload the <span className="font-medium">receipt photo</span> from the Receipts column — it&apos;s stored in LEAF (no PowerOffice needed).
+        📷 Save it, then snap or upload the <span className="font-medium">receipt photo</span> from the Receipts column — stored in LEAF, exported to your accountant. No PowerOffice needed.
       </p>
       <Footer pending={pending} error={error} />
     </form>

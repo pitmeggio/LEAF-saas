@@ -3,11 +3,13 @@ import { StatCard } from "@/components/StatCard";
 import { Modal, ExpenseForm } from "@/components/EntityForms";
 import { ExpenseCoachActions, ExpenseAdminActions } from "@/components/EntityActions";
 import { ExpenseReceipts } from "@/components/ExpenseReceipts";
+import { ExpenseExportBar } from "@/components/ExpenseExportBar";
 import { FinanceSubNav } from "@/components/FinanceSubNav";
 import { getExpenses, getAcademyCurrency } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { fmtMoney, fmtDate } from "@/lib/domain";
+import { splitVat, vatLabel } from "@/lib/accounting";
 
 export const dynamic = "force-dynamic";
 
@@ -18,22 +20,39 @@ export default async function ExpensesPage() {
   const s = await getSession();
   const isAdmin = s?.isAdmin ?? false;
   const coachId = isAdmin ? null : s?.coachId ?? null;
-  const [data, currency] = await Promise.all([getExpenses(coachId), getAcademyCurrency()]);
+  const academyId = s?.academyId ?? "";
+  const [data, currency, academy] = await Promise.all([
+    getExpenses(coachId),
+    getAcademyCurrency(),
+    prisma.academy.findUnique({ where: { id: academyId }, select: { country: true } }),
+  ]);
+  const country = academy?.country ?? null;
 
   // Coach can only file against their own groups; admin sees all groups.
-  const academyId = s?.academyId ?? "";
   const groups = await prisma.group.findMany({
     where: { academyId, ...(coachId ? { coachId } : {}) },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+  // Coaches file against their own coachId; admins can file too (Academy
+  // expense / mileage on behalf of the academy — Marius runs both roles).
+  const canFile = isAdmin || Boolean(s?.coachId);
+
+  // Accounting roll-up across all visible expenses — net / VAT / gross. Drives
+  // the admin accounting summary and proves the books reconcile before export.
+  const vlabel = vatLabel(country);
+  let totNet = 0, totVat = 0, totGross = 0;
+  for (const e of data.expenses) {
+    const { net, vat } = splitVat(e.amount, e.vatRate);
+    totNet += net; totVat += vat; totGross += e.amount;
+  }
 
   return (
     <>
       <PageHeader
         title={isAdmin ? "Expenses & Approvals" : "My Expenses"}
         subtitle={isAdmin ? "Approve, reject and reimburse coach expenses. The approvals queue lives here." : "File and track your expense claims."}
-        right={!isAdmin ? <Modal label="+ New expense" title="New expense" className={newBtn}><ExpenseForm groups={groups} currency={currency} /></Modal> : undefined}
+        right={canFile ? <Modal label="+ New expense" title="New expense" className={newBtn}><ExpenseForm groups={groups} currency={currency} country={country} /></Modal> : undefined}
       />
       {isAdmin && <FinanceSubNav active="expenses" />}
       <div className="space-y-6 p-8">
@@ -57,6 +76,20 @@ export default async function ExpensesPage() {
                 all reconciled with the group budgets in Finance. No double-entry in another tool.
               </p>
             </div>
+          </div>
+        )}
+
+        {/* Accounting summary + accountant export — admin only. Net / VAT /
+            gross roll-up (the books) plus the CSV + printable-report export
+            that lets the academy hand everything to the regnskapsfører. */}
+        {isAdmin && (
+          <div className="card flex flex-wrap items-center justify-between gap-4 p-4">
+            <div className="flex flex-wrap gap-5">
+              <div><div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Net</div><div className="num text-lg font-bold">{fmtMoney(totNet, currency)}</div></div>
+              <div><div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">{vlabel}</div><div className="num text-lg font-bold">{fmtMoney(totVat, currency)}</div></div>
+              <div><div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Gross</div><div className="num text-lg font-bold">{fmtMoney(totGross, currency)}</div></div>
+            </div>
+            <ExpenseExportBar />
           </div>
         )}
 
@@ -87,9 +120,15 @@ export default async function ExpensesPage() {
               {data.expenses.map((e) => (
                 <tr key={e.id} className="border-t border-[var(--color-border)] hover:bg-[var(--color-surface-2)]">
                   <td className="px-5 py-3">
-                    <div className="font-medium">{e.title}</div>
+                    <div className="flex items-center gap-1.5 font-medium">
+                      {e.kind === "mileage" && <span className="rounded bg-[var(--color-surface-2)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--color-muted)]">🚗 km</span>}
+                      {e.title}
+                    </div>
                     <div className="text-xs text-[var(--color-muted)] capitalize">
-                      {e.category.replace(/_/g, " ")} · {fmtDate(e.expenseDate ?? e.createdAt)}
+                      {e.kind === "mileage"
+                        ? <>{e.distanceKm ?? 0} km · {e.fromPlace ?? "—"}→{e.toPlace ?? "—"}</>
+                        : <>{e.supplier ? `${e.supplier} · ` : ""}{e.category.replace(/_/g, " ")}{e.accountCode ? ` · ${e.accountCode}` : ""}{e.vatRate != null ? ` · ${vlabel} ${e.vatRate}%` : ""}</>}
+                      {" · "}{fmtDate(e.expenseDate ?? e.createdAt)}
                       {e.receiptUrl && <> · <a href={e.receiptUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--color-accent)] hover:underline">receipt ↗</a></>}
                     </div>
                     {e.approvedBy && (e.status === "approved" || e.status === "reimbursed" || e.status === "rejected") && (
