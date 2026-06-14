@@ -48,7 +48,7 @@ export type Session = {
 // platform portal, everyone else the academy dashboard.
 export function homeForRole(role: string): string {
   if (role === ROLE.SUPER_ADMIN) return "/super-admin";
-  if (role === ROLE.ATHLETE) return "/me";
+  if (role === ROLE.ATHLETE) return "/app"; // LEAF APP — the athlete's mobile home
   return "/dashboard";
 }
 
