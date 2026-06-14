@@ -36,6 +36,29 @@ export default async function ExpensesPage() {
       />
       {isAdmin && <FinanceSubNav active="expenses" />}
       <div className="space-y-6 p-8">
+        {/* "Replaces Power Office" banner — by request. Marius wanted the
+            surface to communicate the positioning so the team understands
+            this IS the gestionale-costi flow now. Admins see it; coaches
+            don't (they only file, they don't manage). */}
+        {isAdmin && (
+          <div className="card flex items-start gap-3 p-4">
+            <span aria-hidden className="mt-0.5 text-lg">€</span>
+            <div className="flex-1">
+              <div className="text-sm font-semibold">
+                Your operativo cost ledger
+                <span className="ml-2 rounded-full bg-[var(--color-accent)]/15 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider" style={{ color: "var(--color-accent)" }}>
+                  Replaces Power Office
+                </span>
+              </div>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--color-muted)]">
+                Every coach receipt, every team expense, every reimbursement. Categorised,
+                approval queue, audit trail and reimbursement state — all reconciled
+                with the group budgets in Finance. No double-entry in another tool.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <StatCard label="Pending approval" value={String(data.pendingCount)} hint={fmtMoney(data.submittedTotal, currency)} danger={data.pendingCount > 0} />
           <StatCard label="Approved" value={fmtMoney(data.approvedTotal, currency)} accent />

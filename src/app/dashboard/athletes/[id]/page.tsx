@@ -178,10 +178,43 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                 )}
               </div>
             )}
-            <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-              <Mini label="FIS points" value={fmtPoints(a.fisPoints)} />
+            {/* Per-discipline FIS points strip — by request. Coaches plan
+                training around per-discipline scores (an athlete with great
+                GS but rusty SL needs targeted SL load), not the aggregate.
+                We pull the latest snapshot per discipline from fisTrends;
+                disciplines the athlete never raced show "—". */}
+            {a.sport === "ski" && (
+              <div className="mt-4 grid grid-cols-4 gap-3 text-center">
+                {[
+                  { key: "slalom", label: "SL" },
+                  { key: "giant_slalom", label: "GS" },
+                  { key: "super_g", label: "SG" },
+                  { key: "downhill", label: "DH" },
+                ].map((d) => {
+                  const trend = fisTrends.find((t) => t.discipline === d.key);
+                  return (
+                    <Mini
+                      key={d.key}
+                      label={d.label}
+                      value={trend ? fmtPoints(trend.current) : "—"}
+                      sub={
+                        trend && trend.trend !== "insufficient_data"
+                          ? trend.trend === "improving"
+                            ? "↗ improving"
+                            : trend.trend === "declining"
+                              ? "↘ declining"
+                              : "= stable"
+                          : undefined
+                      }
+                    />
+                  );
+                })}
+              </div>
+            )}
+            <div className="mt-3 grid grid-cols-3 gap-3 text-center">
               <Mini label="World rank" value={a.worldRank != null ? String(a.worldRank) : "—"} />
               <Mini label="Team avg" value={fmtPoints(m.teamAvg)} sub={a.fisPoints != null && m.teamAvg != null ? (a.fisPoints <= m.teamAvg ? "above avg" : "below avg") : undefined} />
+              <Mini label="Primary" value={a.discipline ? a.discipline.toUpperCase().slice(0, 2) : "—"} />
             </div>
           </div>
 
