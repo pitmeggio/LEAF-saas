@@ -30,6 +30,12 @@ export async function CoachDashboard() {
   const occupancy = totalCap ? Math.round((inGroups / totalCap) * 100) : 0;
   const remainingBudget = groups.reduce((a, g) => a + g.remainingBudget, 0);
 
+  // My-expenses rollup — mirrors the admin expense strip at coach altitude so
+  // the coach sees the same money picture for their own claims (awaiting
+  // approval vs owed back to them).
+  const expReimbursable = exp.approvedTotal - exp.reimbursedTotal; // approved, not yet paid back
+  const expDraftCount = exp.expenses.filter((e) => e.status === "draft").length;
+
   const nameOf = (m: { athlete: { firstName: string; lastName: string } }) => `${m.athlete.firstName} ${m.athlete.lastName}`;
   const briefing = deriveCoachSummary({
     athleteCount: members.length,
@@ -176,6 +182,32 @@ export async function CoachDashboard() {
           <StatCard label="Group occupancy" value={`${occupancy}%`} hint={`${inGroups}/${totalCap}`} href="/dashboard/groups" />
           <StatCard label="Budget remaining" value={fmtMoney(remainingBudget, currency)} danger={remainingBudget < 0} href="/dashboard/groups" />
           <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} waiting`} danger={inbox.unreadTotal > 0} href="/dashboard/inbox" />
+        </div>
+
+        {/* My expenses — coach view of their own claims. Mirrors the admin
+            expense KPIs so the coach tracks what's awaiting approval and what
+            the academy still owes them, with a one-click file/mileage entry. */}
+        <div className="card flex flex-wrap items-center justify-between gap-4 p-5">
+          <div className="flex flex-wrap gap-6">
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Awaiting approval</div>
+              <div className="num text-lg font-bold">{fmtMoney(exp.submittedTotal, currency)}</div>
+              <div className="text-[10px] text-[var(--color-muted)]">{exp.pendingCount} claim{exp.pendingCount === 1 ? "" : "s"}{expDraftCount > 0 ? ` · ${expDraftCount} draft` : ""}</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Owed to me</div>
+              <div className="num text-lg font-bold" style={{ color: expReimbursable > 0 ? "#f59e0b" : undefined }}>{fmtMoney(expReimbursable, currency)}</div>
+              <div className="text-[10px] text-[var(--color-muted)]">approved, not reimbursed</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Reimbursed</div>
+              <div className="num text-lg font-bold">{fmtMoney(exp.reimbursedTotal, currency)}</div>
+              <div className="text-[10px] text-[var(--color-muted)]">paid back</div>
+            </div>
+          </div>
+          <Link href="/dashboard/expenses" className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]">
+            📷 File expense / mileage →
+          </Link>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">

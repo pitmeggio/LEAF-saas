@@ -79,6 +79,19 @@ export default async function ExpensesPage() {
           </div>
         )}
 
+        {/* Coach-facing hint — mirrors the admin positioning at coach altitude:
+            file a cost or a mileage trip, attach the receipt photo, submit. */}
+        {!isAdmin && (
+          <div className="card flex items-start gap-3 p-4 text-xs">
+            <span aria-hidden className="mt-0.5 text-base">📷</span>
+            <p className="leading-relaxed text-[var(--color-muted)]">
+              File a cost or a <span className="font-medium">mileage</span> trip, snap a photo of the
+              receipt from the Receipts column, then <span className="font-medium">Submit</span> — the academy
+              approves and reimburses you here. No PowerOffice, no paper.
+            </p>
+          </div>
+        )}
+
         {/* Accounting summary + accountant export — admin only. Net / VAT /
             gross roll-up (the books) plus the CSV + printable-report export
             that lets the academy hand everything to the regnskapsfører. */}

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
-import { requireAcademyId } from "@/lib/auth";
+import { getSession, requireAcademyId } from "@/lib/auth";
 import { ALL_DOC_TYPES } from "@/lib/enrollmentLogic";
 
 // In-app document upload ("App Documents"). Stores the file bytes in Postgres
@@ -24,6 +24,8 @@ const EXT_MIME: Record<string, string> = {
 const ALLOWED_MIME = new Set<string>(Object.values(EXT_MIME));
 
 export async function POST(request: Request) {
+  const s = await getSession();
+  if (!s) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   let academyId: string;
   try {
     academyId = await requireAcademyId();
@@ -57,9 +59,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Only PDF, Word and Excel files are allowed" }, { status: 400 });
   }
 
-  // Tenant scoping: the enrollment must belong to this academy.
-  const enrollment = await prisma.enrollment.findFirst({ where: { id: enrollmentId, academyId }, select: { id: true } });
+  // Tenant + role scoping: the enrollment must belong to this academy, and a
+  // coach (non-admin) may only upload for their OWN athletes — mirrors the
+  // expense-receipt route so both upload paths enforce the same ownership rule.
+  const enrollment = await prisma.enrollment.findFirst({ where: { id: enrollmentId, academyId }, select: { id: true, coachId: true } });
   if (!enrollment) return NextResponse.json({ ok: false, error: "Athlete not found" }, { status: 404 });
+  if (!s.isAdmin && enrollment.coachId !== s.coachId) {
+    return NextResponse.json({ ok: false, error: "You can only upload documents for your own athletes" }, { status: 403 });
+  }
 
   const bytes = Buffer.from(await file.arrayBuffer());
   const data = {
