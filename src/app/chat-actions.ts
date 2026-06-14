@@ -100,6 +100,85 @@ export async function markConversationRead(conversationId: string): Promise<Resu
   return { ok: true };
 }
 
+// Compose a brand-new conversation from the staff Inbox — by request.
+// Until now staff could only reply to existing threads (apply → conversation
+// auto-created). Marius asked for the proactive direction too: pick an
+// athlete or application, write subject + body, send. The conversation is
+// created with an "athlete" or "application" type depending on which
+// target we got.
+export async function composeNewConversation(input: {
+  targetType: "athlete" | "application";
+  targetId: string;
+  subject: string;
+  body: string;
+}): Promise<Result & { conversationId?: string }> {
+  const parsedBody = chatMessageSchema.safeParse({ conversationId: "placeholder", body: input.body });
+  if (!parsedBody.success) return { ok: false, error: firstError(parsedBody.error) };
+
+  const subject = (input.subject ?? "").trim();
+  if (!subject) return { ok: false, error: "Subject is required." };
+  if (subject.length > 200) return { ok: false, error: "Subject too long (max 200)." };
+
+  const s = await getSession();
+  if (!s) return { ok: false, error: "Not authorised." };
+  const academyId = await requireAcademyId();
+
+  // Resolve target → athlete/enrollment/application context.
+  let athleteId: string | null = null;
+  let enrollmentId: string | null = null;
+  let applicationId: string | null = null;
+  let convType: "athlete" | "application" = input.targetType;
+
+  if (input.targetType === "athlete") {
+    // Look up the athlete + their primary enrollment in this academy.
+    const enrollment = await prisma.enrollment.findFirst({
+      where: { academyId, athleteId: input.targetId },
+      select: { id: true, athleteId: true },
+      orderBy: { createdAt: "desc" },
+    });
+    if (!enrollment) return { ok: false, error: "Athlete not enrolled in this academy." };
+    athleteId = enrollment.athleteId;
+    enrollmentId = enrollment.id;
+  } else {
+    const app = await prisma.application.findFirst({
+      where: { id: input.targetId, academyId },
+      select: { id: true, athleteId: true },
+    });
+    if (!app) return { ok: false, error: "Application not found." };
+    applicationId = app.id;
+    athleteId = app.athleteId;
+  }
+
+  const conv = await prisma.conversation.create({
+    data: {
+      academyId,
+      type: convType,
+      subject,
+      status: "open",
+      athleteId,
+      enrollmentId,
+      applicationId,
+      assignedToUserId: s.userId,
+      lastMessageAt: new Date(),
+      lastMessagePreview: preview(parsedBody.data.body),
+      lastReadByStaffAt: new Date(),
+    },
+  });
+  await prisma.message.create({
+    data: {
+      conversationId: conv.id,
+      senderSide: "staff",
+      senderRole: s.isAdmin ? "admin" : "coach",
+      senderName: s.name,
+      senderUserId: s.userId,
+      body: parsedBody.data.body,
+    },
+  });
+
+  revalidateChat(conv.id);
+  return { ok: true, conversationId: conv.id };
+}
+
 // Operational reminder posted into the thread (connects chat to docs/payments).
 export async function postReminder(conversationId: string, kind: "missing_documents" | "payment_overdue"): Promise<Result> {
   const { conv } = await staffCanAccess(conversationId);

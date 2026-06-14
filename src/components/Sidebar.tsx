@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { signOut } from "@/app/auth-actions";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { LeafMark } from "@/components/LeafMark";
 import { SeasonSelector } from "@/components/SeasonSelector";
 import { initials } from "@/lib/domain";
@@ -303,6 +304,9 @@ export function Sidebar({ user, features, season, sport, tier }: {
               ⎋
             </button>
           </form>
+        </div>
+        <div className="mt-2 flex justify-center">
+          <ThemeToggle />
         </div>
       </div>
     </aside>

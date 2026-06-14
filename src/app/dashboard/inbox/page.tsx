@@ -2,19 +2,57 @@ import Link from "next/link";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard, Dot } from "@/components/StatCard";
 import { Avatar } from "@/components/ui";
+import { NewMessageButton } from "@/components/NewMessageButton";
 import { getConversations, getInboxStats } from "@/lib/chat";
 import { relativeDate } from "@/lib/domain";
+import { prisma } from "@/lib/db";
+import { requireAcademyId } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 const STATUS_COLOR: Record<string, string> = { open: "#38bdf8", waiting: "#f59e0b", resolved: "#7CFF6B" };
 
 export default async function InboxPage() {
-  const [convs, stats] = await Promise.all([getConversations(), getInboxStats()]);
+  const academyId = await requireAcademyId();
+  // Recipients for the new-message composer: enrolled athletes + open
+  // applications. Keep the list focused and a manageable size — the
+  // composer is a quick-send, not a full search.
+  const [convs, stats, enrollments, applications] = await Promise.all([
+    getConversations(),
+    getInboxStats(),
+    prisma.enrollment.findMany({
+      where: { academyId, status: { in: ["active", "accepted"] } },
+      select: { athleteId: true, athlete: { select: { firstName: true, lastName: true } } },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    }),
+    prisma.application.findMany({
+      where: { academyId, status: { in: ["new", "shortlisted", "reviewing"] } },
+      select: { id: true, athlete: { select: { firstName: true, lastName: true } } },
+      orderBy: { submittedAt: "desc" },
+      take: 50,
+    }),
+  ]);
+  const targets = [
+    ...enrollments.map((e) => ({
+      id: e.athleteId,
+      type: "athlete" as const,
+      label: `${e.athlete.firstName} ${e.athlete.lastName} · athlete`,
+    })),
+    ...applications.map((a) => ({
+      id: a.id,
+      type: "application" as const,
+      label: `${a.athlete.firstName} ${a.athlete.lastName} · application`,
+    })),
+  ];
 
   return (
     <>
-      <PageHeader title="Inbox" subtitle="Conversations with applicants, athletes and parents — connected to the operational system." />
+      <PageHeader
+        title="Inbox"
+        subtitle="Conversations with applicants, athletes and parents — connected to the operational system."
+        right={<NewMessageButton targets={targets} />}
+      />
       <div className="space-y-6 p-8">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <StatCard label="Unread messages" value={String(stats.unreadTotal)} danger={stats.unreadTotal > 0} accent={stats.unreadTotal === 0} />
