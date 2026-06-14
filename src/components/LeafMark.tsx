@@ -9,7 +9,14 @@ const BRANCHES: [number, number, number][] = [
   [190, 300, 158],
 ];
 
-let gradSeq = 0;
+// Single, stable gradient id shared by every LeafMark instance. A per-render
+// counter (gradSeq++) produced DIFFERENT ids on server vs client (the module
+// counter is at a different value during SSR than on a fresh client load),
+// which tripped a React hydration mismatch that broke hydration of page-level
+// client components (the upload/new-message buttons went dead). The gradient
+// definition is identical everywhere, so a constant id is safe: duplicate
+// <defs> are scoped per-<svg> and `url(#leafgrad)` resolves identically.
+const GRAD_ID = "leafgrad";
 
 export function LeafMark({
   size = 28,
@@ -20,7 +27,7 @@ export function LeafMark({
   variant?: "gradient" | "white" | "currentColor";
   className?: string;
 }) {
-  const id = `leafgrad-${gradSeq++}`;
+  const id = GRAD_ID;
   const paint = variant === "gradient" ? `url(#${id})` : variant === "white" ? "#FFFFFF" : "currentColor";
   const width = Math.round(size * (256 / 416));
   return (

@@ -54,18 +54,18 @@ const ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard/coaches", label: "Coaches", icon: "◎" },
   ] },
   { label: "Finance", items: [
-    // Single entry — the Finance hub lands on /dashboard/finance and routes
-    // out to Payments / Budgets / Expenses / Packages / Reports via a sub-nav
-    // so the whole money surface reads as one module. Reports lives here
-    // because it's a finance-shaped read-out (collected, outstanding, season
-    // P&L) — the standalone sidebar entry was redundant.
+    // Finance hub lands on /dashboard/finance and routes out to Payments /
+    // Budgets / Expenses / Packages via a sub-nav. Reports gets its own
+    // sub-entry so the season P&L read-out is one click away from anywhere
+    // in the sidebar (Pietro: "Reports va sotto voce Finance").
     {
       href: "/dashboard/finance",
       label: "Finance",
       icon: "€",
       feature: "featureFinance",
-      activePaths: ["/dashboard/finance", "/dashboard/payments", "/dashboard/budgets", "/dashboard/expenses", "/dashboard/packages", "/dashboard/reports"],
+      activePaths: ["/dashboard/finance", "/dashboard/payments", "/dashboard/budgets", "/dashboard/expenses", "/dashboard/packages"],
     },
+    { href: "/dashboard/reports", label: "Reports", icon: "▦", feature: "featureFinance" },
   ] },
   { label: "Performance", items: [
     // Ski-shaped season planner — calendar of camps + race plan.
@@ -224,6 +224,9 @@ export function Sidebar({ user, features, season, sport, tier }: {
             <div className="text-sm font-bold leading-tight tracking-tight">LEAF</div>
             <div className="text-[11px] text-[var(--color-muted)] leading-tight">Academy OS</div>
           </div>
+          {/* Apple-style appearance toggle — sun/moon, top-right of the
+              brand row so the user can flip light/dark at a glance. */}
+          <ThemeToggle />
         </div>
         {/* Active sport — tells the coach which workspace they're in. The
             label adapts the entire UI downstream (KPIs, columns, AI lens). */}
@@ -304,9 +307,6 @@ export function Sidebar({ user, features, season, sport, tier }: {
               ⎋
             </button>
           </form>
-        </div>
-        <div className="mt-2 flex justify-center">
-          <ThemeToggle />
         </div>
       </div>
     </aside>

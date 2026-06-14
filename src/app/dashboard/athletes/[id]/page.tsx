@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
-import { Avatar, TrendArrow, Verified } from "@/components/ui";
+import { Avatar, Verified } from "@/components/ui";
 import { Dot } from "@/components/StatCard";
 import { GrowthChart, type Point } from "@/components/GrowthChart";
-import { ManagePanel, NotesEditor, PaymentControl, DocumentControl } from "@/components/MemberControls";
+import { ManagePanel, NotesEditor, DocumentControl } from "@/components/MemberControls";
 import { PublicProfilePanel } from "@/components/PublicProfilePanel";
 import { ContractsPanel } from "@/components/ContractsPanel";
 import { CoachIntelligencePanel } from "@/components/CoachIntelligencePanel";
@@ -16,14 +16,13 @@ import { FisPointsTrendCard } from "@/components/FisPointsTrendCard";
 import { computePointsTrendByDiscipline } from "@/lib/ai/pointsTrend";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { deriveLevelSuggestions, type AthleteAiProfile } from "@/lib/ai/coachProfile";
-import { getActiveAthlete, getAssignmentOptions, getNotifications } from "@/lib/ops";
+import { getActiveAthlete, getAssignmentOptions } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { NOTIF_LABEL } from "@/lib/notifications";
 import {
   DISCIPLINE_LABEL, COUNTRY, LEVEL_LABEL, age, fmtDate, fmtPoints, fmtMoney,
-  ENROLLMENT_STATUS_COLOR, PERF_COLOR, PAYMENT_STATUS_COLOR, DOC_STATUS_COLOR,
-  effectivePaymentStatus, perfFromTrend,
+  ENROLLMENT_STATUS_COLOR, PERF_COLOR,
+  perfFromTrend,
 } from "@/lib/domain";
 import { DOC_LABEL } from "@/lib/enrollmentLogic";
 
@@ -34,7 +33,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
   const s = await getSession();
   const m = await getActiveAthlete(id, s?.isAdmin ? null : s?.coachId ?? null);
   if (!m) notFound();
-  const [opts, notifications] = await Promise.all([getAssignmentOptions(), getNotifications({ enrollmentId: id })]);
+  const opts = await getAssignmentOptions();
   const a = m.athlete;
   // FIS multi-list snapshots — populated by syncAthleteFisHistory(). Empty
   // until the admin clicks "Sync from FIS" the first time. We never seed
@@ -61,9 +60,8 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
     ? new Date(Math.max(...fisSnapshots.map((s) => s.publishedAt.getTime())))
     : null;
   const academy = s?.academyId
-    ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { currency: true, featurePublicProfiles: true } })
+    ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { featurePublicProfiles: true } })
     : null;
-  const currency = academy?.currency ?? "EUR";
   // Public-profile UI (chips in the hero + the PublicProfilePanel on the
   // right) only renders when the platform has enabled the feature for this
   // academy. With the marketplace not live yet, default is OFF — surface
@@ -178,11 +176,13 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                 )}
               </div>
             )}
-            {/* Per-discipline FIS points strip — by request. Coaches plan
-                training around per-discipline scores (an athlete with great
-                GS but rusty SL needs targeted SL load), not the aggregate.
-                We pull the latest snapshot per discipline from fisTrends;
-                disciplines the athlete never raced show "—". */}
+            {/* Per-discipline FIS points + ranking strip — by request.
+                Coaches plan training around per-discipline scores (an
+                athlete with great GS but rusty SL needs targeted SL load),
+                not the aggregate. Each cell shows points AND world rank
+                so the coach reads "where the athlete is" in one glance.
+                Latest snapshot per discipline from fisTrends; disciplines
+                the athlete never raced show "—". */}
             {a.sport === "ski" && (
               <div className="mt-4 grid grid-cols-4 gap-3 text-center">
                 {[
@@ -192,21 +192,27 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                   { key: "downhill", label: "DH" },
                 ].map((d) => {
                   const trend = fisTrends.find((t) => t.discipline === d.key);
+                  const trendLabel = trend && trend.trend !== "insufficient_data"
+                    ? trend.trend === "improving"
+                      ? "↗ improving"
+                      : trend.trend === "declining"
+                        ? "↘ declining"
+                        : "= stable"
+                    : null;
+                  const trendColor = trend?.trend === "improving" ? "#7CFF6B"
+                    : trend?.trend === "declining" ? "#f87171"
+                    : "var(--color-muted)";
                   return (
-                    <Mini
-                      key={d.key}
-                      label={d.label}
-                      value={trend ? fmtPoints(trend.current) : "—"}
-                      sub={
-                        trend && trend.trend !== "insufficient_data"
-                          ? trend.trend === "improving"
-                            ? "↗ improving"
-                            : trend.trend === "declining"
-                              ? "↘ declining"
-                              : "= stable"
-                          : undefined
-                      }
-                    />
+                    <div key={d.key} className="card-2 p-3 text-center">
+                      <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">{d.label}</div>
+                      <div className="num mt-0.5 text-lg font-bold">{trend ? fmtPoints(trend.current) : "—"}</div>
+                      <div className="num text-[10px] text-[var(--color-muted)]">
+                        WR {trend?.worldRankCurrent != null ? `#${trend.worldRankCurrent}` : "—"}
+                      </div>
+                      {trendLabel && (
+                        <div className="text-[10px]" style={{ color: trendColor }}>{trendLabel}</div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -320,34 +326,10 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
             </table>
           </div>
 
-          {/* Payments */}
-          <div className="card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
-              <h3 className="text-sm font-semibold">Payments</h3>
-              <span className="text-xs text-[var(--color-muted)]">{fmtMoney(m.paidTotal, currency)} / {fmtMoney(m.paymentsTotal, currency)} paid · <span style={{ color: m.outstanding > 0 ? "#f59e0b" : undefined }}>{fmtMoney(m.outstanding, currency)} outstanding</span></span>
-            </div>
-            <table className="w-full text-sm">
-              <tbody>
-                {m.payments.length === 0 && <tr><td className="px-5 py-4 text-sm text-[var(--color-muted)]">No payments scheduled.</td></tr>}
-                {m.payments.map((p) => {
-                  const st = effectivePaymentStatus(p);
-                  return (
-                    <tr key={p.id} className="border-t border-[var(--color-border)]">
-                      <td className="px-5 py-3">{p.label}</td>
-                      <td className="num px-3 py-3">{fmtMoney(p.amount, p.currency)}{p.paidAmount > 0 && p.paidAmount < p.amount && <span className="text-xs text-[var(--color-muted)]"> · {fmtMoney(p.paidAmount)} paid</span>}</td>
-                      <td className="px-3 py-3 text-xs text-[var(--color-muted)]">due {fmtDate(p.dueDate)}</td>
-                      <td className="px-3 py-3">
-                        <span className="inline-flex items-center gap-1.5 text-xs font-medium capitalize" style={{ color: PAYMENT_STATUS_COLOR[st] }}>
-                          <Dot color={PAYMENT_STATUS_COLOR[st]} /> {st}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 text-right"><PaymentControl paymentId={p.id} status={p.status} amount={p.amount} paidAmount={p.paidAmount} currency={p.currency} /></td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          {/* Payments card removed by request — the finance surface
+              (/dashboard/finance + /dashboard/payments) is the single source
+              of truth for paid / outstanding amounts. The athlete profile
+              focuses on performance + identity + docs. */}
 
           {/* Documents */}
           <div className="card p-6">
@@ -355,7 +337,14 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
             <div className="space-y-2">
               {m.documents.map((doc) => (
                 <div key={doc.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2">
-                  <span className="text-sm">{DOC_LABEL[doc.type] ?? doc.type}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{DOC_LABEL[doc.type] ?? doc.type}</span>
+                    {doc.fileName && (
+                      <a href={`/api/documents/${doc.id}/file`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 rounded-md border border-[var(--color-border)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-accent)] hover:bg-[var(--color-surface)]" title={doc.fileName}>
+                        ↓ file
+                      </a>
+                    )}
+                  </div>
                   <DocumentControl documentId={doc.id} status={doc.status} expiresAt={doc.expiresAt ? new Date(doc.expiresAt).toISOString().slice(0, 10) : null} />
                 </div>
               ))}

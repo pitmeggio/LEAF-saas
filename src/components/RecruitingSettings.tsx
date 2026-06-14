@@ -6,7 +6,6 @@ import { updateRecruitingSettings } from "@/app/recruiting-actions";
 import { RecruitingBadge } from "@/components/Recruiting";
 import type { RecruitingStatus } from "@/lib/profiles";
 
-const PROGRAM_TYPES = ["Full Package", "Training Only", "Race Support", "Custom"] as const;
 const STATUSES: RecruitingStatus[] = ["OPEN", "LIMITED_SPOTS", "WAITLIST_OPEN", "CLOSED"];
 
 export type RecruitingValues = {
@@ -39,7 +38,6 @@ export function RecruitingSettings({ initial }: { initial: RecruitingValues }) {
   const [f, setF] = useState<RecruitingValues>(initial);
 
   const set = <K extends keyof RecruitingValues>(k: K, v: RecruitingValues[K]) => { setF((p) => ({ ...p, [k]: v })); setOk(false); };
-  const toggleProgram = (p: string) => set("programTypes", f.programTypes.includes(p) ? f.programTypes.filter((x) => x !== p) : [...f.programTypes, p]);
 
   const publicHref = `/academy/${f.slug}`;
 
@@ -102,38 +100,6 @@ export function RecruitingSettings({ initial }: { initial: RecruitingValues }) {
         <div>
           <label className={lbl}>Description</label>
           <textarea className={`${inp} min-h-24`} value={f.publicRecruitingDescription ?? ""} maxLength={2000} placeholder="What you're looking for and what the program offers…" onChange={(e) => set("publicRecruitingDescription", e.target.value || null)} />
-        </div>
-      </div>
-
-      {/* Intake */}
-      <div className="card space-y-4 p-6">
-        <h2 className="text-sm font-semibold">Intake</h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label className={lbl}>Season</label>
-            <input className={inp} value={f.season ?? ""} placeholder="2026/27" onChange={(e) => set("season", e.target.value || null)} />
-          </div>
-          <div>
-            <label className={lbl}>Application deadline</label>
-            <input type="date" className={inp} value={f.applicationDeadline ?? ""} onChange={(e) => set("applicationDeadline", e.target.value || null)} />
-          </div>
-          <div>
-            <label className={lbl}>Available spots</label>
-            <input type="number" min={0} className={inp} value={f.availableSpots ?? ""} placeholder="e.g. 6" onChange={(e) => set("availableSpots", e.target.value === "" ? null : Number(e.target.value))} />
-          </div>
-        </div>
-        <div>
-          <label className={lbl}>Program types</label>
-          <div className="flex flex-wrap gap-2">
-            {PROGRAM_TYPES.map((p) => {
-              const on = f.programTypes.includes(p);
-              return (
-                <button type="button" key={p} onClick={() => toggleProgram(p)} className={`rounded-lg border px-3 py-1.5 text-sm ${on ? "border-[var(--color-accent)] bg-[var(--color-accent)]/10 text-[var(--color-fg)]" : "border-[var(--color-border)] text-[var(--color-muted)] hover:bg-[var(--color-surface-2)]"}`}>
-                  {on ? "✓ " : ""}{p}
-                </button>
-              );
-            })}
-          </div>
         </div>
       </div>
 

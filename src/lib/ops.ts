@@ -41,7 +41,9 @@ const ENROLLMENT_INCLUDE = {
   group: true,
   package: true,
   payments: true,
-  documents: true,
+  // Never hydrate fileData (bytea) — files are fetched on demand via the
+  // download route. The metadata (fileName/fileMime/status) is enough here.
+  documents: { omit: { fileData: true as const } },
   invoices: { orderBy: { issuedAt: "desc" as const } },
 };
 
@@ -604,6 +606,10 @@ export async function getDocumentsData(coachId?: string | null) {
   const academyId = await requireAcademyId();
   const docs = await prisma.document.findMany({
     where: { academyId, ...(coachId ? { enrollment: { coachId } } : {}) },
+    // Never pull fileData (bytea) into the list — it can be megabytes per row.
+    // The download route fetches the bytes on demand; the list only needs the
+    // metadata (fileName/fileMime) to decide whether to show a download link.
+    omit: { fileData: true },
     include: { enrollment: { include: { athlete: true } } },
     orderBy: { createdAt: "asc" },
   });

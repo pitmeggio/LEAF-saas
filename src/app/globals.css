@@ -16,21 +16,27 @@
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-/* Alternate theme: black / navy / white — corporate, restrained, no green
-   accent. Activate by adding data-theme="navy" on <html>. Tokens override
-   the base palette without changing the green-accent default, so the
-   marketing site / cinematic tennis surfaces keep their look until the
-   academy actively opts in. */
-:root[data-theme="navy"] {
-  --color-bg: #06080d;            /* near-black canvas */
-  --color-surface: #0e1422;       /* navy panel */
-  --color-surface-2: #182238;     /* slightly lifted navy */
-  --color-border: #243149;
-  --color-muted: #94a3b8;
-  --color-fg: #ffffff;            /* pure white type for the corporate read */
-  --color-accent: #ffffff;        /* white CTAs */
-  --color-accent-dim: #d8e2f1;
-  --color-accent-2: #4a6fbb;      /* mid-navy secondary for chips / charts */
+/* Light mode — Apple-style. Activate with data-theme="light" on <html>.
+   Tokens override the dark base so the whole app re-skins without any
+   per-component branching. Accent stays leaf-green but darkens for AA
+   contrast against the white canvas. */
+:root[data-theme="light"] {
+  --color-bg: #ffffff;            /* pure white canvas */
+  --color-surface: #f8fafc;       /* slate-50 panels */
+  --color-surface-2: #eef2f7;     /* slightly lifted */
+  --color-border: #e2e8f0;        /* slate-200 borders */
+  --color-muted: #64748b;         /* slate-500 secondary text */
+  --color-fg: #0f172a;            /* slate-900 ink */
+  --color-accent: #16a34a;        /* leaf-green, darker for white-bg contrast */
+  --color-accent-dim: #15803d;
+  --color-accent-2: #0d9488;      /* teal secondary */
+}
+
+/* Light-mode body — drop the dark gradient so the canvas reads truly white. */
+:root[data-theme="light"] body {
+  background:
+    radial-gradient(900px 480px at 50% -10%, rgba(22, 163, 74, 0.05), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
 }
 
 html,

@@ -32,14 +32,14 @@ export const metadata: Metadata = {
 };
 
 // Inline script that runs BEFORE React hydrates. Reads the user's stored
-// theme preference (default = leaf green) and stamps data-theme on <html>
-// so the alternate navy palette applies without a one-frame flash.
+// light/dark preference (default = dark) and stamps data-theme on <html>
+// so the light palette applies without a one-frame FOUC.
 const THEME_INIT_SCRIPT = `
 (function() {
   try {
-    var t = localStorage.getItem('leaf-theme');
-    if (t === 'navy' || t === 'leaf') {
-      document.documentElement.setAttribute('data-theme', t);
+    var t = localStorage.getItem('leaf-mode');
+    if (t === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light');
     }
   } catch (e) {}
 })();

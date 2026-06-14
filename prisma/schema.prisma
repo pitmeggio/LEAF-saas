@@ -785,7 +785,15 @@ model Document {
   type         String // medical_certificate | liability_waiver | academy_contract | race_license | travel | parent_approval | internal
   name         String?
   status       String     @default("missing") // missing | uploaded | verified | expired
-  fileUrl      String?
+  fileUrl      String? // external reference (Drive/Dropbox/ERP) — legacy/optional
+  // In-app file storage ("App Documents"). Bytes live in Postgres (bytea) so
+  // upload works on any deploy with zero extra infra/tokens. Swap to an object
+  // store later behind the same upload/download route handlers.
+  fileName     String?
+  fileMime     String? // application/pdf | msword | spreadsheetml | …
+  fileSize     Int? // bytes
+  fileData     Bytes?
+  uploadedAt   DateTime?
   required     Boolean    @default(true)
   expiresAt    DateTime?
   createdAt    DateTime   @default(now())
