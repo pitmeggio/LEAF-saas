@@ -63,7 +63,7 @@ export default async function MembersPage() {
           {needCount === 0 ? (
             <span className="text-[var(--color-fg)]/85">All {members.length} athletes on track — nothing needs you right now.</span>
           ) : (
-            <span className="text-[var(--color-fg)]/85"><span className="font-semibold">{needCount} of {members.length} need a look</span> <span className="text-[var(--color-muted)]">— overdue payments, missing docs or a declining trend. They're at the top.</span></span>
+            <span className="text-[var(--color-fg)]/85"><span className="font-semibold">{needCount} of {members.length} need a look</span> <span className="text-[var(--color-muted)]">— missing docs or a declining trend. They&apos;re at the top.</span></span>
           )}
         </div>
 
@@ -86,7 +86,6 @@ export default async function MembersPage() {
                     {c.label}
                   </th>
                 ))}
-                <th className="px-3 py-3 font-medium">Payments</th>
                 <th className="px-3 py-3 font-medium">Docs</th>
               </tr>
             </thead>
@@ -120,13 +119,6 @@ export default async function MembersPage() {
                       <AthleteSportCell field={c.field} athlete={m.athlete} trend={m.trend} />
                     </td>
                   ))}
-                  <td className="px-3 py-3">
-                    {m.overduePayments.length > 0 ? (
-                      <span className="text-xs font-medium text-[#f87171]">{m.overduePayments.length} overdue</span>
-                    ) : (
-                      <span className="text-xs text-[var(--color-muted)]">ok</span>
-                    )}
-                  </td>
                   <td className="px-3 py-3">
                     {m.missingDocs.length > 0 ? (
                       <span className="text-xs font-medium text-[#f59e0b]">{m.missingDocs.length} missing</span>

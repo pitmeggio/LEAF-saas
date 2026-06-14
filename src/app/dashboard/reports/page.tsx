@@ -106,13 +106,10 @@ export default async function ReportsPage() {
             <div className="mt-2 text-xs text-[var(--color-muted)]">No baseline if the prior season has no enrolments.</div>
           </Section>
 
-          <Section title="Performance progression" subtitle="ranking direction across the active squad">
-            <Bars items={[
-              { label: "Improving", value: perf.improving, color: PERF_COLOR.improving },
-              { label: "Stable", value: perf.stable, color: PERF_COLOR.stable },
-              { label: "Declining", value: perf.declining, color: PERF_COLOR.declining },
-            ]} total={members.length || 1} />
-          </Section>
+          {/* Performance progression card removed by request — Reports is a
+              finance read-out, not a coaching surface. Squad trend lives on
+              the Athlete Canvas / Athletes pages where coaches actually
+              read it. */}
         </div>
 
         {/* Package popularity year-over-year */}

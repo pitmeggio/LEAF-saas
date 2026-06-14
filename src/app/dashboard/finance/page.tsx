@@ -155,6 +155,19 @@ export default async function FinanceHubPage() {
               ))}
             </div>
           </Tile>
+
+          {/* Reports lives inside Finance now — used to have its own sidebar
+              entry, but the report content is finance-shaped (P&L, packages,
+              outstanding) so it reads more honestly as a Finance tab. */}
+          <Tile
+            href="/dashboard/reports"
+            title="Reports"
+            kicker="season P&L · roster · finance read-out"
+            summary={`${finance.activeSubscriptions} active subscriptions · ${fmtMoney(finance.totalContract, finance.currency)} contract value`}
+          >
+            <KV label="Collected this season" value={fmtMoney(finance.collected, finance.currency)} />
+            <KV label="Outstanding" value={fmtMoney(finance.outstandingTotal, finance.currency)} muted />
+          </Tile>
         </div>
       </div>
     </>

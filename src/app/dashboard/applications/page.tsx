@@ -204,7 +204,7 @@ function ApplicationsHeader() {
   return (
     <PageHeader
       title="Applications"
-      subtitle="Full intake flow — registration, eligibility, openings, form, approvals."
+      subtitle="Applications &amp; recruiting — registration, eligibility, openings, form, approvals."
     />
   );
 }

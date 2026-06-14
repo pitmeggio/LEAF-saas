@@ -345,22 +345,9 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
             </div>
           )}
 
-          {/* Communication log */}
-          <div className="card p-6">
-            <h3 className="mb-3 text-sm font-semibold">Communication log</h3>
-            {notifications.length === 0 && <p className="text-sm text-[var(--color-muted)]">No emails sent yet.</p>}
-            <div className="space-y-2">
-              {notifications.map((n) => (
-                <div key={n.id} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">✉ {NOTIF_LABEL[n.type as keyof typeof NOTIF_LABEL] ?? n.type}</span>
-                    <span className="text-xs text-[var(--color-muted)]">{fmtDate(n.createdAt)}</span>
-                  </div>
-                  <div className="mt-0.5 text-xs text-[var(--color-muted)]">{n.subject}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Communication log removed by request — the same notifications
+              already surface in /dashboard/inbox; double-rendering them
+              here cluttered the athlete page. */}
 
           <ContractsPanel
             enrollmentId={m.id}

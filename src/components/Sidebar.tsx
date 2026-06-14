@@ -54,14 +54,16 @@ const ADMIN_SECTIONS: NavSection[] = [
   ] },
   { label: "Finance", items: [
     // Single entry — the Finance hub lands on /dashboard/finance and routes
-    // out to Payments / Budgets / Expenses / Packages via a sub-nav so the
-    // whole money surface reads as one module.
+    // out to Payments / Budgets / Expenses / Packages / Reports via a sub-nav
+    // so the whole money surface reads as one module. Reports lives here
+    // because it's a finance-shaped read-out (collected, outstanding, season
+    // P&L) — the standalone sidebar entry was redundant.
     {
       href: "/dashboard/finance",
       label: "Finance",
       icon: "€",
       feature: "featureFinance",
-      activePaths: ["/dashboard/finance", "/dashboard/payments", "/dashboard/budgets", "/dashboard/expenses", "/dashboard/packages"],
+      activePaths: ["/dashboard/finance", "/dashboard/payments", "/dashboard/budgets", "/dashboard/expenses", "/dashboard/packages", "/dashboard/reports"],
     },
   ] },
   { label: "Performance", items: [
@@ -71,9 +73,6 @@ const ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard/canvas", label: "Athlete Canvas", icon: "◐", sports: ["tennis", "padel"] },
     { href: "/dashboard/season", label: "Season View", icon: "≡", sports: ["tennis", "padel"] },
     { href: "/dashboard/tournaments", label: "Tournaments", icon: "◇", sports: ["tennis", "padel"] },
-  ] },
-  { label: "Reports", items: [
-    { href: "/dashboard/reports", label: "Reports", icon: "▧", feature: "featureFinance" },
   ] },
   { label: "Admin", items: [
     { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },

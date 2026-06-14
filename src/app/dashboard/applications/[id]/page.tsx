@@ -255,21 +255,7 @@ export default async function ApplicationDetailPage({ params }: { params: Promis
             </dl>
           </div>
 
-          <div className="card p-6">
-            <h3 className="mb-3 text-sm font-semibold">Communication log</h3>
-            {notifications.length === 0 && <p className="text-sm text-[var(--color-muted)]">No emails sent yet.</p>}
-            <div className="space-y-2">
-              {notifications.map((n) => (
-                <div key={n.id} className="rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] p-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">✉ {NOTIF_LABEL[n.type as keyof typeof NOTIF_LABEL] ?? n.type}</span>
-                    <span className="text-xs text-[var(--color-muted)]">{relativeDate(n.createdAt)}</span>
-                  </div>
-                  <div className="mt-0.5 text-xs text-[var(--color-muted)]">{n.subject}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Communication log removed by request — surfaced in /dashboard/inbox. */}
 
           <div className="card p-6">
             <h3 className="mb-4 text-sm font-semibold">Status history</h3>
