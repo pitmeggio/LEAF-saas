@@ -2,10 +2,12 @@ import Link from "next/link";
 import {
   Users, ClipboardList, Banknote, Clock, Gauge, TrendingDown, TrendingUp,
   Swords, Trophy, Target, HeartPulse, UserCog, Sparkles, ArrowRight, CheckCircle2,
+  Activity, Bell, Wallet,
   type LucideIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar, Dot } from "@/components/StatCard";
+import { PulseGauge, type PulseStatus } from "@/components/PulseGauge";
 import { getAcademy } from "@/lib/queries";
 import { getDashboard, getTennisDashboardStats } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
@@ -47,6 +49,25 @@ export default async function OverviewPage() {
   const f = d.finance;
   const perfAlertCount = d.alerts.filter((a) => a.type === "declining_trend").length;
 
+  // Academy pulse — four glanceable health signals, each a real ratio. The
+  // ring always fills toward "good" (fuller = healthier) and the colour
+  // reinforces the status, so the row reads at a glance.
+  const totalCap = d.groupDistribution.reduce((a, g) => a + g.capacity, 0);
+  const inGroups = d.groupDistribution.reduce((a, g) => a + g.count, 0);
+  const occupancy = totalCap ? Math.round((inGroups / totalCap) * 100) : 0;
+  const rosterStatus: PulseStatus = occupancy > 105 ? "bad" : occupancy >= 60 ? "good" : "watch";
+
+  const headroom = Math.max(0, 100 - d.budgetPctUsed);
+  const budgetStatus: PulseStatus = d.budgetPctUsed > 100 ? "bad" : d.budgetPctUsed > 85 ? "watch" : "good";
+
+  const invoiced = f.collected + f.outstandingTotal;
+  const collectRate = invoiced > 0 ? Math.round((f.collected / invoiced) * 100) : 100;
+  const collectStatus: PulseStatus = collectRate >= 80 ? "good" : collectRate >= 40 ? "watch" : "bad";
+
+  const alertCount = d.alerts.length;
+  const calm = alertCount === 0 ? 100 : Math.max(15, 100 - alertCount * 18);
+  const attnStatus: PulseStatus = alertCount === 0 ? "good" : alertCount <= 2 ? "watch" : "bad";
+
   // Sport-aware KPI grid — the active sport module decides what to display.
   // Only fetch sport-specific aggregates (tennis) when the module asks for them.
   const sport = getSportModuleForAcademy(academy);
@@ -69,6 +90,49 @@ export default async function OverviewPage() {
       />
 
       <div className="space-y-6 p-8">
+        {/* Academy pulse — a signature glance: four live health rings. */}
+        <div className="card p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <Activity className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />
+            <h2 className="text-sm font-semibold">Academy pulse</h2>
+            <span className="text-[11px] text-[var(--color-muted)]">live signals · {season}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+            <PulseGauge
+              icon={Users}
+              value={Math.min(100, occupancy)}
+              status={rosterStatus}
+              center={`${occupancy}%`}
+              label="Roster"
+              sub={`${inGroups}/${totalCap} spots filled`}
+            />
+            <PulseGauge
+              icon={Wallet}
+              value={headroom}
+              status={budgetStatus}
+              center={`${headroom}%`}
+              label="Budget left"
+              sub={`${d.budgetPctUsed}% used`}
+            />
+            <PulseGauge
+              icon={Banknote}
+              value={collectRate}
+              status={collectStatus}
+              center={`${collectRate}%`}
+              label="Collected"
+              sub={invoiced > 0 ? "of invoiced" : "all settled"}
+            />
+            <PulseGauge
+              icon={Bell}
+              value={calm}
+              status={attnStatus}
+              center={String(alertCount)}
+              label="Attention"
+              sub={alertCount === 0 ? "all clear" : `item${alertCount === 1 ? "" : "s"} need you`}
+            />
+          </div>
+        </div>
+
         {/* Today — AI triage. Hidden when nothing needs you. */}
         {d.alerts.length > 0 ? (
           <div className="card p-6">

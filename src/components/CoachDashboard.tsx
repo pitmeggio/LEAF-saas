@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Users, Layers, TrendingUp, Gauge, Wallet, Mail, Sparkles, ArrowRight, Receipt } from "lucide-react";
+import { Users, Layers, TrendingUp, Gauge, Wallet, Mail, Bell, Activity, Sparkles, ArrowRight, Receipt } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar, Dot } from "@/components/StatCard";
+import { PulseGauge, type PulseStatus } from "@/components/PulseGauge";
 import { Avatar, TrendArrow } from "@/components/ui";
 import { getActiveAthletes, getGroupsWithStats, computeAlerts, getExpenses, getAcademyCurrency, getCoachIntelligenceSummary } from "@/lib/ops";
 import { getInboxStats } from "@/lib/chat";
@@ -31,6 +32,19 @@ export async function CoachDashboard() {
   const occupancy = totalCap ? Math.round((inGroups / totalCap) * 100) : 0;
   const remainingBudget = groups.reduce((a, g) => a + g.remainingBudget, 0);
 
+  // Coach pulse — four glanceable signals, same convention as the academy
+  // pulse (ring fills toward "good"). All derived from data already loaded.
+  const rosterStatus: PulseStatus = occupancy > 105 ? "bad" : occupancy >= 60 ? "good" : "watch";
+  const totalBudget = groups.reduce((a, g) => a + (g.budget ?? 0), 0);
+  const usedPct = totalBudget > 0 ? Math.round(((totalBudget - remainingBudget) / totalBudget) * 100) : 0;
+  const headroom = Math.max(0, Math.min(100, 100 - usedPct));
+  const budgetStatus: PulseStatus = usedPct > 100 ? "bad" : usedPct > 85 ? "watch" : "good";
+  const unread = inbox.unreadTotal;
+  const inboxCalm = unread === 0 ? 100 : Math.max(15, 100 - unread * 18);
+  const inboxStatus: PulseStatus = unread === 0 ? "good" : unread <= 3 ? "watch" : "bad";
+  const attnCalm = alerts.length === 0 ? 100 : Math.max(15, 100 - alerts.length * 18);
+  const attnStatus: PulseStatus = alerts.length === 0 ? "good" : alerts.length <= 2 ? "watch" : "bad";
+
   // My-expenses rollup — mirrors the admin expense strip at coach altitude so
   // the coach sees the same money picture for their own claims (awaiting
   // approval vs owed back to them).
@@ -54,6 +68,21 @@ export async function CoachDashboard() {
         right={<Link href="/dashboard/alerts" className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">{alerts.length} alerts<ArrowRight className="h-3.5 w-3.5" aria-hidden /></Link>}
       />
       <div className="space-y-6 p-8">
+        {/* Coach pulse — signature glance: four live health rings. */}
+        <div className="card p-6">
+          <div className="mb-5 flex items-center gap-2">
+            <Activity className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />
+            <h2 className="text-sm font-semibold">My pulse</h2>
+            <span className="text-[11px] text-[var(--color-muted)]">live signals · your squad</span>
+          </div>
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
+            <PulseGauge icon={Users} value={Math.min(100, occupancy)} status={rosterStatus} center={`${occupancy}%`} label="Roster" sub={`${inGroups}/${totalCap} spots filled`} />
+            <PulseGauge icon={Wallet} value={headroom} status={budgetStatus} center={`${headroom}%`} label="Budget left" sub={`${usedPct}% used`} />
+            <PulseGauge icon={Mail} value={inboxCalm} status={inboxStatus} center={String(unread)} label="Inbox" sub={unread === 0 ? "all read" : "unread"} />
+            <PulseGauge icon={Bell} value={attnCalm} status={attnStatus} center={String(alerts.length)} label="Attention" sub={alerts.length === 0 ? "all clear" : `item${alerts.length === 1 ? "" : "s"} need you`} />
+          </div>
+        </div>
+
         {/* Academy AI — coach briefing */}
         <div className="card p-5">
           <div className="mb-2 flex items-center gap-2">
