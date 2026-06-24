@@ -9,8 +9,10 @@ import { programSections, programKindLabel, type LineupRow, type ProgramKind } f
 type Group = { id: string; name: string };
 type GroupAthletes = Record<string, { id: string; name: string }[]>;
 type Initial = {
-  id: string; kind: string; title: string | null; place: string | null; discipline: string | null;
-  date: string; groupId: string | null; fields: Record<string, string>; lineup: LineupRow[];
+  // No id → the form opens pre-filled but CREATES a new programme (used for a
+  // LEAF-prepared draft). With id → it edits that existing programme.
+  id?: string; kind: string; title?: string | null; place?: string | null; discipline?: string | null;
+  date: string; groupId?: string | null; fields: Record<string, string>; lineup: LineupRow[];
 };
 
 const inp = "w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm outline-none focus:border-[var(--color-accent)]";
@@ -63,7 +65,7 @@ export function ProgramFormButton({
     if (!date) { setErr("Scegli una data"); return; }
     const payload: ProgramInput = { kind, title: title || undefined, place: place || undefined, discipline: discipline || undefined, date, groupId: groupId || undefined, fields, lineup };
     start(async () => {
-      const r = initial ? await updateProgram(initial.id, payload) : await createProgram(payload);
+      const r = initial?.id ? await updateProgram(initial.id, payload) : await createProgram(payload);
       if (r.ok) { close(); router.refresh(); } else setErr(r.error ?? "Errore");
     });
   };
@@ -75,7 +77,7 @@ export function ProgramFormButton({
       <div className="flex min-h-full items-start justify-center py-8">
         <div className="card w-full max-w-2xl p-5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
           <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-sm font-semibold">{initial ? "Modifica programma" : "Nuovo programma"}</h3>
+            <h3 className="text-sm font-semibold">{initial?.id ? "Modifica programma" : initial ? "Bozza preparata da LEAF — rivedi e pubblica" : "Nuovo programma"}</h3>
             <button onClick={close} aria-label="Close" className="text-lg text-[var(--color-muted)]">✕</button>
           </div>
 

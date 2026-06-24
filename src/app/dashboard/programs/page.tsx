@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
+import { Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { ProgramFormButton } from "@/components/ProgramFormButton";
 import { ProgramActions } from "@/components/ProgramActions";
 import { getProgramsForOps } from "@/lib/programs";
+import { suggestProgramDraft } from "@/lib/programDraft";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { fmtDate } from "@/lib/domain";
@@ -10,7 +12,8 @@ import { programKindLabel, type LineupRow } from "@/lib/trainingProgram";
 
 export const dynamic = "force-dynamic";
 
-const newBtn = "rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]";
+const draftBtn = "rounded-lg bg-[var(--color-accent)] px-4 py-2 text-left text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]";
+const newBtn = "rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface-2)]";
 const editBtn = "rounded-md border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium hover:bg-[var(--color-surface-2)]";
 
 export default async function ProgramsPage() {
@@ -21,9 +24,10 @@ export default async function ProgramsPage() {
   const coachId = s.coachId;
   const academyId = s.academyId ?? "";
 
-  const [programs, groups] = await Promise.all([
+  const [programs, groups, draft] = await Promise.all([
     getProgramsForOps(coachId),
     prisma.group.findMany({ where: { academyId, ...(coachId ? { coachId } : {}) }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    suggestProgramDraft(academyId, coachId),
   ]);
 
   // Roster per group, to seed the lineup in the form.
@@ -42,8 +46,29 @@ export default async function ProgramsPage() {
     <>
       <PageHeader
         title="Programmi"
-        subtitle="Crea il programma di allenamento o gara e pubblicalo: gli atleti del gruppo lo ricevono nell'app."
-        right={<ProgramFormButton groups={groups} groupAthletes={groupAthletes} label="+ Nuovo programma" className={newBtn} />}
+        subtitle="LEAF prepara la seduta di domani per te: rivedi, aggiungi gli obiettivi e pubblica. Gli atleti la ricevono nell'app."
+        right={
+          <div className="flex items-center gap-2">
+            {draft && (
+              <ProgramFormButton
+                groups={groups}
+                groupAthletes={groupAthletes}
+                initial={draft}
+                className={draftBtn}
+                label={
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 shrink-0" aria-hidden />
+                    <span className="flex flex-col leading-tight">
+                      <span>Prepara domani</span>
+                      <span className="text-[10px] font-normal opacity-80">{draft.rationale}</span>
+                    </span>
+                  </span>
+                }
+              />
+            )}
+            <ProgramFormButton groups={groups} groupAthletes={groupAthletes} label="+ Nuovo" className={newBtn} />
+          </div>
+        }
       />
       <div className="space-y-3 p-8">
         {programs.length === 0 && (
