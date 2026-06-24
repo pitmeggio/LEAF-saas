@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import {
+  LayoutDashboard, ClipboardList, Users, FileText, Layers, UserCog, Wallet,
+  BarChart3, CalendarDays, LayoutPanelLeft, Rows3, Trophy, Mail, Bell,
+  AlignJustify, Grid2x2, Tent, Inbox, LogOut, type LucideIcon,
+} from "lucide-react";
 import { signOut } from "@/app/auth-actions";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LeafMark } from "@/components/LeafMark";
@@ -13,7 +18,7 @@ type FeatureKey = "featureRecruiting" | "featurePublicProfiles" | "featureFinanc
 type NavItem = {
   href: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   soon?: boolean;
   feature?: FeatureKey;
   // Extra path prefixes that should keep this nav item highlighted. Useful
@@ -38,20 +43,20 @@ export type LeafTier = "essential" | "professional" | "complete";
 // academy's tier is "professional" or "complete".
 const ADMIN_SECTIONS: NavSection[] = [
   { label: "Overview", items: [
-    { href: "/dashboard", label: "Overview", icon: "▦" },
+    { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   ] },
   { label: "Applications", items: [
     // Single entry — Pipeline / Openings & form / Settings live as tabs
     // inside the Applications page so the workspace stays one module.
-    { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
+    { href: "/dashboard/applications", label: "Applications", icon: ClipboardList, feature: "featureRecruiting" },
   ] },
   { label: "Athletes", items: [
-    { href: "/dashboard/athletes", label: "Active Athletes", icon: "⛷" },
-    { href: "/dashboard/documents", label: "Documents", icon: "▢" },
+    { href: "/dashboard/athletes", label: "Active Athletes", icon: Users },
+    { href: "/dashboard/documents", label: "Documents", icon: FileText },
   ] },
   { label: "Groups", items: [
-    { href: "/dashboard/groups", label: "Groups", icon: "⬡" },
-    { href: "/dashboard/coaches", label: "Coaches", icon: "◎" },
+    { href: "/dashboard/groups", label: "Groups", icon: Layers },
+    { href: "/dashboard/coaches", label: "Coaches", icon: UserCog },
   ] },
   { label: "Finance", items: [
     // Finance hub lands on /dashboard/finance and routes out to Payments /
@@ -61,26 +66,26 @@ const ADMIN_SECTIONS: NavSection[] = [
     {
       href: "/dashboard/finance",
       label: "Finance",
-      icon: "€",
+      icon: Wallet,
       feature: "featureFinance",
       activePaths: ["/dashboard/finance", "/dashboard/payments", "/dashboard/budgets", "/dashboard/expenses", "/dashboard/packages"],
     },
-    { href: "/dashboard/reports", label: "Reports", icon: "▦", feature: "featureFinance" },
+    { href: "/dashboard/reports", label: "Reports", icon: BarChart3, feature: "featureFinance" },
   ] },
   { label: "Performance", items: [
     // Note: "Programmi" (training/race programmes) is a COACH-only tool — it
     // lives in COACH_SECTIONS, not here. The academy admin doesn't publish
     // sessions, so it's intentionally absent from the admin workspace.
     // Ski-shaped season planner — calendar of camps + race plan.
-    { href: "/dashboard/calendar", label: "Season Planner", icon: "▣", sports: ["ski"] },
+    { href: "/dashboard/calendar", label: "Season Planner", icon: CalendarDays, sports: ["ski"] },
     // Tennis Professional surfaces — cinematic athlete view + tournament-driven planner.
-    { href: "/dashboard/canvas", label: "Athlete Canvas", icon: "◐", sports: ["tennis", "padel"] },
-    { href: "/dashboard/season", label: "Season View", icon: "≡", sports: ["tennis", "padel"] },
-    { href: "/dashboard/tournaments", label: "Tournaments", icon: "◇", sports: ["tennis", "padel"] },
+    { href: "/dashboard/canvas", label: "Athlete Canvas", icon: LayoutPanelLeft, sports: ["tennis", "padel"] },
+    { href: "/dashboard/season", label: "Season View", icon: Rows3, sports: ["tennis", "padel"] },
+    { href: "/dashboard/tournaments", label: "Tournaments", icon: Trophy, sports: ["tennis", "padel"] },
   ] },
   { label: "Admin", items: [
-    { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
-    { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
+    { href: "/dashboard/inbox", label: "Inbox", icon: Mail, feature: "featureChat" },
+    { href: "/dashboard/alerts", label: "Alerts", icon: Bell },
   ] },
 ];
 
@@ -91,41 +96,41 @@ const ADMIN_SECTIONS: NavSection[] = [
 //   • all → Bookings inbox (incoming reservations)
 const ESSENTIAL_ADMIN_SECTIONS: NavSection[] = [
   { label: "Facility", items: [
-    { href: "/dashboard/lines", label: "Line Schedule", icon: "≣", sports: ["ski"] },
-    { href: "/dashboard/courts", label: "Courts", icon: "◰", sports: ["tennis", "padel"] },
+    { href: "/dashboard/lines", label: "Line Schedule", icon: AlignJustify, sports: ["ski"] },
+    { href: "/dashboard/courts", label: "Courts", icon: Grid2x2, sports: ["tennis", "padel"] },
   ] },
   { label: "Pay-and-Train", items: [
     // Ski: Pay-and-Train single sessions. Tennis: summer camps + groups.
-    { href: "/dashboard/camps", label: "Camps & Groups", icon: "✦", sports: ["tennis", "padel"] },
-    { href: "/dashboard/bookings", label: "Bookings", icon: "📥" },
+    { href: "/dashboard/camps", label: "Camps & Groups", icon: Tent, sports: ["tennis", "padel"] },
+    { href: "/dashboard/bookings", label: "Bookings", icon: Inbox },
   ] },
   { label: "Reports", items: [
-    { href: "/dashboard/utilization", label: "Reports", icon: "▦" },
+    { href: "/dashboard/utilization", label: "Reports", icon: BarChart3 },
   ] },
 ];
 
 const COACH_SECTIONS: NavSection[] = [
   { label: "Overview", items: [
-    { href: "/dashboard", label: "My Dashboard", icon: "▦" },
+    { href: "/dashboard", label: "My Dashboard", icon: LayoutDashboard },
   ] },
   { label: "Athletes", items: [
-    { href: "/dashboard/applications", label: "Applications", icon: "▤", feature: "featureRecruiting" },
-    { href: "/dashboard/athletes", label: "My Athletes", icon: "⛷" },
-    { href: "/dashboard/documents", label: "Documents", icon: "▢" },
+    { href: "/dashboard/applications", label: "Applications", icon: ClipboardList, feature: "featureRecruiting" },
+    { href: "/dashboard/athletes", label: "My Athletes", icon: Users },
+    { href: "/dashboard/documents", label: "Documents", icon: FileText },
   ] },
   { label: "Groups", items: [
-    { href: "/dashboard/groups", label: "My Groups", icon: "⬡" },
+    { href: "/dashboard/groups", label: "My Groups", icon: Layers },
   ] },
   { label: "Performance", items: [
-    { href: "/dashboard/programs", label: "Programmi", icon: "▤" },
-    { href: "/dashboard/calendar", label: "Season Planner", icon: "▣" },
+    { href: "/dashboard/programs", label: "Programmi", icon: ClipboardList },
+    { href: "/dashboard/calendar", label: "Season Planner", icon: CalendarDays },
   ] },
   { label: "Finance", items: [
-    { href: "/dashboard/expenses", label: "My Expenses", icon: "⊟", feature: "featureFinance" },
+    { href: "/dashboard/expenses", label: "My Expenses", icon: Wallet, feature: "featureFinance" },
   ] },
   { label: "Admin", items: [
-    { href: "/dashboard/inbox", label: "Inbox", icon: "✉", feature: "featureChat" },
-    { href: "/dashboard/alerts", label: "Alerts", icon: "△" },
+    { href: "/dashboard/inbox", label: "Inbox", icon: Mail, feature: "featureChat" },
+    { href: "/dashboard/alerts", label: "Alerts", icon: Bell },
   ] },
 ];
 
@@ -212,7 +217,12 @@ export function Sidebar({ user, features, season, sport, tier }: {
             : "text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
         } ${item.soon ? "cursor-not-allowed opacity-50" : ""}`}
       >
-        <span className="w-4 text-center" style={{ color: active ? "var(--color-accent)" : undefined }}>{item.icon}</span>
+        <item.icon
+          className="h-[18px] w-[18px] shrink-0 transition-colors"
+          strokeWidth={active ? 2.25 : 1.75}
+          style={{ color: active ? "var(--color-accent)" : "currentColor" }}
+          aria-hidden
+        />
         <span className="flex-1">{item.label}</span>
         {item.soon && <span className="text-[9px] uppercase tracking-wide">soon</span>}
       </Link>
@@ -306,9 +316,9 @@ export function Sidebar({ user, features, season, sport, tier }: {
             <button
               type="submit"
               title="Sign out"
-              className="rounded-md px-2 py-1 text-xs text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
+              className="flex items-center justify-center rounded-md p-1.5 text-[var(--color-muted)] hover:bg-[var(--color-surface-2)] hover:text-[var(--color-fg)]"
             >
-              ⎋
+              <LogOut className="h-4 w-4" strokeWidth={1.75} aria-hidden />
             </button>
           </form>
         </div>

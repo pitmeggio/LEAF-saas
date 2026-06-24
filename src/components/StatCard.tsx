@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 
 export function StatCard({
   label,
@@ -7,6 +8,7 @@ export function StatCard({
   accent,
   danger,
   href,
+  icon: Icon,
 }: {
   label: string;
   value: string;
@@ -14,6 +16,7 @@ export function StatCard({
   accent?: boolean;
   danger?: boolean;
   href?: string;
+  icon?: LucideIcon;
 }) {
   const color = danger ? "#f87171" : accent ? "var(--color-accent)" : undefined;
   const body = (
@@ -21,7 +24,15 @@ export function StatCard({
       {(accent || danger) && (
         <span className="absolute inset-x-0 top-0 h-[2px] rounded-t-[14px]" style={{ background: color, opacity: 0.85 }} />
       )}
-      <div className="kicker">{label}</div>
+      {Icon && (
+        <span
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] transition-colors group-hover:border-[var(--color-accent)]"
+          style={{ color: color ?? "var(--color-muted)" }}
+        >
+          <Icon className="h-[17px] w-[17px]" strokeWidth={1.75} aria-hidden />
+        </span>
+      )}
+      <div className="kicker" style={{ paddingRight: Icon ? 40 : undefined }}>{label}</div>
       <div className="mt-2.5 num text-3xl font-bold tracking-tight" style={{ color }}>
         {value}
       </div>
@@ -32,11 +43,10 @@ export function StatCard({
     return (
       <Link href={href} className="card card-hover group relative block p-5">
         {body}
-        <span className="absolute right-4 top-4 text-xs text-[var(--color-muted)] opacity-0 transition-opacity group-hover:opacity-100">↗</span>
       </Link>
     );
   }
-  return <div className="card relative p-5">{body}</div>;
+  return <div className="card group relative p-5">{body}</div>;
 }
 
 export function PercentBar({ value, color = "var(--color-accent)" }: { value: number; color?: string }) {

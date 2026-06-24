@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Users, Layers, TrendingUp, Gauge, Wallet, Mail, Sparkles, ArrowRight, Receipt } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar, Dot } from "@/components/StatCard";
 import { Avatar, TrendArrow } from "@/components/ui";
@@ -50,13 +51,13 @@ export async function CoachDashboard() {
       <PageHeader
         title="My Dashboard"
         subtitle={`${s?.name} · Coach workspace · ${s?.academyName ?? ""}`}
-        right={<Link href="/dashboard/alerts" className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">{alerts.length} alerts →</Link>}
+        right={<Link href="/dashboard/alerts" className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">{alerts.length} alerts<ArrowRight className="h-3.5 w-3.5" aria-hidden /></Link>}
       />
       <div className="space-y-6 p-8">
         {/* Academy AI — coach briefing */}
         <div className="card p-5">
           <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+            <span className="flex h-5 items-center gap-1 rounded px-1.5 text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}><Sparkles className="h-3 w-3" aria-hidden />AI</span>
             <h2 className="text-sm font-semibold">This week’s briefing</h2>
           </div>
           <p className="text-sm font-medium">{briefing.headline}</p>
@@ -77,7 +78,7 @@ export async function CoachDashboard() {
           <div className="card p-5">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+                <span className="flex h-5 items-center gap-1 rounded px-1.5 text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}><Sparkles className="h-3 w-3" aria-hidden />AI</span>
                 <h2 className="text-sm font-semibold">Coach intelligence</h2>
               </div>
               <span className="text-[11px] text-[var(--color-muted)]">
@@ -117,7 +118,7 @@ export async function CoachDashboard() {
                             <div className="mt-0.5 truncate text-[11px] text-[var(--color-muted)]">Next focus: {w.topPriority}</div>
                           )}
                         </div>
-                        <span className="text-[var(--color-muted)]">→</span>
+                        <ArrowRight className="h-4 w-4 shrink-0 text-[var(--color-muted)]" aria-hidden />
                       </Link>
                     ))}
                   </div>
@@ -176,12 +177,12 @@ export async function CoachDashboard() {
         )}
 
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-          <StatCard label="My athletes" value={String(members.length)} accent href="/dashboard/athletes" />
-          <StatCard label="My groups" value={String(groups.length)} href="/dashboard/groups" />
-          <StatCard label="Improving" value={`${improving}/${members.length}`} hint="positive FIS trend" href="/dashboard/athletes" />
-          <StatCard label="Group occupancy" value={`${occupancy}%`} hint={`${inGroups}/${totalCap}`} href="/dashboard/groups" />
-          <StatCard label="Budget remaining" value={fmtMoney(remainingBudget, currency)} danger={remainingBudget < 0} href="/dashboard/groups" />
-          <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} waiting`} danger={inbox.unreadTotal > 0} href="/dashboard/inbox" />
+          <StatCard label="My athletes" value={String(members.length)} accent href="/dashboard/athletes" icon={Users} />
+          <StatCard label="My groups" value={String(groups.length)} href="/dashboard/groups" icon={Layers} />
+          <StatCard label="Improving" value={`${improving}/${members.length}`} hint="positive FIS trend" href="/dashboard/athletes" icon={TrendingUp} />
+          <StatCard label="Group occupancy" value={`${occupancy}%`} hint={`${inGroups}/${totalCap}`} href="/dashboard/groups" icon={Gauge} />
+          <StatCard label="Budget remaining" value={fmtMoney(remainingBudget, currency)} danger={remainingBudget < 0} href="/dashboard/groups" icon={Wallet} />
+          <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} waiting`} danger={inbox.unreadTotal > 0} href="/dashboard/inbox" icon={Mail} />
         </div>
 
         {/* My expenses — coach view of their own claims. Mirrors the admin
@@ -205,8 +206,8 @@ export async function CoachDashboard() {
               <div className="text-[10px] text-[var(--color-muted)]">paid back</div>
             </div>
           </div>
-          <Link href="/dashboard/expenses" className="rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]">
-            📷 File expense / mileage →
+          <Link href="/dashboard/expenses" className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]">
+            <Receipt className="h-4 w-4" aria-hidden />File expense / mileage
           </Link>
         </div>
 

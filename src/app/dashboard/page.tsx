@@ -1,4 +1,9 @@
 import Link from "next/link";
+import {
+  Users, ClipboardList, Banknote, Clock, Gauge, TrendingDown, TrendingUp,
+  Swords, Trophy, Target, HeartPulse, UserCog, Sparkles, ArrowRight, CheckCircle2,
+  type LucideIcon,
+} from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar, Dot } from "@/components/StatCard";
 import { getAcademy } from "@/lib/queries";
@@ -13,6 +18,23 @@ import type { DashboardKpi } from "@/lib/sports/types";
 export const dynamic = "force-dynamic";
 
 const SEV_COLOR = { high: "#f87171", medium: "#f59e0b", low: "#8a93a6" } as const;
+
+// One lucide glyph per KPI source — gives each stat card a quiet visual anchor
+// so the grid reads at a glance instead of as a wall of numbers.
+const KPI_ICON: Record<string, LucideIcon> = {
+  totalAthletes: Users,
+  activeApplications: ClipboardList,
+  seasonRevenue: Banknote,
+  pendingPayments: Clock,
+  budgetUsage: Gauge,
+  performanceAlerts: TrendingDown,
+  matchesThisSeason: Swords,
+  avgWinRate: Trophy,
+  avgFisProgression: TrendingUp,
+  avgFisPoints: Target,
+  injuredCount: HeartPulse,
+  activeCoachesCount: UserCog,
+};
 
 // Premium, focused Overview — 6 KPI cards + Today (AI) + Group distribution +
 // Recent activity. Anything deeper lives in its own module (Finance, Reports…).
@@ -39,8 +61,9 @@ export default async function OverviewPage() {
         title="Overview"
         subtitle={`${academy?.name ?? ""}${academy?.location ? " · " + academy.location : ""} · Season ${season}`}
         right={
-          <Link href="/dashboard/alerts" className="rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">
-            {d.alerts.length} alert{d.alerts.length === 1 ? "" : "s"} →
+          <Link href="/dashboard/alerts" className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">
+            {d.alerts.length} alert{d.alerts.length === 1 ? "" : "s"}
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </Link>
         }
       />
@@ -50,7 +73,9 @@ export default async function OverviewPage() {
         {d.alerts.length > 0 ? (
           <div className="card p-6">
             <div className="mb-2 flex items-center gap-2">
-              <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+              <span className="flex h-5 items-center gap-1 rounded px-1.5 text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>
+                <Sparkles className="h-3 w-3" aria-hidden />AI
+              </span>
               <h2 className="text-sm font-semibold">Today</h2>
             </div>
             <p className="text-sm text-[var(--color-muted)]">
@@ -64,18 +89,20 @@ export default async function OverviewPage() {
                     <span className="block truncate text-sm font-medium">{a.title}</span>
                     <span className="block truncate text-xs text-[var(--color-muted)]">{a.detail}</span>
                   </span>
-                  <span className="text-[var(--color-muted)] group-hover:text-[var(--color-accent)]">→</span>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-[var(--color-muted)] group-hover:text-[var(--color-accent)]" aria-hidden />
                 </Link>
               ))}
             </div>
             {d.alerts.length > 4 && (
-              <Link href="/dashboard/alerts" className="mt-3 inline-block text-xs text-[var(--color-accent)] hover:underline">See all {d.alerts.length} →</Link>
+              <Link href="/dashboard/alerts" className="mt-3 inline-flex items-center gap-1 text-xs text-[var(--color-accent)] hover:underline">See all {d.alerts.length}<ArrowRight className="h-3 w-3" aria-hidden /></Link>
             )}
           </div>
         ) : (
           <div className="card flex items-center gap-3 p-4 text-sm">
-            <span className="flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
-            <span className="text-[var(--color-fg)]/85">✓ You&apos;re all caught up. LEAF is auto-tracking {d.activeAthletes} athletes.</span>
+            <span className="flex h-5 items-center gap-1 rounded px-1.5 text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>
+              <Sparkles className="h-3 w-3" aria-hidden />AI
+            </span>
+            <span className="flex items-center gap-1.5 text-[var(--color-fg)]/85"><CheckCircle2 className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />You&apos;re all caught up. LEAF is auto-tracking {d.activeAthletes} athletes.</span>
           </div>
         )}
 
@@ -102,7 +129,7 @@ export default async function OverviewPage() {
               injuredCount: d.injuredCount,
               activeCoachesCount: d.activeCoachesCount,
             });
-            return <StatCard key={kpi.key} {...props} />;
+            return <StatCard key={kpi.key} {...props} icon={KPI_ICON[kpi.source]} />;
           })}
         </div>
 
@@ -111,7 +138,7 @@ export default async function OverviewPage() {
           <div className="card p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold">Group distribution</h2>
-              <Link href="/dashboard/groups" className="text-[11px] text-[var(--color-accent)] hover:underline">All groups →</Link>
+              <Link href="/dashboard/groups" className="inline-flex items-center gap-1 text-[11px] text-[var(--color-accent)] hover:underline">All groups<ArrowRight className="h-3 w-3" aria-hidden /></Link>
             </div>
             {d.groupDistribution.length === 0 ? (
               <p className="text-sm text-[var(--color-muted)]">No groups yet.</p>
@@ -133,7 +160,7 @@ export default async function OverviewPage() {
           <div className="card p-5">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold">Recent activity</h2>
-              <Link href="/dashboard/applications" className="text-[11px] text-[var(--color-accent)] hover:underline">All applications →</Link>
+              <Link href="/dashboard/applications" className="inline-flex items-center gap-1 text-[11px] text-[var(--color-accent)] hover:underline">All applications<ArrowRight className="h-3 w-3" aria-hidden /></Link>
             </div>
             {d.recentActivity.length === 0 ? (
               <p className="text-sm text-[var(--color-muted)]">No activity yet.</p>
