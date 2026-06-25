@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, FileText, Layers, UserCog, Wallet,
   BarChart3, CalendarDays, LayoutPanelLeft, Rows3, Trophy, Mail, Bell,
-  AlignJustify, Grid2x2, Tent, Inbox, LogOut, Timer, type LucideIcon,
+  AlignJustify, Grid2x2, Tent, Inbox, LogOut, Timer, Video, type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/app/auth-actions";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -79,6 +79,7 @@ const ADMIN_SECTIONS: NavSection[] = [
     // Ski-shaped season planner — calendar of camps + race plan.
     { href: "/dashboard/calendar", label: "Season Planner", icon: CalendarDays, sports: ["ski"] },
     { href: "/dashboard/results", label: "Tempi", icon: Timer, sports: ["ski"] },
+    { href: "/dashboard/video", label: "Analisi video", icon: Video },
     // Tennis Professional surfaces — cinematic athlete view + tournament-driven planner.
     { href: "/dashboard/canvas", label: "Athlete Canvas", icon: LayoutPanelLeft, sports: ["tennis", "padel"] },
     { href: "/dashboard/season", label: "Season View", icon: Rows3, sports: ["tennis", "padel"] },
@@ -126,6 +127,7 @@ const COACH_SECTIONS: NavSection[] = [
     { href: "/dashboard/programs", label: "Programmi", icon: ClipboardList },
     { href: "/dashboard/calendar", label: "Season Planner", icon: CalendarDays },
     { href: "/dashboard/results", label: "Tempi", icon: Timer },
+    { href: "/dashboard/video", label: "Analisi video", icon: Video },
   ] },
   { label: "Finance", items: [
     { href: "/dashboard/expenses", label: "My Expenses", icon: Wallet, feature: "featureFinance" },
