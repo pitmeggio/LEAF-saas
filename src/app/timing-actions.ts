@@ -5,21 +5,22 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/db";
 import { getSession, requireAcademyId } from "@/lib/auth";
 
-export type TimingImportRow = {
+export type TimingImportRun = {
   athleteId: string;
   bib?: string | null;
-  run1Ms?: number | null;
-  run2Ms?: number | null;
-  totalMs?: number | null;
-  rank?: number | null;
+  runNumber?: number | null;
+  finishMs?: number | null;
+  splitsMs?: number[];
+  status?: string | null;
 };
 export type TimingImportInput = {
   date: string; // yyyy-mm-dd
   kind: "training" | "race";
   discipline?: string | null;
   location?: string | null;
+  sessionLabel?: string | null;
   source?: string | null;
-  rows: TimingImportRow[];
+  runs: TimingImportRun[];
 };
 
 const intOrNull = (n: unknown): number | null =>
@@ -36,17 +37,17 @@ export async function importTimingResults(
   const date = new Date(input.date);
   if (isNaN(date.getTime())) return { ok: false, error: "Data non valida." };
 
-  const rows = (input.rows ?? []).filter((r) => r.athleteId);
-  if (rows.length === 0) return { ok: false, error: "Nessuna riga abbinata a un atleta." };
+  const runs = (input.runs ?? []).filter((r) => r.athleteId);
+  if (runs.length === 0) return { ok: false, error: "Nessuna riga abbinata a un atleta." };
 
-  // Only keep athletes actually enrolled in THIS academy (tenant safety).
-  const ids = [...new Set(rows.map((r) => r.athleteId))];
+  // Tenant safety — only athletes enrolled in THIS academy.
+  const ids = [...new Set(runs.map((r) => r.athleteId))];
   const enrolled = await prisma.enrollment.findMany({
     where: { academyId, athleteId: { in: ids } },
     select: { athleteId: true },
   });
   const okIds = new Set(enrolled.map((e) => e.athleteId));
-  const good = rows.filter((r) => okIds.has(r.athleteId));
+  const good = runs.filter((r) => okIds.has(r.athleteId));
   if (good.length === 0) return { ok: false, error: "Gli atleti abbinati non risultano in questa academy." };
 
   const batchId = randomUUID();
@@ -55,17 +56,18 @@ export async function importTimingResults(
     data: good.map((r) => ({
       academyId,
       athleteId: r.athleteId,
+      batchId,
       date,
       kind,
       discipline: input.discipline?.trim() || null,
       location: input.location?.trim() || null,
+      sessionLabel: input.sessionLabel?.trim() || null,
       bib: r.bib?.toString().trim() || null,
-      run1Ms: intOrNull(r.run1Ms),
-      run2Ms: intOrNull(r.run2Ms),
-      totalMs: intOrNull(r.totalMs),
-      rank: intOrNull(r.rank),
+      runNumber: intOrNull(r.runNumber),
+      finishMs: intOrNull(r.finishMs),
+      splitsMs: (r.splitsMs ?? []).map((x) => Math.round(x)).filter((x) => Number.isFinite(x) && x > 0),
+      status: r.status?.trim() || null,
       source: input.source?.trim() || "import",
-      batchId,
     })),
   });
 

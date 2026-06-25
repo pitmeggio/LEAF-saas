@@ -686,32 +686,27 @@ model Result {
   status     String   @default("finished") // finished | dnf | dns | dsq — powers DNF% analytics
 }
 
-// A single timing run/result imported from a stopwatch system (Microgate,
-// Brower, Alge, …). Times are stored in milliseconds for precision; the UI
-// formats them as mm:ss.SS. One import (a session file) shares a batchId so it
-// can be reviewed/undone as a unit. This is the rawest performance data — it
-// feeds the athlete's record at the source.
 model TimingResult {
   id         String   @id @default(cuid())
   academyId  String
   academy    Academy  @relation(fields: [academyId], references: [id])
   athleteId  String
   athlete    Athlete  @relation(fields: [athleteId], references: [id])
-  date       DateTime
-  kind       String   @default("training") // training | race
-  discipline String? // GS / SL / SG / DH
-  location   String?
-  bib        String?
-  run1Ms     Int? // run 1 time, milliseconds
-  run2Ms     Int? // run 2 time, milliseconds
-  totalMs    Int? // total (or best) time, milliseconds
-  rank       Int?
-  note       String?
-  source     String   @default("import") // microgate | brower | alge | csv | import
-  batchId    String? // groups one imported session file together
-  createdAt  DateTime @default(now())
+  batchId      String // the session this run belongs to (one imported file)
+  date         DateTime
+  kind         String   @default("training") // training | race
+  discipline   String? // Event — GS / SL / SG / DH
+  location     String? // Hill / venue
+  sessionLabel String? // e.g. "Session #202 · 2026-2027 Training"
+  bib          String?
+  runNumber    Int? // which run in the session (1, 2, 3 …)
+  finishMs     Int? // run finish time, milliseconds
+  splitsMs     Int[] // cumulative intermediate split times (ms), variable length
+  status       String? // "" | DNF | DNS | DSQ
+  source       String   @default("import") // splitsecond | brower | microgate | alge | csv
+  createdAt    DateTime @default(now())
 
-  @@index([academyId, date])
+  @@index([academyId, batchId])
   @@index([athleteId, date])
 }
 
