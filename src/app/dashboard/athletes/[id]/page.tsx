@@ -17,6 +17,8 @@ import { computePointsTrendByDiscipline } from "@/lib/ai/pointsTrend";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { deriveLevelSuggestions, type AthleteAiProfile } from "@/lib/ai/coachProfile";
 import { getActiveAthlete, getAssignmentOptions } from "@/lib/ops";
+import { getAthleteTimingResults } from "@/lib/timing";
+import { formatMs } from "@/lib/timingImport";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
@@ -35,6 +37,8 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
   if (!m) notFound();
   const opts = await getAssignmentOptions();
   const a = m.athlete;
+  // Imported stopwatch times (Microgate/Brower/Alge → /dashboard/results).
+  const timing = await getAthleteTimingResults(a.id, 12);
   // FIS multi-list snapshots — populated by syncAthleteFisHistory(). Empty
   // until the admin clicks "Sync from FIS" the first time. We never seed
   // these rows from any other source: an empty array = no data, full stop.
@@ -304,6 +308,33 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
               isAdmin={s.isAdmin ?? false}
               canWrite={Boolean(s.coachId)}
             />
+          )}
+
+          {/* Stopwatch times — imported from the timing system */}
+          {timing.length > 0 && (
+            <div className="card overflow-hidden">
+              <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+                <h3 className="text-sm font-semibold">Tempi cronometro</h3>
+                <Link href="/dashboard/results" className="text-[11px] text-[var(--color-accent)] hover:underline">Importa →</Link>
+              </div>
+              <table className="w-full text-sm">
+                <thead><tr className="text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
+                  <th className="px-5 py-3 font-medium">Data</th><th className="px-3 py-3 font-medium">Sessione</th>
+                  <th className="px-3 py-3 text-right font-medium">R1</th><th className="px-3 py-3 text-right font-medium">R2</th><th className="px-5 py-3 text-right font-medium">Totale</th>
+                </tr></thead>
+                <tbody>
+                  {timing.map((t) => (
+                    <tr key={t.id} className="border-t border-[var(--color-border)]">
+                      <td className="px-5 py-3 text-[var(--color-muted)]">{fmtDate(t.date)}</td>
+                      <td className="px-3 py-3">{t.kind === "race" ? "🏁 Gara" : "🎿 All."}{t.discipline ? ` · ${t.discipline}` : ""}</td>
+                      <td className="num px-3 py-3 text-right text-[var(--color-muted)]">{formatMs(t.run1Ms)}</td>
+                      <td className="num px-3 py-3 text-right text-[var(--color-muted)]">{formatMs(t.run2Ms)}</td>
+                      <td className="num px-5 py-3 text-right font-semibold">{formatMs(t.totalMs)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
 
           {/* Recent results */}
