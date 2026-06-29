@@ -1,5 +1,7 @@
 import { PageHeader } from "@/components/PageHeader";
 import { PercentBar } from "@/components/StatCard";
+import { SeasonPnLReport } from "@/components/SeasonPnLReport";
+import { getSeasonPnL } from "@/lib/seasonPnL";
 import { getActiveAthletes, getFinance, getGroupsWithStats, getDocumentsData, getSeasonReport, type SeasonReport } from "@/lib/ops";
 import { getAcademy } from "@/lib/queries";
 import { requireAdmin } from "@/lib/auth";
@@ -10,7 +12,7 @@ import { previousSeason, trailingSeasons } from "@/lib/season";
 export const dynamic = "force-dynamic";
 
 export default async function ReportsPage() {
-  await requireAdmin();
+  const session = await requireAdmin();
   const active = await getActiveSeason();
   const prior = previousSeason(active);
   const trendSeasons = trailingSeasons(active, 4);
@@ -25,6 +27,8 @@ export default async function ReportsPage() {
     getSeasonReport(prior),
     Promise.all(trendSeasons.map((s) => getSeasonReport(s))),
   ]);
+
+  const pnl = await getSeasonPnL(session.academyId!, active, academy?.sport ?? "ski");
 
   const perf = {
     improving: members.filter((m) => m.perf === "improving").length,
@@ -43,6 +47,9 @@ export default async function ReportsPage() {
         subtitle={`Season ${active} vs ${prior} · auto-generated ${fmtDate(new Date())}`}
       />
       <div className="space-y-6 p-8">
+        {/* Season P&L — rendiconto economico della stagione */}
+        <SeasonPnLReport data={pnl} />
+
         {/* Year-over-year comparison — the report's headline */}
         <Section title={`Season comparison · ${active} vs ${prior}`} subtitle="growth across the metrics that move the academy">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
