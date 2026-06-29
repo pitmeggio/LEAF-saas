@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireAcademyId } from "@/lib/auth";
+import { analyzeSession } from "@/lib/timingAnalysis";
 
 const ACTIVE = ["active", "accepted", "injured", "paused"];
 
@@ -76,6 +77,36 @@ export async function getAthleteSessions(athleteId: string, take = 12) {
     if (r.finishMs != null && (g.bestMs == null || r.finishMs < g.bestMs)) g.bestMs = r.finishMs;
   }
   return [...map.values()].slice(0, take);
+}
+
+// Sector tendency across an athlete's recent sessions: where do they
+// consistently lose time vs the field? For each session we compute the
+// athlete's per-sector loss (their sector time − the field's best in that
+// sector) and average it across sessions. Surfaces the chronic weak sector —
+// coaching intelligence no club gestionale can produce.
+export async function getAthleteSectorTendency(athleteId: string, take = 6) {
+  const sessions = await getAthleteSessions(athleteId, take);
+  const perSession: number[][] = [];
+  let sectorCount = 0;
+  for (const s of sessions) {
+    const full = await getSessionForAthlete(s.batchId, athleteId);
+    if (!full) continue;
+    const a = analyzeSession(full.runs);
+    const me = a.leaders.find((l) => l.athleteId === athleteId);
+    if (!me || a.sectorCount < 2) continue;
+    const losses = me.sectors.map((t, i) => Math.max(0, t - (a.bestSectors[i] ?? t)));
+    sectorCount = Math.max(sectorCount, losses.length);
+    perSession.push(losses);
+  }
+  if (perSession.length === 0 || sectorCount < 2) return null;
+  const avg: number[] = [];
+  for (let i = 0; i < sectorCount; i++) {
+    const vals = perSession.map((l) => l[i]).filter((x): x is number => typeof x === "number");
+    avg.push(vals.length ? vals.reduce((x, y) => x + y, 0) / vals.length : 0);
+  }
+  let worst = 0, best = 0;
+  for (let i = 1; i < avg.length; i++) { if (avg[i] > avg[worst]) worst = i; if (avg[i] < avg[best]) best = i; }
+  return { sessions: perSession.length, sectorCount, avgLossBySector: avg, worstSector: worst + 1, worstAvgMs: avg[worst], bestSector: best + 1 };
 }
 
 // One session's runs, but ONLY if this athlete participated (privacy). The

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/PageHeader";
 import { Avatar, Verified } from "@/components/ui";
-import { Dot } from "@/components/StatCard";
+import { Dot, PercentBar } from "@/components/StatCard";
 import { GrowthChart, type Point } from "@/components/GrowthChart";
 import { ManagePanel, NotesEditor, DocumentControl } from "@/components/MemberControls";
 import { PublicProfilePanel } from "@/components/PublicProfilePanel";
@@ -17,7 +17,7 @@ import { computePointsTrendByDiscipline } from "@/lib/ai/pointsTrend";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { deriveLevelSuggestions, type AthleteAiProfile } from "@/lib/ai/coachProfile";
 import { getActiveAthlete, getAssignmentOptions } from "@/lib/ops";
-import { getAthleteTimingRuns } from "@/lib/timing";
+import { getAthleteTimingRuns, getAthleteSectorTendency } from "@/lib/timing";
 import { formatMs } from "@/lib/timingImport";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -39,6 +39,8 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
   const a = m.athlete;
   // Imported stopwatch runs (Split Second/Brower/Microgate → /dashboard/results).
   const timing = await getAthleteTimingRuns(a.id, 40);
+  // Where does this athlete consistently lose time across recent sessions?
+  const sectorTendency = timing.length > 0 ? await getAthleteSectorTendency(a.id) : null;
   // FIS multi-list snapshots — populated by syncAthleteFisHistory(). Empty
   // until the admin clicks "Sync from FIS" the first time. We never seed
   // these rows from any other source: an empty array = no data, full stop.
@@ -340,6 +342,35 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                     ))}
                   </tbody>
                 </table>
+              </div>
+            );
+          })()}
+
+          {/* Sector tendency — chronic weak sector across recent sessions */}
+          {sectorTendency && (() => {
+            const maxLoss = Math.max(...sectorTendency.avgLossBySector, 1);
+            return (
+              <div className="card p-5">
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="flex h-5 items-center rounded px-1.5 text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
+                  <h3 className="text-sm font-semibold">Tendenza settori</h3>
+                  <span className="text-[11px] text-[var(--color-muted)]">ultimi {sectorTendency.sessions} allenamenti</span>
+                </div>
+                <p className="text-sm text-[var(--color-fg)]/85">
+                  Tende a perdere di più nel <span className="font-semibold text-[#f87171]">settore {sectorTendency.worstSector}</span> (media +{(sectorTendency.worstAvgMs / 1000).toFixed(2)}s dal migliore del gruppo).
+                  {sectorTendency.bestSector !== sectorTendency.worstSector && <> Più solido nel settore {sectorTendency.bestSector}.</>}
+                </p>
+                <div className="mt-3 space-y-2">
+                  {sectorTendency.avgLossBySector.map((ms, i) => (
+                    <div key={i}>
+                      <div className="mb-0.5 flex items-center justify-between text-[11px]">
+                        <span>Settore {i + 1}</span>
+                        <span className="num text-[var(--color-muted)]">+{(ms / 1000).toFixed(2)}s</span>
+                      </div>
+                      <PercentBar value={(ms / maxLoss) * 100} color={i + 1 === sectorTendency.worstSector ? "#f87171" : "var(--color-accent)"} />
+                    </div>
+                  ))}
+                </div>
               </div>
             );
           })()}
