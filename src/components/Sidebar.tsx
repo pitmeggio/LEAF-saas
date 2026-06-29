@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, FileText, Layers, UserCog, Wallet,
   BarChart3, CalendarDays, LayoutPanelLeft, Rows3, Trophy, Mail, Bell,
-  AlignJustify, Grid2x2, Tent, Inbox, LogOut, Timer, Video, type LucideIcon,
+  AlignJustify, Grid2x2, Tent, Inbox, LogOut, Timer, Video, FolderOpen, type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/app/auth-actions";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -81,6 +81,7 @@ const ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard/results", label: "Tempi", icon: Timer, sports: ["ski"] },
     { href: "/dashboard/video", label: "Analisi video", icon: Video },
     // Tennis Professional surfaces — cinematic athlete view + tournament-driven planner.
+    { href: "/dashboard/dossier", label: "Dossier", icon: FolderOpen, sports: ["tennis", "padel"] },
     { href: "/dashboard/canvas", label: "Athlete Canvas", icon: LayoutPanelLeft, sports: ["tennis", "padel"] },
     { href: "/dashboard/season", label: "Season View", icon: Rows3, sports: ["tennis", "padel"] },
     { href: "/dashboard/tournaments", label: "Tournaments", icon: Trophy, sports: ["tennis", "padel"] },
