@@ -2,7 +2,7 @@
 //
 // Setup:
 //   • Academy "Sport Team Padova", sport=tennis, tier=complete, currency=EUR
-//   • Max Costanzi as head coach + admin user
+//   • Max Zanardi as head coach + admin user
 //   • 9 athletes from Max's CALENDARI TORNEI.xlsx (Tommaso, Gabriele,
 //     Pietro, Gianluca, Alberto, Isabella, Laura, Ventura, Gaffo).
 //   • The full TennisTournament catalogue (~154 events) parsed once.
@@ -45,7 +45,7 @@ async function main() {
       tier: "complete",
       currency: "EUR",
       tagline: "Federazione Italiana Tennis · Elite Junior Programme",
-      description: "Tennis academy in Veneto with full junior pipeline — ETA, ITF Junior, FIT national circuits. Head coach: Max Costanzi.",
+      description: "Tennis academy in Veneto with full junior pipeline — ETA, ITF Junior, FIT national circuits. Head coach: Max Zanardi.",
       status: "active",
       plan: "ELITE",
       season: "2026",
@@ -60,7 +60,7 @@ async function main() {
       tier: "complete",
       currency: "EUR",
       tagline: "Federazione Italiana Tennis · Elite Junior Programme",
-      description: "Tennis academy in Veneto with full junior pipeline — ETA, ITF Junior, FIT national circuits. Head coach: Max Costanzi.",
+      description: "Tennis academy in Veneto with full junior pipeline — ETA, ITF Junior, FIT national circuits. Head coach: Max Zanardi.",
       status: "active",
       plan: "ELITE",
       season: "2026",
@@ -72,11 +72,11 @@ async function main() {
   console.log("→ Upserting Max (head coach + admin)…");
   const headCoach = await prisma.coach.upsert({
     where: { id: `seed_sportteam_head_${academy.id}` },
-    update: { name: "Max Costanzi", role: "head_coach", specialization: "ITF junior / FIT national", cost: 4500 },
+    update: { name: "Max Zanardi", role: "head_coach", specialization: "ITF junior / FIT national", cost: 4500 },
     create: {
       id: `seed_sportteam_head_${academy.id}`,
       academyId: academy.id,
-      name: "Max Costanzi",
+      name: "Max Zanardi",
       role: "head_coach",
       specialization: "ITF junior / FIT national",
       cost: 4500,
@@ -87,8 +87,8 @@ async function main() {
   const passwordHash = await bcrypt.hash(pwd, 10);
   await prisma.user.upsert({
     where: { email: MAX_EMAIL },
-    update: { name: "Max Costanzi", role: "academy_admin", academyId: academy.id, coachId: headCoach.id, passwordHash },
-    create: { email: MAX_EMAIL, name: "Max Costanzi", role: "academy_admin", academyId: academy.id, coachId: headCoach.id, passwordHash },
+    update: { name: "Max Zanardi", role: "academy_admin", academyId: academy.id, coachId: headCoach.id, passwordHash },
+    create: { email: MAX_EMAIL, name: "Max Zanardi", role: "academy_admin", academyId: academy.id, coachId: headCoach.id, passwordHash },
   });
   console.log(`  ✓ Max login: ${MAX_EMAIL} / ${pwd}`);
 
