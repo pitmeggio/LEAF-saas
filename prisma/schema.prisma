@@ -1171,10 +1171,12 @@ model CourtBooking {
   status       String   @default("confirmed")
   paidAmount   Int      @default(0)
   createdById  String?
+  seriesId     String? // groups a weekly-recurring series so it can be edited/deleted together
   createdAt    DateTime @default(now())
 
   @@index([academyId, startAt])
   @@index([courtId, startAt])
+  @@index([seriesId])
 }
 
 model TennisCamp {

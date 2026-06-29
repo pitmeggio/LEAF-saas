@@ -3,6 +3,7 @@
 // LEAF OS Essential Tennis — facility + court + camp CRUD. Mirrors
 // line-actions.ts (Slope/Line/LineBooking) one-to-one but tennis-shaped.
 
+import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
@@ -101,6 +102,89 @@ export async function deleteCamp(id: string): Promise<Result> {
   await prisma.tennisCamp.delete({ where: { id } });
   rev();
   return { ok: true };
+}
+
+// ── Court bookings (the weekly grid) ───────────────────────────────────────
+const BK_TYPES = ["lesson", "course", "member", "maintenance"];
+
+async function bookingConflicts(academyId: string, courtId: string, startAt: Date, endAt: Date, excludeId?: string) {
+  const clash = await prisma.courtBooking.findFirst({
+    where: { academyId, courtId, ...(excludeId ? { id: { not: excludeId } } : {}), startAt: { lt: endAt }, endAt: { gt: startAt } },
+    select: { id: true },
+  });
+  return !!clash;
+}
+
+function dayBaseUTC(dateISO: string): number | null {
+  const m = dateISO.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+}
+
+export type CreateCourtBookingInput = {
+  courtId: string; dateISO: string; startMin: number; endMin: number;
+  type: string; title?: string; groupId?: string; repeatWeeks?: number;
+};
+
+export async function createCourtBooking(
+  input: CreateCourtBookingInput,
+): Promise<{ ok: boolean; error?: string; created?: number; skipped?: number }> {
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false, error: "Nessuna academy in sessione." };
+  if (!input.courtId || !(input.endMin > input.startMin)) return { ok: false, error: "Slot non valido." };
+  const base0 = dayBaseUTC(input.dateISO);
+  if (base0 == null) return { ok: false, error: "Data non valida." };
+  const type = BK_TYPES.includes(input.type) ? input.type : "lesson";
+  const repeats = Math.max(1, Math.min(52, Math.round(input.repeatWeeks ?? 1)));
+  const seriesId = repeats > 1 ? randomUUID() : null;
+
+  let created = 0, skipped = 0;
+  for (let w = 0; w < repeats; w++) {
+    const base = base0 + w * 7 * 86_400_000;
+    const startAt = new Date(base + input.startMin * 60_000);
+    const endAt = new Date(base + input.endMin * 60_000);
+    if (await bookingConflicts(s.academyId, input.courtId, startAt, endAt)) { skipped++; continue; }
+    await prisma.courtBooking.create({
+      data: { academyId: s.academyId, courtId: input.courtId, groupId: input.groupId || null, startAt, endAt, discipline: type, label: input.title?.trim() || null, seriesId },
+    });
+    created++;
+  }
+  rev();
+  if (created === 0) return { ok: false, error: "Slot già occupato." };
+  return { ok: true, created, skipped };
+}
+
+// Move / resize a single booking (drag).
+export async function moveCourtBooking(input: {
+  id: string; courtId: string; dateISO: string; startMin: number; endMin: number;
+}): Promise<{ ok: boolean; error?: string }> {
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false, error: "Nessuna academy in sessione." };
+  if (!(input.endMin > input.startMin)) return { ok: false, error: "Slot non valido." };
+  const base = dayBaseUTC(input.dateISO);
+  if (base == null) return { ok: false, error: "Data non valida." };
+  const startAt = new Date(base + input.startMin * 60_000);
+  const endAt = new Date(base + input.endMin * 60_000);
+  if (await bookingConflicts(s.academyId, input.courtId, startAt, endAt, input.id)) return { ok: false, error: "Slot già occupato." };
+  await prisma.courtBooking.updateMany({ where: { academyId: s.academyId, id: input.id }, data: { courtId: input.courtId, startAt, endAt } });
+  rev();
+  return { ok: true };
+}
+
+export async function deleteCourtBooking(id: string): Promise<{ ok: boolean }> {
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false };
+  await prisma.courtBooking.deleteMany({ where: { academyId: s.academyId, id } });
+  rev();
+  return { ok: true };
+}
+
+export async function deleteCourtSeries(seriesId: string): Promise<{ ok: boolean; count?: number }> {
+  const s = await requireAdmin();
+  if (!s.academyId || !seriesId) return { ok: false };
+  const r = await prisma.courtBooking.deleteMany({ where: { academyId: s.academyId, seriesId } });
+  rev();
+  return { ok: true, count: r.count };
 }
 
 // Public registration (no auth) — parent fills, system holds pending.
