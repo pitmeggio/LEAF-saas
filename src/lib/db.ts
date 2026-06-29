@@ -29,7 +29,16 @@ export const prisma =
   new PrismaClient({
     // ssl.rejectUnauthorized=false: Supabase's pooler presents a cert chain Node
     // doesn't trust by default; the connection is still TLS-encrypted.
-    adapter: new PrismaPg({ connectionString: getConnectionString(), ssl: { rejectUnauthorized: false } }),
+    // max + idleTimeoutMillis: Supabase's session pooler caps total clients
+    // (pool_size 15). Keep each app instance's pg pool small and let idle
+    // connections drain fast so a dev restart (or a second instance) can't
+    // exhaust the shared limit and 404/500 every data route.
+    adapter: new PrismaPg({
+      connectionString: getConnectionString(),
+      ssl: { rejectUnauthorized: false },
+      max: 5,
+      idleTimeoutMillis: 10_000,
+    }),
   });
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;

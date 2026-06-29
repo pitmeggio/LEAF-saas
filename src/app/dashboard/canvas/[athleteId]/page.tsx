@@ -8,6 +8,8 @@ import { AiCopilotLeaf } from "@/components/AiCopilotLeaf";
 import { TennisRankingCard } from "@/components/TennisRankingCard";
 import { getTennisRankingMode } from "@/lib/tennis/ranking";
 import { getAthleteTennisRankings } from "@/lib/tennis/rankingRead";
+import { StaffDossier } from "@/components/StaffDossier";
+import { getAthleteDossier } from "@/lib/tennis/dossier";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +32,7 @@ export default async function AthleteCanvasPage({ params }: { params: Promise<{ 
   const { athlete, academy, season, entries, phaseBands, upcoming, totals, narrative } = canvas;
   const rankings = await getAthleteTennisRankings(athleteId);
   const rankingMode = getTennisRankingMode();
+  const dossier = await getAthleteDossier(athleteId);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#06070a] text-[var(--color-fg)]">
@@ -114,6 +117,11 @@ export default async function AthleteCanvasPage({ params }: { params: Promise<{ 
       {/* RANKING — FIT / ITF / ATP trajectory + import-by-code */}
       <section className="relative z-10 px-8 pb-6 md:px-14">
         <TennisRankingCard athleteId={athlete.id} accent={academy.logoColor} data={rankings} mode={rankingMode} />
+      </section>
+
+      {/* STAFF DOSSIER — the single portal for all staff files + evaluation trend */}
+      <section className="relative z-10 px-8 pb-6 md:px-14">
+        <StaffDossier athleteId={athlete.id} athleteName={athlete.firstName} accent={academy.logoColor} data={dossier} />
       </section>
 
       {/* UPCOMING + STATS strip */}

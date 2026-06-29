@@ -111,6 +111,7 @@ model Academy {
   tennisCamps      TennisCamp[]
   tennisTournaments TennisTournament[]
   tennisSeasonPlans TennisSeasonPlan[]
+  athleteFiles      AthleteFile[]
   createdAt     DateTime       @default(now())
 }
 
@@ -356,6 +357,7 @@ model User {
   expenseEvents ExpenseEvent[]
   createdCalendarEvents CalendarEvent[] @relation("CalendarCreator")
   authoredCoachNotes CoachNote[] @relation("CoachNoteAuthor")
+  authoredAthleteFiles AthleteFile[] @relation("AthleteFileAuthor")
   createdAt DateTime @default(now())
 }
 
@@ -589,6 +591,7 @@ model Athlete {
   conversations   Conversation[]
   users           User[]
   coachNotes      CoachNote[]
+  athleteFiles    AthleteFile[]
 
   // Living athlete profile maintained by the Coach Intelligence engine.
   // Shape is intentionally Json — the structurer evolves per sport, so the
@@ -690,6 +693,47 @@ model Result {
   rank       Int // finishing place (ignored when status != finished)
   fisPoints  Float
   status     String   @default("finished") // finished | dnf | dns | dsq — powers DNF% analytics
+}
+
+// LEAF — Staff Dossier. The per-athlete shared file hub: every staff member
+// (maestro, preparatore atletico, mental, fisio, admin) drops the files they
+// already use — match reports, fitness sheets, their OWN evaluation grids,
+// scouting PDFs — onto one athlete, so nobody hunts through scattered files
+// and everyone reads the same performance story.
+//
+// Storage: file bytes live in Postgres (bytea, like Document) so upload works
+// with zero extra infra; a paste-link (Drive/YouTube) is the no-binary
+// alternative. An optional `score` turns a row into a tracked evaluation —
+// the dossier draws the performance trend from those over `observedAt`.
+model AthleteFile {
+  id          String   @id @default(cuid())
+  academyId   String
+  academy     Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  athleteId   String
+  athlete     Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  // Authorship — who on staff contributed it.
+  authorId    String?
+  author      User?    @relation("AthleteFileAuthor", fields: [authorId], references: [id])
+  authorName  String   // denormalized display name (survives author deletion)
+  authorRole  String?  // free label: "Maestro", "Preparatore atletico", "Mental", "Fisio"
+  // What kind of contribution.
+  category    String   @default("file") // evaluation | match_report | physical | medical | video | scouting | file
+  title       String
+  note        String?  // free comment so staff communicate ("rovescio in palla alta da migliorare")
+  // Optional headline score → builds the performance trend. scoreScale = the
+  // max (e.g. 10 or 100) so different staff scales render consistently.
+  score       Float?
+  scoreScale  Int?
+  observedAt  DateTime // the date the observation/evaluation refers to (trend x-axis)
+  // In-Postgres file (bytea) OR a pasted external link — either/both optional.
+  fileName    String?
+  fileMime    String?
+  fileSize    Int?
+  fileData    Bytes?
+  fileUrl     String?
+  createdAt   DateTime @default(now())
+
+  @@index([academyId, athleteId, observedAt])
 }
 
 // Tennis ranking observation — one row per (athlete, source, date). The
