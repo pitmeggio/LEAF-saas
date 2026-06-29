@@ -27,6 +27,8 @@ const TOOLS = [
   { key: "line", label: "Linea" },
   { key: "arrow", label: "Freccia" },
   { key: "angle", label: "Angolo" },
+  { key: "vguide", label: "Vert." },
+  { key: "hguide", label: "Orizz." },
   { key: "free", label: "Libero" },
 ];
 const COLORS = ["#ff3b30", "#ffcc00", "#34c759", "#0a84ff", "#ffffff"];
@@ -37,6 +39,8 @@ function ToolIcon({ k }) {
   if (k === "line") return (<svg {...c}><line x1="4" y1="20" x2="20" y2="4" /></svg>);
   if (k === "arrow") return (<svg {...c}><line x1="4" y1="20" x2="18" y2="6" /><path d="M18 6l-6 0M18 6l0 6" /></svg>);
   if (k === "angle") return (<svg {...c}><path d="M5 4v15h15" /><path d="M5 13a6 6 0 0 0 6 6" /></svg>);
+  if (k === "vguide") return (<svg {...c}><line x1="12" y1="3" x2="12" y2="21" /></svg>);
+  if (k === "hguide") return (<svg {...c}><line x1="3" y1="12" x2="21" y2="12" /></svg>);
   if (k === "free") return (<svg {...c}><path d="M4 17c2.5-5 4 3 6.5-1.5S14 11 16 13s2.5-1 4-5" /></svg>);
   return null;
 }
@@ -60,6 +64,15 @@ function drawShapesOnCtx(ctx, shapes, rect, lw) {
     ctx.lineWidth = lw;
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
+
+    if (sh.tool === "vguide") {
+      ctx.beginPath(); ctx.moveTo(P[0].x, rect.y); ctx.lineTo(P[0].x, rect.y + rect.h); ctx.stroke();
+      continue;
+    }
+    if (sh.tool === "hguide") {
+      ctx.beginPath(); ctx.moveTo(rect.x, P[0].y); ctx.lineTo(rect.x + rect.w, P[0].y); ctx.stroke();
+      continue;
+    }
 
     if (sh.tool === "angle") {
       const v = P[0];
@@ -360,7 +373,7 @@ export default function VideoCompare() {
             <button key={c} className={`sw ${color === c ? "on" : ""}`} style={{ background: c }} onClick={() => setColor(c)} aria-label={`Colore ${c}`} />
           ))}
         </div>
-        <span className="hint">{tool === "none" ? "Scegli uno strumento e disegna sul video" : tool === "angle" ? "Tocca 3 punti: vertice, poi le due estremità" : "Trascina sul video per disegnare"}</span>
+        <span className="hint">{tool === "none" ? "Scegli uno strumento e disegna sul video" : tool === "angle" ? "Tocca 3 punti: vertice, poi le due estremità" : tool === "vguide" || tool === "hguide" ? "Tocca per posizionare la linea guida" : "Trascina sul video per disegnare"}</span>
       </div>
 
       <div className={`vc-stage ${layout}`}>
@@ -567,7 +580,8 @@ function ClipPane({ accent, src, videoRef, time, dur, disabled, tool, color, sha
     }
     const d = drawingRef.current;
     drawingRef.current = null;
-    if (d && d.pts.length >= 2) onShapes([...shapes, d]);
+    const isGuide = d && (d.tool === "vguide" || d.tool === "hguide");
+    if (d && (d.pts.length >= 2 || isGuide)) onShapes([...shapes, d]);
     else redraw();
   };
   const clearAll = () => { angleRef.current = null; cursorRef.current = null; onShapes([]); };
