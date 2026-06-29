@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { Users, Layers, TrendingUp, Gauge, Wallet, Mail, Bell, Activity, Sparkles, ArrowRight, Receipt } from "lucide-react";
+import { Users, Layers, TrendingUp, Gauge, Wallet, Mail, Bell, Activity, Sparkles, ArrowRight, Receipt, Timer } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar, Dot } from "@/components/StatCard";
 import { PulseGauge, type PulseStatus } from "@/components/PulseGauge";
 import { Avatar, TrendArrow } from "@/components/ui";
 import { getActiveAthletes, getGroupsWithStats, computeAlerts, getExpenses, getAcademyCurrency, getCoachIntelligenceSummary } from "@/lib/ops";
+import { getRecentTimingSessions } from "@/lib/timing";
+import { formatMs } from "@/lib/timingImport";
 import { getInboxStats } from "@/lib/chat";
 import { getSession } from "@/lib/auth";
-import { fmtMoney, DISCIPLINE_LABEL, age } from "@/lib/domain";
+import { fmtMoney, fmtDate, DISCIPLINE_LABEL, age } from "@/lib/domain";
 import { deriveCoachSummary } from "@/lib/ai/coachSummary";
 
 const SEV_COLOR = { high: "#f87171", medium: "#f59e0b", low: "#8a93a6" } as const;
@@ -16,7 +18,7 @@ const KIND_COLOR = { strength: "var(--color-accent)", watch: "#f59e0b", info: "v
 export async function CoachDashboard() {
   const s = await getSession();
   const coachId = s?.coachId ?? null;
-  const [members, groups, alerts, exp, inbox, currency, intel] = await Promise.all([
+  const [members, groups, alerts, exp, inbox, currency, intel, timingSessions] = await Promise.all([
     getActiveAthletes(coachId),
     getGroupsWithStats(coachId),
     computeAlerts(coachId),
@@ -24,6 +26,7 @@ export async function CoachDashboard() {
     getInboxStats(),
     getAcademyCurrency(),
     getCoachIntelligenceSummary(coachId),
+    getRecentTimingSessions(4),
   ]);
 
   const improving = members.filter((m) => m.perf === "improving").length;
@@ -213,6 +216,33 @@ export async function CoachDashboard() {
           <StatCard label="Budget remaining" value={fmtMoney(remainingBudget, currency)} danger={remainingBudget < 0} href="/dashboard/groups" icon={Wallet} />
           <StatCard label="Unread messages" value={String(inbox.unreadTotal)} hint={`${inbox.waiting} waiting`} danger={inbox.unreadTotal > 0} href="/dashboard/inbox" icon={Mail} />
         </div>
+
+        {/* Latest timed sessions — straight from the import, one tap to the
+            sector analysis. Hidden until the coach imports a stopwatch file. */}
+        {timingSessions.length > 0 && (
+          <div className="card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-4">
+              <h2 className="flex items-center gap-2 text-sm font-semibold"><Timer className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />Ultimi tempi</h2>
+              <Link href="/dashboard/results" className="text-xs text-[var(--color-accent)] hover:underline">Tutti →</Link>
+            </div>
+            <div className="divide-y divide-[var(--color-border)]">
+              {timingSessions.slice(0, 4).map((sess) => {
+                const fins = sess.runs.map((r) => r.finishMs).filter((x): x is number => x != null);
+                const best = fins.length ? Math.min(...fins) : null;
+                const athletes = new Set(sess.runs.map((r) => r.athleteId)).size;
+                return (
+                  <Link key={sess.batchId} href={`/dashboard/results/${sess.batchId}`} className="flex items-center justify-between gap-3 px-5 py-3 hover:bg-[var(--color-surface-2)]">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{fmtDate(sess.date)}{sess.discipline ? ` · ${sess.discipline}` : ""}{sess.location ? ` · ${sess.location}` : ""}</div>
+                      <div className="text-[11px] text-[var(--color-muted)]">{athletes} atleti · miglior tempo {formatMs(best)}</div>
+                    </div>
+                    <span className="shrink-0 text-xs text-[var(--color-accent)]">Analizza →</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* My expenses — coach view of their own claims. Mirrors the admin
             expense KPIs so the coach tracks what's awaiting approval and what
