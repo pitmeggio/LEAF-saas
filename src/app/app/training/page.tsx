@@ -4,6 +4,8 @@ import { requireAthleteId } from "@/lib/auth";
 import { getAthleteWorkspace } from "@/lib/athleteWorkspace";
 import { getCalendarEvents } from "@/lib/calendar";
 import { getAthletePrograms } from "@/lib/programs";
+import { getAthleteSessions } from "@/lib/timing";
+import { formatMs } from "@/lib/timingImport";
 import { programKindLabel } from "@/lib/trainingProgram";
 import { prisma } from "@/lib/db";
 import { fmtDate } from "@/lib/domain";
@@ -19,9 +21,10 @@ export default async function AppTraining() {
   if (!w) redirect("/login");
 
   const enr = await prisma.enrollment.findFirst({ where: { athleteId }, select: { academyId: true } });
-  const [events, programs] = await Promise.all([
+  const [events, programs, sessions] = await Promise.all([
     enr ? getCalendarEvents({ kind: "athlete", academyId: enr.academyId, athleteId }, { upcomingOnly: true }) : Promise.resolve([]),
     getAthletePrograms(athleteId),
+    getAthleteSessions(athleteId),
   ]);
 
   return (
@@ -39,6 +42,26 @@ export default async function AppTraining() {
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium">{p.title || p.place || programKindLabel(p.kind)}</div>
                 <div className="text-[11px] text-[var(--color-muted)]">{fmtDate(p.date)}{p.discipline ? ` · ${p.discipline}` : ""}</div>
+              </div>
+              <span className="text-[var(--color-accent)]">→</span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {/* Your timed sessions — tap to see your rank + where you lost */}
+      {sessions.length > 0 && (
+        <div className="mb-5 space-y-2">
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-[var(--color-muted)]">I tuoi tempi</div>
+          {sessions.map((s) => (
+            <Link key={s.batchId} href={`/app/sessions/${s.batchId}`} className="card card-hover flex items-center gap-3 p-4">
+              <span className="text-xl" aria-hidden>{s.kind === "race" ? "🏁" : "⏱"}</span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">
+                  {s.bestMs != null ? formatMs(s.bestMs) : "—"}
+                  <span className="ml-2 text-[11px] font-normal text-[var(--color-muted)]">{s.runs} giri</span>
+                </div>
+                <div className="text-[11px] text-[var(--color-muted)]">{fmtDate(s.date)}{s.discipline ? ` · ${s.discipline}` : ""}{s.location ? ` · ${s.location}` : ""}</div>
               </div>
               <span className="text-[var(--color-accent)]">→</span>
             </Link>
