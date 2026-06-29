@@ -4,6 +4,8 @@ import { requireAthleteId } from "@/lib/auth";
 import { getAthleteWorkspace } from "@/lib/athleteWorkspace";
 import { getCalendarEvents } from "@/lib/calendar";
 import { getLatestPublishedProgram } from "@/lib/programs";
+import { getAthleteSessions } from "@/lib/timing";
+import { formatMs } from "@/lib/timingImport";
 import { programKindLabel } from "@/lib/trainingProgram";
 import { prisma } from "@/lib/db";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -31,6 +33,7 @@ export default async function AppHome() {
     ? (await getCalendarEvents({ kind: "athlete", academyId: enr.academyId, athleteId }, { upcomingOnly: true })).slice(0, 3)
     : [];
   const latestProgram = await getLatestPublishedProgram(athleteId);
+  const lastSession = (await getAthleteSessions(athleteId, 1))[0] ?? null;
 
   const initials = `${w.firstName[0] ?? ""}${w.lastName[0] ?? ""}`.toUpperCase();
 
@@ -74,6 +77,18 @@ export default async function AppHome() {
         </div>
       ) : (
         <div className="card mb-4 p-4 text-sm text-[var(--color-muted)]">Non sei ancora collegato a un&apos;academy.</div>
+      )}
+
+      {/* Last timed session → tap to see rank + where you lost */}
+      {lastSession && (
+        <Link href={`/app/sessions/${lastSession.batchId}`} className="card card-hover mb-4 flex items-center justify-between p-4">
+          <div>
+            <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Ultima sessione{lastSession.discipline ? ` · ${lastSession.discipline}` : ""}</div>
+            <div className="num text-2xl font-bold">{lastSession.bestMs != null ? formatMs(lastSession.bestMs) : "—"}</div>
+            <div className="text-[11px] text-[var(--color-muted)]">{fmtDate(lastSession.date)} · classifica &amp; settori</div>
+          </div>
+          <span className="shrink-0 text-sm text-[var(--color-accent)]">Dove hai perso →</span>
+        </Link>
       )}
 
       {/* Objectives from the coach */}
