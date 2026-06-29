@@ -50,7 +50,12 @@ export default async function ResultsPage() {
                         {sess.discipline ? `· ${sess.discipline} ` : ""}{sess.location ? `· ${sess.location} ` : ""}· {sess.runs.length} giri · {leaders.length} atleti
                       </span>
                     </div>
-                    <TimingBatchDelete batchId={sess.batchId} />
+                    <div className="flex items-center gap-2">
+                      <Link href={`/dashboard/results/${sess.batchId}`} className="rounded-md border border-[var(--color-border)] px-2.5 py-1 text-xs font-medium hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]">
+                        Analizza settori →
+                      </Link>
+                      <TimingBatchDelete batchId={sess.batchId} />
+                    </div>
                   </div>
                   {sess.sessionLabel && <div className="px-4 pt-2 text-[11px] text-[var(--color-muted)]">{sess.sessionLabel}</div>}
                   <table className="w-full text-sm">
