@@ -1,0 +1,163 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { prisma } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
+import { firstError } from "@/lib/validation";
+import {
+  tennisRankingProvider,
+  getTennisRankingMode,
+  type TennisRankingSource,
+} from "@/lib/tennis/ranking";
+
+type Result =
+  | { ok: true; added?: number; mode?: string }
+  | { ok: false; error: string };
+
+const SOURCES = ["FIT", "ITF", "ATP", "WTA"] as const;
+
+// Tenant ownership for a tennis athlete. They are linked to the academy through
+// a TennisSeasonPlan (canvas/season view) or an Enrollment. Either is enough.
+async function ownAthlete(athleteId: string, academyId: string) {
+  return prisma.athlete.findFirst({
+    where: {
+      id: athleteId,
+      OR: [
+        { tennisSeasonPlans: { some: { academyId } } },
+        { enrollments: { some: { academyId } } },
+      ],
+    },
+    select: { id: true },
+  });
+}
+
+const CODE_FIELD: Record<TennisRankingSource, "atpPlayerId" | "itfJuniorRef" | "fitTessera"> = {
+  ATP: "atpPlayerId",
+  WTA: "atpPlayerId",
+  ITF: "itfJuniorRef",
+  FIT: "fitTessera",
+};
+
+function rev(athleteId: string) {
+  revalidatePath(`/dashboard/canvas/${athleteId}`);
+  revalidatePath(`/dashboard/athletes/${athleteId}`);
+}
+
+// ── Import by athlete code ──────────────────────────────────────────────────
+const importSchema = z.object({
+  athleteId: z.string().min(1),
+  source: z.enum(SOURCES),
+  code: z.string().trim().min(1).max(60),
+});
+
+export async function importTennisRanking(input: z.input<typeof importSchema>): Promise<Result> {
+  const parsed = importSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const { athleteId, source, code } = parsed.data;
+
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false, error: "Nessuna academy in sessione." };
+  if (!(await ownAthlete(athleteId, s.academyId))) return { ok: false, error: "Atleta non trovato in questa academy." };
+
+  // Persist the code so the next sync can run without re-typing it.
+  await prisma.athlete.update({ where: { id: athleteId }, data: { [CODE_FIELD[source]]: code } });
+
+  const mode = getTennisRankingMode();
+  let snapshots;
+  try {
+    snapshots = await tennisRankingProvider().fetchByCode(source, code);
+  } catch {
+    return { ok: false, error: "Sorgente non raggiungibile al momento. Riprova tra poco." };
+  }
+
+  if (snapshots.length === 0) {
+    return mode === "live"
+      ? { ok: false, error: `Nessun risultato per il codice ${code} su ${source}. Verifica il codice o inserisci la classifica manualmente.` }
+      : { ok: false, error: "Connettore live non ancora configurato — inserisci la classifica manualmente qui sotto." };
+  }
+
+  // Replace this source's imported snapshots, keep manual ones untouched.
+  const origin = `import:${mode === "live" ? "live" : "demo"}`;
+  await prisma.tennisRankingSnapshot.deleteMany({ where: { athleteId, source, origin: { startsWith: "import:" } } });
+
+  let added = 0;
+  for (const snap of snapshots) {
+    await prisma.tennisRankingSnapshot.create({
+      data: {
+        athleteId, source,
+        date: new Date(snap.date),
+        rank: snap.rank ?? null,
+        points: snap.points ?? null,
+        classifica: snap.classifica ?? null,
+        category: snap.category ?? null,
+        origin,
+      },
+    });
+    added++;
+  }
+
+  rev(athleteId);
+  return { ok: true, added, mode };
+}
+
+// ── Manual entry — the real, usable-today path ──────────────────────────────
+const manualSchema = z.object({
+  athleteId: z.string().min(1),
+  source: z.enum(SOURCES),
+  date: z.string().min(1),
+  rank: z.coerce.number().int().min(1).max(100000).nullish(),
+  points: z.coerce.number().int().min(0).max(100000).nullish(),
+  classifica: z.string().trim().max(10).nullish().transform((v) => v || null),
+  category: z.string().trim().max(40).nullish().transform((v) => v || null),
+});
+
+export async function addTennisRankingManual(input: z.input<typeof manualSchema>): Promise<Result> {
+  const parsed = manualSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
+  const d = parsed.data;
+
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false, error: "Nessuna academy in sessione." };
+  if (!(await ownAthlete(d.athleteId, s.academyId))) return { ok: false, error: "Atleta non trovato in questa academy." };
+
+  const isFit = d.source === "FIT";
+  if (isFit && !d.classifica) return { ok: false, error: "Inserisci la classifica FIT (es. 2.6)." };
+  if (!isFit && d.rank == null && d.points == null) return { ok: false, error: "Inserisci la posizione o i punti." };
+
+  const date = new Date(d.date);
+  if (isNaN(date.getTime())) return { ok: false, error: "Data non valida." };
+
+  await prisma.tennisRankingSnapshot.create({
+    data: {
+      athleteId: d.athleteId, source: d.source, date,
+      rank: d.rank ?? null, points: d.points ?? null,
+      classifica: d.classifica, category: d.category, origin: "manual",
+    },
+  });
+
+  rev(d.athleteId);
+  return { ok: true, added: 1 };
+}
+
+export async function deleteTennisRankingSnapshot(id: string): Promise<{ ok: boolean }> {
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false };
+  const row = await prisma.tennisRankingSnapshot.findUnique({ where: { id }, select: { athleteId: true } });
+  if (!row || !(await ownAthlete(row.athleteId, s.academyId))) return { ok: false };
+  await prisma.tennisRankingSnapshot.delete({ where: { id } });
+  rev(row.athleteId);
+  return { ok: true };
+}
+
+// Wipe all (or one source's) snapshots — used to clear demo data.
+export async function clearTennisRankings(athleteId: string, source?: string): Promise<{ ok: boolean; count?: number }> {
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false };
+  if (!(await ownAthlete(athleteId, s.academyId))) return { ok: false };
+  const r = await prisma.tennisRankingSnapshot.deleteMany({
+    where: { athleteId, ...(source && (SOURCES as readonly string[]).includes(source) ? { source } : {}) },
+  });
+  rev(athleteId);
+  return { ok: true, count: r.count };
+}

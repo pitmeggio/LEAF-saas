@@ -5,6 +5,9 @@ import { getAthleteCanvas } from "@/lib/tennisCanvas";
 import { SeasonArc } from "@/components/SeasonArc";
 import { SeasonSchedule } from "@/components/SeasonSchedule";
 import { AiCopilotLeaf } from "@/components/AiCopilotLeaf";
+import { TennisRankingCard } from "@/components/TennisRankingCard";
+import { getTennisRankingMode } from "@/lib/tennis/ranking";
+import { getAthleteTennisRankings } from "@/lib/tennis/rankingRead";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +28,8 @@ export default async function AthleteCanvasPage({ params }: { params: Promise<{ 
   if (!canvas) notFound();
 
   const { athlete, academy, season, entries, phaseBands, upcoming, totals, narrative } = canvas;
+  const rankings = await getAthleteTennisRankings(athleteId);
+  const rankingMode = getTennisRankingMode();
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#06070a] text-[var(--color-fg)]">
@@ -104,6 +109,11 @@ export default async function AthleteCanvasPage({ params }: { params: Promise<{ 
             status: e.status,
           }))} phaseBands={phaseBands} accentHex={academy.logoColor} />
         </div>
+      </section>
+
+      {/* RANKING — FIT / ITF / ATP trajectory + import-by-code */}
+      <section className="relative z-10 px-8 pb-6 md:px-14">
+        <TennisRankingCard athleteId={athlete.id} accent={academy.logoColor} data={rankings} mode={rankingMode} />
       </section>
 
       {/* UPCOMING + STATS strip */}

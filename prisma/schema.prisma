@@ -571,8 +571,14 @@ model Athlete {
   fisProfileUrl             String?
   atpPlayerId               String?
   atpProfileUrl             String?
+  // Tennis ranking lookup codes — the "athlete code" the import-by-code flow
+  // resolves against. ATP/WTA reuse atpPlayerId above; these add the two that
+  // matter for an Italian junior academy.
+  itfJuniorRef              String?  // ITF Junior IPIN / player reference
+  fitTessera                String?  // Federazione Italiana Tennis tessera number
 
   rankings        RankingPoint[]
+  tennisRankings  TennisRankingSnapshot[]
   fisSnapshots    FisListSnapshot[]
   results         Result[]
   timingResults   TimingResult[]
@@ -684,6 +690,30 @@ model Result {
   rank       Int // finishing place (ignored when status != finished)
   fisPoints  Float
   status     String   @default("finished") // finished | dnf | dns | dsq — powers DNF% analytics
+}
+
+// Tennis ranking observation — one row per (athlete, source, date). The
+// tennis analogue of FisListSnapshot. Sources are heterogeneous on purpose:
+//   • FIT  → Italian federation: a *classifica* string ("2.6", "3.1", "4.NC")
+//            plus an optional national position, NOT a simple world rank.
+//   • ITF  → ITF Junior world rank + points.
+//   • ATP/WTA → pro world rank + points.
+// Stored as nullable columns so each source fills only what it has. Two or
+// more snapshots for a source drive the ranking trajectory on the canvas.
+model TennisRankingSnapshot {
+  id         String   @id @default(cuid())
+  athleteId  String
+  athlete    Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  source     String   // FIT | ITF | ATP | WTA
+  date       DateTime // observation / valid-from date — the trend x-axis
+  rank       Int?     // world/national numeric position (ITF/ATP/WTA)
+  points     Int?     // ranking points
+  classifica String?  // FIT classifica, e.g. "2.6"
+  category   String?  // free label, e.g. "Singolare", "U16", "Junior"
+  origin     String   @default("manual") // manual | import:<provider>
+  syncedAt   DateTime @default(now())
+
+  @@index([athleteId, source, date])
 }
 
 model TimingResult {
