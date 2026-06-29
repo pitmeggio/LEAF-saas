@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * VideoCompare — comparazione di due video in stile "Coach's Eye".
+ * VideoCompare — analisi video stile "Coach's Eye" per LEAF.
  *
- * - Carichi due video (Clip A e Clip B). Restano SOLO in locale nel browser
- *   (URL.createObjectURL): nessun upload, niente che tocca il server.
- * - Scrub indipendente + avanzamento fotogramma per fotogramma su ogni clip.
- * - "Sincronizza": blocca lo sfasamento attuale e da lì play/pausa/scrub/frame
- *   muovono i due video insieme mantenendo l'allineamento.
- * - Cronometro sempre visibile (e impresso nel video esportato).
- * - Export: disegna i due video su un canvas, registra con MediaRecorder e
- *   scarica un unico .webm. L'URL del blob viene revocato dopo il download.
+ * - Due clip (A/B) caricati SOLO in locale (URL.createObjectURL): niente upload.
+ * - Scrub indipendente + avanzamento fotogramma per fotogramma.
+ * - "Sincronizza": blocca lo sfasamento e muove i due video insieme.
+ * - TELESTRAZIONE: disegna sul fermo-immagine (linea / freccia / tratto libero),
+ *   colori, undo e cancella per clip. I disegni sono impressi anche nell'export.
+ * - Cronometro sempre visibile, impresso nel video esportato.
+ * - Export: disegna video + telestrazione su un canvas, registra con
+ *   MediaRecorder e scarica un unico .webm.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -22,6 +22,51 @@ const fmt = (s) => {
   const cs = Math.floor((s * 100) % 100);
   return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${String(cs).padStart(2, "0")}`;
 };
+
+const TOOLS = [
+  { key: "none", label: "Punta", icon: "↖" },
+  { key: "line", label: "Linea", icon: "╱" },
+  { key: "arrow", label: "Freccia", icon: "↗" },
+  { key: "free", label: "Libero", icon: "✎" },
+];
+const COLORS = ["#ff3b30", "#ffcc00", "#34c759", "#0a84ff", "#ffffff"];
+
+// Rect of the video content inside its (letterboxed) frame — object-fit:contain.
+function containRect(vw, vh, cw, ch) {
+  if (!vw || !vh || !cw || !ch) return { x: 0, y: 0, w: cw, h: ch };
+  const scale = Math.min(cw / vw, ch / vh);
+  const w = vw * scale, h = vh * scale;
+  return { x: (cw - w) / 2, y: (ch - h) / 2, w, h };
+}
+
+// Draw telestration shapes (points normalized 0..1 over the video content) onto
+// any ctx, mapped into `rect`. Reused by the live overlay AND the export canvas.
+function drawShapesOnCtx(ctx, shapes, rect, lw) {
+  for (const sh of shapes) {
+    if (!sh.pts || sh.pts.length === 0) continue;
+    const P = sh.pts.map((p) => ({ x: rect.x + p.x * rect.w, y: rect.y + p.y * rect.h }));
+    ctx.strokeStyle = sh.color;
+    ctx.fillStyle = sh.color;
+    ctx.lineWidth = lw;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(P[0].x, P[0].y);
+    for (let i = 1; i < P.length; i++) ctx.lineTo(P[i].x, P[i].y);
+    ctx.stroke();
+    if (sh.tool === "arrow" && P.length >= 2) {
+      const a = P[P.length - 2], b = P[P.length - 1];
+      const ang = Math.atan2(b.y - a.y, b.x - a.x);
+      const len = Math.max(10, lw * 3.5);
+      ctx.beginPath();
+      ctx.moveTo(b.x, b.y);
+      ctx.lineTo(b.x - len * Math.cos(ang - 0.45), b.y - len * Math.sin(ang - 0.45));
+      ctx.lineTo(b.x - len * Math.cos(ang + 0.45), b.y - len * Math.sin(ang + 0.45));
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
 
 export default function VideoCompare() {
   const vA = useRef(null);
@@ -42,7 +87,13 @@ export default function VideoCompare() {
   const [fps, setFps] = useState(30);
   const [includeAudio, setIncludeAudio] = useState(true);
 
-  const offsetRef = useRef(0); // offset = tempoB - tempoA al momento del sync
+  // Telestration
+  const [tool, setTool] = useState("none");
+  const [color, setColor] = useState(COLORS[0]);
+  const [shapesA, setShapesA] = useState([]);
+  const [shapesB, setShapesB] = useState([]);
+
+  const offsetRef = useRef(0);
 
   const [timeA, setTimeA] = useState(0);
   const [timeB, setTimeB] = useState(0);
@@ -61,10 +112,12 @@ export default function VideoCompare() {
       if (srcA) URL.revokeObjectURL(srcA);
       setSrcA(url);
       setNameA(file.name);
+      setShapesA([]);
     } else {
       if (srcB) URL.revokeObjectURL(srcB);
       setSrcB(url);
       setNameB(file.name);
+      setShapesB([]);
     }
     setLinked(false);
   };
@@ -270,6 +323,7 @@ export default function VideoCompare() {
         };
       });
 
+    const lw = Math.max(2.5, W / 360);
     const endA = startA + windowDur;
     const draw = () => {
       ctx.fillStyle = "#000";
@@ -277,6 +331,8 @@ export default function VideoCompare() {
       try {
         ctx.drawImage(a, posA.x, posA.y, posA.w, posA.h);
         ctx.drawImage(b, posB.x, posB.y, posB.w, posB.h);
+        drawShapesOnCtx(ctx, shapesA, posA, lw);
+        drawShapesOnCtx(ctx, shapesB, posB, lw);
       } catch (_) {}
       drawTimecode(ctx, a.currentTime - startA, W);
 
@@ -316,7 +372,7 @@ export default function VideoCompare() {
     <div className="vc">
       <header className="vc-head">
         <div className="vc-title">
-          <span className="dot" /> Comparazione video
+          <span className="dot" /> Analisi video
         </div>
         <div className="vc-clock">{fmt(masterTime)}</div>
       </header>
@@ -328,37 +384,44 @@ export default function VideoCompare() {
         <Uploader label="Clip B" accent="b" name={nameB} onChange={(e) => loadFile(e, "B")} />
       </div>
 
+      {/* Telestration toolbar */}
+      <div className="vc-tools">
+        <div className="seg">
+          {TOOLS.map((t) => (
+            <button key={t.key} className={tool === t.key ? "on" : ""} onClick={() => setTool(t.key)} title={t.label}>
+              <span className="ti">{t.icon}</span> {t.label}
+            </button>
+          ))}
+        </div>
+        <div className="swatches">
+          {COLORS.map((c) => (
+            <button
+              key={c}
+              className={`sw ${color === c ? "on" : ""}`}
+              style={{ background: c }}
+              onClick={() => setColor(c)}
+              aria-label={`Colore ${c}`}
+            />
+          ))}
+        </div>
+        <span className="hint">{tool === "none" ? "Scegli uno strumento per disegnare sul video" : "Trascina sul video per disegnare"}</span>
+      </div>
+
       <div className={`vc-stage ${layout}`}>
         <ClipPane
-          accent="a"
-          src={srcA}
-          videoRef={vA}
-          time={timeA}
-          dur={durA}
-          disabled={linked}
-          onLoaded={(d) => setDurA(d)}
-          onStep={(dir) => stepFrame(dir, "A")}
-          onScrub={(v) => scrub(v, "A")}
+          accent="a" src={srcA} videoRef={vA} time={timeA} dur={durA} disabled={linked}
+          tool={tool} color={color} shapes={shapesA} onShapes={setShapesA}
+          onLoaded={(d) => setDurA(d)} onStep={(dir) => stepFrame(dir, "A")} onScrub={(v) => scrub(v, "A")}
         />
         <ClipPane
-          accent="b"
-          src={srcB}
-          videoRef={vB}
-          time={timeB}
-          dur={durB}
-          disabled={linked}
-          onLoaded={(d) => setDurB(d)}
-          onStep={(dir) => stepFrame(dir, "B")}
-          onScrub={(v) => scrub(v, "B")}
+          accent="b" src={srcB} videoRef={vB} time={timeB} dur={durB} disabled={linked}
+          tool={tool} color={color} shapes={shapesB} onShapes={setShapesB}
+          onLoaded={(d) => setDurB(d)} onStep={(dir) => stepFrame(dir, "B")} onScrub={(v) => scrub(v, "B")}
         />
       </div>
 
       <div className="vc-controls">
-        <button
-          className={`btn link ${linked ? "on" : ""}`}
-          onClick={toggleLink}
-          title="Blocca l'allineamento attuale e muovi i due video insieme"
-        >
+        <button className={`btn link ${linked ? "on" : ""}`} onClick={toggleLink} title="Blocca l'allineamento attuale e muovi i due video insieme">
           {linked ? "● Sincronizzati" : "Sincronizza"}
         </button>
 
@@ -431,6 +494,13 @@ export default function VideoCompare() {
         .vc-error { background: #3a1418; border: 1px solid #6b2026; color: #ffb4b4;
           padding: 8px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 14px; }
         .vc-uploads { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .vc-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px;
+          background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; }
+        .swatches { display: inline-flex; gap: 6px; }
+        .sw { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+        .sw.on { border-color: #fff; box-shadow: 0 0 0 2px #0e0f12, 0 0 0 3px #fff; }
+        .hint { font-size: 12px; color: var(--muted); margin-left: auto; }
+        .ti { font-size: 13px; }
         .vc-stage { display: grid; gap: 10px; margin-bottom: 12px; }
         .vc-stage.side { grid-template-columns: 1fr 1fr; }
         .vc-stage.stacked { grid-template-columns: 1fr; }
@@ -448,12 +518,12 @@ export default function VideoCompare() {
         .vc-rate label { color: var(--muted); font-size: 12px; }
         select { background: #20232b; color: var(--text); border: 1px solid var(--line);
           border-radius: 7px; padding: 6px 8px; font-size: 13px; }
-        .vc-export { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-        .vc-export-opts { display: flex; align-items: center; gap: 14px; }
-        .chk { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); cursor: pointer; }
         .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
         .seg button { background: #20232b; color: var(--muted); border: none; padding: 7px 12px; cursor: pointer; font-size: 13px; }
         .seg button.on { background: #2b2f3a; color: var(--text); }
+        .vc-export { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+        .vc-export-opts { display: flex; align-items: center; gap: 14px; }
+        .chk { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); cursor: pointer; }
         .vc-progress { margin-top: 10px; height: 6px; background: #20232b; border-radius: 4px; overflow: hidden; }
         .vc-progress .bar { height: 100%; background: var(--b); transition: width .2s; }
         @media (max-width: 720px) {
@@ -485,49 +555,113 @@ function Uploader({ label, accent, name, onChange }) {
   );
 }
 
-function ClipPane({ accent, src, videoRef, time, dur, disabled, onLoaded, onStep, onScrub }) {
+function ClipPane({ accent, src, videoRef, time, dur, disabled, tool, color, shapes, onShapes, onLoaded, onStep, onScrub }) {
+  const frameRef = useRef(null);
+  const overlayRef = useRef(null);
+  const drawingRef = useRef(null);
+
+  // Redraw the overlay (committed shapes + the in-progress one).
+  const redraw = () => {
+    const cv = overlayRef.current, fr = frameRef.current, v = videoRef.current;
+    if (!cv || !fr) return;
+    const cw = fr.clientWidth, ch = fr.clientHeight;
+    if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+    const ctx = cv.getContext("2d");
+    ctx.clearRect(0, 0, cw, ch);
+    const rect = containRect(v?.videoWidth, v?.videoHeight, cw, ch);
+    const all = drawingRef.current ? [...shapes, drawingRef.current] : shapes;
+    drawShapesOnCtx(ctx, all, rect, Math.max(2.5, cw / 320));
+  };
+
+  useEffect(() => { redraw(); });
+  useEffect(() => {
+    const ro = new ResizeObserver(() => redraw());
+    if (frameRef.current) ro.observe(frameRef.current);
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const norm = (e) => {
+    const fr = frameRef.current, v = videoRef.current;
+    const box = fr.getBoundingClientRect();
+    const rect = containRect(v?.videoWidth, v?.videoHeight, box.width, box.height);
+    const px = e.clientX - box.left, py = e.clientY - box.top;
+    return {
+      x: Math.min(1, Math.max(0, (px - rect.x) / rect.w)),
+      y: Math.min(1, Math.max(0, (py - rect.y) / rect.h)),
+    };
+  };
+
+  const onDown = (e) => {
+    if (tool === "none" || !src) return;
+    e.preventDefault();
+    overlayRef.current?.setPointerCapture?.(e.pointerId);
+    drawingRef.current = { tool, color, pts: [norm(e)] };
+    redraw();
+  };
+  const onMove = (e) => {
+    if (!drawingRef.current) return;
+    const p = norm(e);
+    if (tool === "free") drawingRef.current.pts.push(p);
+    else drawingRef.current.pts = [drawingRef.current.pts[0], p];
+    redraw();
+  };
+  const onUp = () => {
+    const d = drawingRef.current;
+    drawingRef.current = null;
+    if (d && d.pts.length >= (d.tool === "free" ? 2 : 2)) onShapes([...shapes, d]);
+    else redraw();
+  };
+
+  const drawable = tool !== "none" && !!src;
+
   return (
     <div className={`pane pane-${accent}`}>
-      <div className="frame">
+      <div className="frame" ref={frameRef}>
         {src ? (
-          <video
-            ref={videoRef}
-            src={src}
-            playsInline
-            preload="auto"
-            onLoadedMetadata={(e) => onLoaded(e.currentTarget.duration || 0)}
-          />
+          <video ref={videoRef} src={src} playsInline preload="auto" onLoadedMetadata={(e) => { onLoaded(e.currentTarget.duration || 0); redraw(); }} />
         ) : (
           <div className="empty">Nessun video</div>
         )}
+        <canvas
+          ref={overlayRef}
+          className="overlay"
+          style={{ pointerEvents: drawable ? "auto" : "none", cursor: drawable ? "crosshair" : "default" }}
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerLeave={onUp}
+        />
         <div className="stamp">{fmt(time)}</div>
+        {shapes.length > 0 && (
+          <div className="tools-mini">
+            <button onClick={() => onShapes(shapes.slice(0, -1))} title="Annulla ultimo">↶</button>
+            <button onClick={() => onShapes([])} title="Cancella tutto">🗑</button>
+          </div>
+        )}
       </div>
 
       <div className="row">
         <button onClick={() => onStep(-1)} disabled={disabled} title="Fotogramma indietro">◀</button>
-        <input
-          type="range"
-          min={0}
-          max={dur || 0}
-          step={0.01}
-          value={Math.min(time, dur || 0)}
-          onChange={(e) => onScrub(parseFloat(e.target.value))}
-          disabled={disabled}
-        />
+        <input type="range" min={0} max={dur || 0} step={0.01} value={Math.min(time, dur || 0)} onChange={(e) => onScrub(parseFloat(e.target.value))} disabled={disabled} />
         <button onClick={() => onStep(1)} disabled={disabled} title="Fotogramma avanti">▶</button>
       </div>
 
       <style jsx>{`
         .pane { display: flex; flex-direction: column; gap: 8px; }
         .frame { position: relative; background: #000; border: 1px solid #2a2d35; border-radius: 10px;
-          overflow: hidden; aspect-ratio: 16 / 9; }
+          overflow: hidden; aspect-ratio: 16 / 9; touch-action: none; }
         .pane-a .frame { box-shadow: inset 0 0 0 2px rgba(255,159,28,.5); }
         .pane-b .frame { box-shadow: inset 0 0 0 2px rgba(34,211,238,.5); }
         video { width: 100%; height: 100%; object-fit: contain; display: block; }
+        .overlay { position: absolute; inset: 0; width: 100%; height: 100%; }
         .empty { width: 100%; height: 100%; display: grid; place-items: center; color: #4b4f59; font-size: 14px; }
         .stamp { position: absolute; left: 8px; bottom: 8px; padding: 3px 8px; background: rgba(0,0,0,.6);
           border-radius: 6px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px;
           font-variant-numeric: tabular-nums; color: ${accent === "a" ? "#ff9f1c" : "#22d3ee"}; }
+        .tools-mini { position: absolute; right: 8px; top: 8px; display: flex; gap: 4px; }
+        .tools-mini button { background: rgba(0,0,0,.6); color: #e7e9ee; border: 1px solid #2a2d35;
+          border-radius: 6px; padding: 3px 8px; cursor: pointer; font-size: 13px; }
         .row { display: flex; align-items: center; gap: 8px; }
         .row button { background: #20232b; color: #e7e9ee; border: 1px solid #2a2d35; border-radius: 7px;
           padding: 6px 10px; cursor: pointer; }
