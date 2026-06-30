@@ -157,12 +157,18 @@ function Trend({ series, accent }: { series: AthleteDossier["evaluationSeries"];
   );
 }
 
-// Combined add panel: pick a file (→ upload route) OR paste a link / log a score (→ server action).
+// Default quick-eval criteria. NOT an imposed schema — just a fast option for a
+// coach who hasn't got their own sheet; "Carica file" stays the primary path.
+const QUICK_CRITERIA = ["Dritto", "Rovescio", "Servizio", "Risposta", "Fisico", "Mentale"];
+
+// Combined add panel: a quick structured eval, OR upload a file (→ route), OR
+// paste a link / log a single score (→ server action).
 function AddPanel({ athleteId, accent, onDone }: { athleteId: string; accent: string; onDone: () => void }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [mode, setMode] = useState<"file" | "quick">("file");
 
   const [category, setCategory] = useState<DossierCategory>("evaluation");
   const [title, setTitle] = useState("");
@@ -173,9 +179,29 @@ function AddPanel({ athleteId, accent, onDone }: { athleteId: string; accent: st
   const [scale, setScale] = useState("10");
   const [link, setLink] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
+  const [crit, setCrit] = useState<Record<string, string>>({});
 
   async function submit() {
     setErr(null);
+
+    // Quick structured evaluation → one evaluation entry (no file).
+    if (mode === "quick") {
+      const vals = QUICK_CRITERIA.map((c) => Number(crit[c] || 0)).filter((v) => v > 0);
+      if (vals.length === 0) { setErr("Dai almeno un voto."); return; }
+      const avg = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10;
+      const breakdown = QUICK_CRITERIA.filter((c) => crit[c]).map((c) => `${c} ${crit[c]}`).join(" · ");
+      const fullNote = [breakdown, note.trim()].filter(Boolean).join(" — ");
+      start(async () => {
+        const r = await addAthleteEntry({
+          athleteId, category: "evaluation", title: title.trim() || "Scheda valutativa",
+          note: fullNote || null, authorRole: authorRole.trim() || null, observedAt,
+          score: avg, scoreScale: 10, fileUrl: null,
+        });
+        if (r.ok) onDone(); else setErr(r.error);
+      });
+      return;
+    }
+
     const file = fileRef.current?.files?.[0] ?? null;
     if (!file && !title.trim()) { setErr("Inserisci un titolo (o scegli un file)."); return; }
 
@@ -207,12 +233,19 @@ function AddPanel({ athleteId, accent, onDone }: { athleteId: string; accent: st
 
   return (
     <div className="mb-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/60 p-4">
+      {/* Mode toggle */}
+      <div className="mb-3 inline-flex rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] p-1 text-xs">
+        <button onClick={() => setMode("file")} className="rounded-md px-3 py-1.5 font-medium" style={mode === "file" ? { background: accent, color: "#0a0c10" } : { color: "var(--color-muted)" }}>Carica file / link</button>
+        <button onClick={() => setMode("quick")} className="rounded-md px-3 py-1.5 font-medium" style={mode === "quick" ? { background: accent, color: "#0a0c10" } : { color: "var(--color-muted)" }}>Scheda rapida</button>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <Field label="Tipo">
-          <select value={category} onChange={(e) => setCategory(e.target.value as DossierCategory)} className={inp}>
-            {CATEGORY_ORDER.map((c) => <option key={c} value={c}>{CATEGORY_META[c].label}</option>)}
-          </select>
-        </Field>
+        {mode === "file" && (
+          <Field label="Tipo">
+            <select value={category} onChange={(e) => setCategory(e.target.value as DossierCategory)} className={inp}>
+              {CATEGORY_ORDER.map((c) => <option key={c} value={c}>{CATEGORY_META[c].label}</option>)}
+            </select>
+          </Field>
+        )}
         <Field label="Titolo">
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="es. Valutazione tecnica giugno" className={inp} />
         </Field>
@@ -222,17 +255,36 @@ function AddPanel({ athleteId, accent, onDone }: { athleteId: string; accent: st
         <Field label="Tuo ruolo (opzionale)">
           <input value={authorRole} onChange={(e) => setAuthorRole(e.target.value)} placeholder="es. Preparatore atletico" className={inp} />
         </Field>
-        <Field label="Punteggio (opzionale)">
-          <div className="flex items-center gap-1">
-            <input value={score} onChange={(e) => setScore(e.target.value)} placeholder="8" inputMode="decimal" className={`${inp} w-16`} />
-            <span className="text-[var(--color-muted)]">/</span>
-            <input value={scale} onChange={(e) => setScale(e.target.value)} placeholder="10" inputMode="numeric" className={`${inp} w-16`} />
-          </div>
-        </Field>
-        <Field label="Link (alternativa al file)">
-          <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://drive… / youtube…" className={inp} />
-        </Field>
+        {mode === "file" && (
+          <>
+            <Field label="Punteggio (opzionale)">
+              <div className="flex items-center gap-1">
+                <input value={score} onChange={(e) => setScore(e.target.value)} placeholder="8" inputMode="decimal" className={`${inp} w-16`} />
+                <span className="text-[var(--color-muted)]">/</span>
+                <input value={scale} onChange={(e) => setScale(e.target.value)} placeholder="10" inputMode="numeric" className={`${inp} w-16`} />
+              </div>
+            </Field>
+            <Field label="Link (alternativa al file)">
+              <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="https://drive… / youtube…" className={inp} />
+            </Field>
+          </>
+        )}
       </div>
+
+      {/* Quick structured evaluation — coach scores a few criteria 1–10 */}
+      {mode === "quick" && (
+        <div className="mt-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)]/50 p-3">
+          <div className="mb-2 text-[10px] uppercase tracking-wider text-[var(--color-muted)]">Voti 1–10 — la media diventa il punteggio del trend</div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {QUICK_CRITERIA.map((c) => (
+              <label key={c} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)]/60 px-3 py-2">
+                <span className="text-xs">{c}</span>
+                <input value={crit[c] ?? ""} onChange={(e) => setCrit((p) => ({ ...p, [c]: e.target.value }))} placeholder="–" inputMode="numeric" className="w-10 rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-1.5 py-1 text-center text-sm outline-none focus:border-[var(--color-accent)]" />
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-3">
         <Field label="Nota per lo staff (opzionale)">
@@ -241,13 +293,15 @@ function AddPanel({ athleteId, accent, onDone }: { athleteId: string; accent: st
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-[var(--color-border)] px-3 py-2 text-xs text-[var(--color-muted)] hover:border-[var(--color-accent)]">
-          <Upload className="h-4 w-4" />
-          {fileName ?? "Carica la tua scheda (PDF, Excel, Word, immagine)"}
-          <input ref={fileRef} type="file" className="hidden"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.heic"
-            onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
-        </label>
+        {mode === "file" ? (
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-dashed border-[var(--color-border)] px-3 py-2 text-xs text-[var(--color-muted)] hover:border-[var(--color-accent)]">
+            <Upload className="h-4 w-4" />
+            {fileName ?? "Carica la tua scheda (PDF, Excel, Word, immagine)"}
+            <input ref={fileRef} type="file" className="hidden"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.heic"
+              onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)} />
+          </label>
+        ) : <span className="text-[11px] text-[var(--color-muted)]">Valutazione strutturata · senza file</span>}
         <button disabled={pending || busy} onClick={submit}
           className="rounded-lg px-5 py-2 text-sm font-semibold text-[#0a0c10] disabled:opacity-50" style={{ background: accent }}>
           {pending || busy ? "Salvo…" : "Salva nel dossier"}
