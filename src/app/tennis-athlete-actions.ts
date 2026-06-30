@@ -5,8 +5,13 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { firstError } from "@/lib/validation";
+import { tennisRankingProvider, getTennisRankingMode, type TennisRankingSource } from "@/lib/tennis/ranking";
 
 type Result = { ok: true; created: number } | { ok: false; error: string };
+
+const CODE_FIELD: Record<TennisRankingSource, "atpPlayerId" | "itfJuniorRef" | "fitTessera"> = {
+  ATP: "atpPlayerId", WTA: "atpPlayerId", ITF: "itfJuniorRef", FIT: "fitTessera",
+};
 
 // Add tennis athletes to the roster. A tennis athlete is "in the academy" via a
 // TennisSeasonPlan, so we create the Athlete + an (empty) plan for the academy's
@@ -20,6 +25,9 @@ const schema = z.object({
   gender: z.enum(["M", "F"]).nullish(),
   dominantHand: z.enum(["right", "left"]).nullish(),
   bulk: z.string().trim().max(4000).nullish().transform((v) => v?.trim() || null),
+  // Import-by-code (same principle as the FIS import, ITF/ATP/FIT-shaped).
+  source: z.enum(["FIT", "ITF", "ATP", "WTA"]).nullish(),
+  code: z.string().trim().max(60).nullish().transform((v) => v?.trim() || null),
 });
 
 export async function createTennisAthletes(input: z.input<typeof schema>): Promise<Result> {
@@ -48,6 +56,7 @@ export async function createTennisAthletes(input: z.input<typeof schema>): Promi
 
   const dob = d.yob ? new Date(Date.UTC(d.yob, 5, 15)) : new Date(Date.UTC(2010, 5, 15));
 
+  const single = names.length === 1;
   let created = 0;
   for (const n of names) {
     const athlete = await prisma.athlete.create({
@@ -59,12 +68,30 @@ export async function createTennisAthletes(input: z.input<typeof schema>): Promi
         gender: d.gender ?? null,
         sport,
         discipline: "singles",
-        dominantHand: names.length === 1 ? d.dominantHand ?? null : null,
+        dominantHand: single ? d.dominantHand ?? null : null,
+        ...(single && d.source && d.code ? { [CODE_FIELD[d.source]]: d.code } : {}),
       },
     });
     await prisma.tennisSeasonPlan.create({
       data: { academyId: s.academyId, athleteId: athlete.id, season, columns: [] },
     });
+
+    // Same principle as the FIS import: a code pulls the ranking trajectory.
+    if (single && d.source && d.code) {
+      try {
+        const mode = getTennisRankingMode();
+        const snaps = await tennisRankingProvider().fetchByCode(d.source, d.code);
+        for (const snap of snaps) {
+          await prisma.tennisRankingSnapshot.create({
+            data: {
+              athleteId: athlete.id, source: d.source, date: new Date(snap.date),
+              rank: snap.rank ?? null, points: snap.points ?? null, classifica: snap.classifica ?? null,
+              category: snap.category ?? null, origin: `import:${mode === "live" ? "live" : "demo"}`,
+            },
+          });
+        }
+      } catch { /* athlete is created regardless of ranking fetch */ }
+    }
     created++;
   }
 

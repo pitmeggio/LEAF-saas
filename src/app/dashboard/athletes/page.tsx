@@ -4,6 +4,7 @@ import { Avatar, Verified } from "@/components/ui";
 import { Dot } from "@/components/StatCard";
 import { Modal, AthleteForm } from "@/components/EntityForms";
 import { AthleteSportCell } from "@/components/AthleteSportCell";
+import { AddTennisAthleteButton } from "@/components/AddTennisAthleteButton";
 import { getActiveAthletes, getAssignmentOptions } from "@/lib/ops";
 import { getCurrentUser, getSession } from "@/lib/auth";
 import {
@@ -42,15 +43,19 @@ export default async function MembersPage() {
         right={
           <div className="flex items-center gap-3">
             <span className="num text-sm text-[var(--color-muted)]">{members.length} members</span>
-            {/* Surface the FIS import flow so it's discoverable. For federation
-                sports the value is auto-built verified CV from a FIS code; for
-                others (tennis) the import is still useful as a manual entry. */}
-            <Link
-              href="/dashboard/athletes/import"
-              className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)]"
-            >
-              Import from FIS
-            </Link>
+            {/* Import-by-code, sport-aware: ski pulls a verified CV from a FIS
+                code; tennis pulls the ranking trajectory from an ITF/ATP/FIT
+                code (same principle, sport-correct source). */}
+            {sport.key === "tennis" || sport.key === "padel" ? (
+              <AddTennisAthleteButton importMode accent={user?.academy?.logoColor ?? "#a78bfa"} />
+            ) : (
+              <Link
+                href="/dashboard/athletes/import"
+                className="rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)]"
+              >
+                Import from FIS
+              </Link>
+            )}
             <Modal label="+ New athlete" title="Add athlete" className={newBtn}><AthleteForm groups={opts.groups} coaches={opts.coaches} packages={opts.packages} /></Modal>
           </div>
         }

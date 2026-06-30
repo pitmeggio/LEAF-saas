@@ -3,10 +3,10 @@
 import { useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { UserPlus, X } from "lucide-react";
+import { UserPlus, Download, X } from "lucide-react";
 import { createTennisAthletes } from "@/app/tennis-athlete-actions";
 
-export function AddTennisAthleteButton({ accent = "#a78bfa" }: { accent?: string }) {
+export function AddTennisAthleteButton({ accent = "#a78bfa", importMode = false }: { accent?: string; importMode?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
@@ -19,6 +19,8 @@ export function AddTennisAthleteButton({ accent = "#a78bfa" }: { accent?: string
   const [gender, setGender] = useState("");
   const [hand, setHand] = useState("");
   const [bulk, setBulk] = useState("");
+  const [source, setSource] = useState<"ITF" | "ATP" | "FIT">("ITF");
+  const [code, setCode] = useState("");
 
   const submit = () =>
     start(async () => {
@@ -26,24 +28,31 @@ export function AddTennisAthleteButton({ accent = "#a78bfa" }: { accent?: string
       const r = await createTennisAthletes(
         tab === "bulk"
           ? { bulk }
-          : { firstName, lastName: lastName || null, yob: yob ? Number(yob) : null, gender: (gender || null) as "M" | "F" | null, dominantHand: (hand || null) as "right" | "left" | null },
+          : {
+              firstName, lastName: lastName || null, yob: yob ? Number(yob) : null,
+              gender: (gender || null) as "M" | "F" | null, dominantHand: (hand || null) as "right" | "left" | null,
+              source: importMode ? source : null, code: importMode ? (code || null) : null,
+            },
       );
-      if (r.ok) { setOpen(false); setFirstName(""); setLastName(""); setYob(""); setBulk(""); router.refresh(); }
+      if (r.ok) { setOpen(false); setFirstName(""); setLastName(""); setYob(""); setBulk(""); setCode(""); router.refresh(); }
       else setErr(r.error);
     });
 
   return (
     <>
       <button onClick={() => { setOpen(true); setErr(null); }}
-        className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#0a0c10]" style={{ background: accent }}>
-        <UserPlus className="h-4 w-4" /> Aggiungi atleti
+        className={importMode
+          ? "inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-2 text-sm font-medium hover:bg-[var(--color-surface)]"
+          : "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold text-[#0a0c10]"}
+        style={importMode ? undefined : { background: accent }}>
+        {importMode ? <Download className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}{importMode ? "Importa da ITF / ATP" : "Aggiungi atleti"}
       </button>
 
       {open && createPortal(
         <div className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div className="card mt-16 w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Aggiungi atleti</h3>
+              <h3 className="text-sm font-semibold">{importMode ? "Importa atleta da codice" : "Aggiungi atleti"}</h3>
               <button onClick={() => setOpen(false)} className="text-[var(--color-muted)]"><X className="h-4 w-4" /></button>
             </div>
 
@@ -57,6 +66,18 @@ export function AddTennisAthleteButton({ accent = "#a78bfa" }: { accent?: string
 
             {tab === "one" ? (
               <div className="space-y-3">
+                {importMode && (
+                  <div className="grid grid-cols-2 gap-3">
+                    <L label="Federazione">
+                      <select className={inp} value={source} onChange={(e) => setSource(e.target.value as "ITF" | "ATP" | "FIT")}>
+                        <option value="ITF">ITF Junior</option>
+                        <option value="ATP">ATP / WTA</option>
+                        <option value="FIT">FIT (tessera)</option>
+                      </select>
+                    </L>
+                    <L label="Codice atleta"><input className={inp} value={code} onChange={(e) => setCode(e.target.value)} placeholder="es. 1234567" /></L>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <L label="Nome"><input className={inp} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Tommaso" /></L>
                   <L label="Cognome"><input className={inp} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Rossi" /></L>
