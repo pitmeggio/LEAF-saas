@@ -60,10 +60,18 @@ export async function importTennisRanking(input: z.input<typeof importSchema>): 
   if (!s.academyId) return { ok: false, error: "Nessuna academy in sessione." };
   if (!(await ownAthlete(athleteId, s.academyId))) return { ok: false, error: "Atleta non trovato in questa academy." };
 
-  // Persist the code so the next sync can run without re-typing it.
+  // Persist the code so a future sync can run without re-typing it — even when
+  // there's no live feed yet, saving the code is the useful part.
   await prisma.athlete.update({ where: { id: athleteId }, data: { [CODE_FIELD[source]]: code } });
 
   const mode = getTennisRankingMode();
+  // Without a real feed we DON'T fabricate a ranking on a real athlete. The
+  // code is saved; the classifica is entered by hand below (or auto-syncs once
+  // the official ITF/FIT connector is wired).
+  if (mode !== "live") {
+    return { ok: false, error: `Codice ${code} salvato. Il feed ufficiale ${source} non è ancora collegato — inserisci la classifica a mano qui sotto (si sincronizzerà da sola quando attiviamo il feed).` };
+  }
+
   let snapshots;
   try {
     snapshots = await tennisRankingProvider().fetchByCode(source, code);
@@ -72,13 +80,11 @@ export async function importTennisRanking(input: z.input<typeof importSchema>): 
   }
 
   if (snapshots.length === 0) {
-    return mode === "live"
-      ? { ok: false, error: `Nessun risultato per il codice ${code} su ${source}. Verifica il codice o inserisci la classifica manualmente.` }
-      : { ok: false, error: "Connettore live non ancora configurato — inserisci la classifica manualmente qui sotto." };
+    return { ok: false, error: `Nessun risultato per il codice ${code} su ${source}. Verifica il codice o inserisci la classifica manualmente.` };
   }
 
   // Replace this source's imported snapshots, keep manual ones untouched.
-  const origin = `import:${mode === "live" ? "live" : "demo"}`;
+  const origin = "import:live";
   await prisma.tennisRankingSnapshot.deleteMany({ where: { athleteId, source, origin: { startsWith: "import:" } } });
 
   let added = 0;

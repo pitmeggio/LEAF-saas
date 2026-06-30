@@ -91,7 +91,7 @@ export function AddTennisAthleteButton({ accent = "#a78bfa", importMode = false 
                   <L label="Sesso"><select className={inp} value={gender} onChange={(e) => setGender(e.target.value)}><option value="">—</option><option value="M">M</option><option value="F">F</option></select></L>
                   <L label="Mano"><select className={inp} value={hand} onChange={(e) => setHand(e.target.value)}><option value="">—</option><option value="right">Destro</option><option value="left">Sinistro</option></select></L>
                 </div>
-                {tab === "import" && <p className="text-[11px] text-[var(--color-muted)]">Il codice recupera la traiettoria classifica. Connettore live ITF/FIT in arrivo: per ora genera dati dimostrativi.</p>}
+                {tab === "import" && <p className="text-[11px] text-[var(--color-muted)]">Salviamo il codice federazione sull'atleta. Il feed ufficiale ITF/FIT è in arrivo: intanto la classifica la inserisci dalla scheda atleta.</p>}
               </div>
             )}
 
@@ -100,7 +100,7 @@ export function AddTennisAthleteButton({ accent = "#a78bfa", importMode = false 
             <div className="mt-4 flex justify-end gap-2">
               <button onClick={() => setOpen(false)} className="rounded-md px-3 py-1.5 text-xs text-[var(--color-muted)]">Annulla</button>
               <button disabled={pending} onClick={submit} className="rounded-lg px-4 py-2 text-sm font-semibold text-[#0a0c10] disabled:opacity-50" style={{ background: accent }}>
-                {pending ? "Aggiungo…" : tab === "import" ? "Importa" : "Aggiungi"}
+                {pending ? "Aggiungo…" : "Aggiungi atleta"}
               </button>
             </div>
           </div>

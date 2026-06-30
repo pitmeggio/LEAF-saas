@@ -76,17 +76,19 @@ export async function createTennisAthletes(input: z.input<typeof schema>): Promi
       data: { academyId: s.academyId, athleteId: athlete.id, season, columns: [] },
     });
 
-    // Same principle as the FIS import: a code pulls the ranking trajectory.
-    if (single && d.source && d.code) {
+    // The federation code is saved on the athlete (above). We only pull the
+    // ranking trajectory when a REAL feed is configured — never fabricate
+    // numbers on a real athlete. With no live feed, the code is stored and the
+    // classifica is entered by hand on the athlete page (or auto-syncs later).
+    if (single && d.source && d.code && getTennisRankingMode() === "live") {
       try {
-        const mode = getTennisRankingMode();
         const snaps = await tennisRankingProvider().fetchByCode(d.source, d.code);
         for (const snap of snaps) {
           await prisma.tennisRankingSnapshot.create({
             data: {
               athleteId: athlete.id, source: d.source, date: new Date(snap.date),
               rank: snap.rank ?? null, points: snap.points ?? null, classifica: snap.classifica ?? null,
-              category: snap.category ?? null, origin: `import:${mode === "live" ? "live" : "demo"}`,
+              category: snap.category ?? null, origin: "import:live",
             },
           });
         }

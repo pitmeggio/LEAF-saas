@@ -74,9 +74,9 @@ export function TennisRankingCard({
       {panel === "import" && (
         <div className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/60 p-4">
           <div className="mb-3 flex items-center gap-2">
-            <span className="text-xs font-semibold">Importa da codice atleta</span>
-            <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${mode === "live" ? "bg-[var(--color-accent)] text-[#0a0c10]" : "bg-[#f59e0b] text-[#0a0c10]"}`}>
-              {mode === "live" ? "Live" : "Demo"}
+            <span className="text-xs font-semibold">Salva codice federazione</span>
+            <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide ${mode === "live" ? "bg-[var(--color-accent)] text-[#0a0c10]" : "bg-[var(--color-surface)] text-[var(--color-muted)]"}`}>
+              {mode === "live" ? "Live" : "Feed in arrivo"}
             </span>
           </div>
           <div className="flex flex-wrap items-end gap-2">
@@ -90,13 +90,13 @@ export function TennisRankingCard({
             </Field>
             <button disabled={pending || !impCode.trim()} onClick={() => run(() => importTennisRanking({ athleteId, source: impSource, code: impCode.trim() }))}
               className="rounded-lg px-4 py-2 text-sm font-semibold text-[#0a0c10] disabled:opacity-50" style={{ background: accent }}>
-              {pending ? "Importo…" : "Importa"}
+              {pending ? "Salvo…" : "Salva codice"}
             </button>
           </div>
           <p className="mt-2 text-[11px] text-[var(--color-muted)]">
             {mode === "live"
               ? "Recupera lo storico classifica direttamente dalla federazione."
-              : "Connettore live ITF/FIT non ancora attivo: questo import genera dati dimostrativi per mostrare il flusso. Per i dati reali usa “Aggiungi”."}
+              : "Salva il codice federazione sull'atleta. Il feed ufficiale ITF/FIT è in arrivo: intanto inserisci la classifica con “Aggiungi”."}
           </p>
         </div>
       )}
