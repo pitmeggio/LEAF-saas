@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { requireAcademyId } from "@/lib/auth";
 import { getAcademyDossierHub } from "@/lib/tennis/dossier";
 import { CATEGORY_META, type DossierCategory } from "@/lib/tennis/dossierTypes";
+import { AddTennisAthleteButton } from "@/components/AddTennisAthleteButton";
 import {
   ClipboardCheck, Trophy, Dumbbell, HeartPulse, Video, Search, File as FileIcon,
   Users, ArrowRight, Download, ExternalLink, type LucideIcon,
@@ -28,6 +29,7 @@ export default async function DossierHubPage() {
       <PageHeader
         title="Dossier"
         subtitle={`${hub.totalFiles} file · ${hub.athletes.length} ${hub.athletes.length === 1 ? "atleta" : "atleti"} · ${hub.staff.length} ${hub.staff.length === 1 ? "membro" : "membri"} staff`}
+        right={<AddTennisAthleteButton />}
       />
       <div className="grid gap-6 p-8 lg:grid-cols-12">
         {/* Recent staff activity */}

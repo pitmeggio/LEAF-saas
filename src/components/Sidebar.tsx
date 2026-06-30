@@ -79,7 +79,7 @@ const ADMIN_SECTIONS: NavSection[] = [
     // Ski-shaped season planner — calendar of camps + race plan.
     { href: "/dashboard/calendar", label: "Season Planner", icon: CalendarDays, sports: ["ski"] },
     { href: "/dashboard/results", label: "Tempi", icon: Timer, sports: ["ski"] },
-    { href: "/dashboard/video", label: "Analisi video", icon: Video },
+    { href: "/dashboard/video", label: "Analisi video", icon: Video, sports: ["ski"] },
     // Tennis Professional surfaces — cinematic athlete view + tournament-driven planner.
     { href: "/dashboard/dossier", label: "Dossier", icon: FolderOpen, sports: ["tennis", "padel"] },
     { href: "/dashboard/canvas", label: "Athlete Canvas", icon: LayoutPanelLeft, sports: ["tennis", "padel"] },
@@ -128,7 +128,7 @@ const COACH_SECTIONS: NavSection[] = [
     { href: "/dashboard/programs", label: "Programmi", icon: ClipboardList },
     { href: "/dashboard/calendar", label: "Season Planner", icon: CalendarDays },
     { href: "/dashboard/results", label: "Tempi", icon: Timer },
-    { href: "/dashboard/video", label: "Analisi video", icon: Video },
+    { href: "/dashboard/video", label: "Analisi video", icon: Video, sports: ["ski"] },
   ] },
   { label: "Finance", items: [
     { href: "/dashboard/expenses", label: "My Expenses", icon: Wallet, feature: "featureFinance" },

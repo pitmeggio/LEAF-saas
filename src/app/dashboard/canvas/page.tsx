@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireAcademyId } from "@/lib/auth";
+import { AddTennisAthleteButton } from "@/components/AddTennisAthleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -35,16 +36,19 @@ export default async function CanvasIndex() {
         <div className="absolute inset-0 grid-bg opacity-20" />
       </div>
 
-      <header className="relative z-10 px-8 pb-3 pt-6 md:px-14">
-        <div className="kicker text-[10px]" style={{ color: academy?.logoColor ?? "#7CFF6B" }}>
-          Athlete Canvas · {academy?.name ?? "Roster"}
+      <header className="relative z-10 flex flex-wrap items-start justify-between gap-4 px-8 pb-3 pt-6 md:px-14">
+        <div>
+          <div className="kicker text-[10px]" style={{ color: academy?.logoColor ?? "#7CFF6B" }}>
+            Athlete Canvas · {academy?.name ?? "Roster"}
+          </div>
+          <h1 className="mt-3 font-semibold leading-none tracking-[-0.03em]" style={{ fontSize: "clamp(2rem, 4.2vw, 3.4rem)" }}>
+            Roster {plans[0]?.season ?? ""}
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm text-[var(--color-fg)]/75">
+            Apri un atleta — entra nella sua stagione come una storia, non una tabella.
+          </p>
         </div>
-        <h1 className="mt-3 font-semibold leading-none tracking-[-0.03em]" style={{ fontSize: "clamp(2rem, 4.2vw, 3.4rem)" }}>
-          Roster {plans[0]?.season ?? ""}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm text-[var(--color-fg)]/75">
-          Apri un atleta — entra nella sua stagione come una storia, non una tabella.
-        </p>
+        <AddTennisAthleteButton accent={academy?.logoColor ?? "#a78bfa"} />
       </header>
 
       <section className="relative z-10 grid gap-5 px-8 pb-16 md:grid-cols-2 md:px-14 lg:grid-cols-3">
