@@ -24,9 +24,9 @@ export default async function GroupsPage() {
   return (
     <>
       <PageHeader
-        title={isAdmin ? "Groups / Teams" : "My Groups"}
+        title={isAdmin ? "Gruppi / Squadre" : "I miei gruppi"}
         subtitle="Rosa, maestri, capienza e composizione del gruppo."
-        right={isAdmin ? <Modal label="+ New group" title="New group" className={newBtn}><GroupForm coaches={opts.coaches} currency={currency} /></Modal> : undefined}
+        right={isAdmin ? <Modal label="+ Nuovo gruppo" title="Nuovo gruppo" className={newBtn}><GroupForm coaches={opts.coaches} currency={currency} /></Modal> : undefined}
       />
       <div className="grid gap-4 p-8 sm:grid-cols-2 lg:grid-cols-3">
         {groups.length === 0 && <p className="text-sm text-[var(--color-muted)]">No groups assigned.</p>}
