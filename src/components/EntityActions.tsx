@@ -44,7 +44,7 @@ export function ExpenseCoachActions({ id, status }: { id: string; status: string
   return (
     <div className="flex gap-2">
       <button disabled={pending} className="rounded-lg bg-[var(--color-accent)] px-3 py-1.5 text-xs font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)] disabled:opacity-50" onClick={() => run(() => submitExpense(id))}>Submit</button>
-      <button disabled={pending} className={btn} onClick={() => { if (confirm("Delete draft?")) run(() => deleteExpense(id)); }}>Delete</button>
+      <button disabled={pending} className={btn} onClick={() => { if (confirm("Eliminare la bozza?")) run(() => deleteExpense(id)); }}>Elimina</button>
     </div>
   );
 }

@@ -99,7 +99,7 @@ function Footer({ pending, error }: { pending: boolean; error: string | null }) 
   );
 }
 
-export function DeleteButton({ kind, id, label = "Delete", className }: { kind: "coach" | "group" | "package" | "enrollment" | "application"; id: string; label?: string; className?: string }) {
+export function DeleteButton({ kind, id, label = "Elimina", className }: { kind: "coach" | "group" | "package" | "enrollment" | "application"; id: string; label?: string; className?: string }) {
   const [pending, start] = useTransition();
   const router = useRouter();
   const fns = { coach: deleteCoach, group: deleteGroup, package: deletePackage, enrollment: deleteEnrollment, application: deleteApplication };

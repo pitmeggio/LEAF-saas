@@ -53,7 +53,7 @@ export default async function CoachesPage() {
             <div className="flex items-center gap-3">
               <Avatar first={c.name.split(" ")[0] ?? ""} last={c.name.split(" ")[1] ?? ""} color="#38bdf8" size={44} />
               <div className="flex-1">
-                <div className="font-semibold">{c.name}{!c.active && <span className="ml-2 text-[10px] uppercase text-[var(--color-muted)]">archived</span>}</div>
+                <div className="font-semibold">{c.name}{!c.active && <span className="ml-2 text-[10px] uppercase text-[var(--color-muted)]">archiviato</span>}</div>
                 <div className="text-xs text-[var(--color-muted)]">{ROLE_LABEL[c.role] ?? c.role}</div>
               </div>
             </div>
@@ -73,9 +73,9 @@ export default async function CoachesPage() {
             )}
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              <Stat value={c.athleteCount} label="Athletes" />
-              <Stat value={c.groupCount} label="Groups" />
-              <StatMoney value={c.cost ? fmtMoney(c.cost, currency) : "—"} label="Salary / season" />
+              <Stat value={c.athleteCount} label="Atleti" />
+              <Stat value={c.groupCount} label="Gruppi" />
+              <StatMoney value={c.cost ? fmtMoney(c.cost, currency) : "—"} label="Costo / stagione" />
             </div>
 
             {/* Team trend — replaces the old "workload" score. Reads the FIS
@@ -86,10 +86,10 @@ export default async function CoachesPage() {
               <div className="mb-2 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="flex h-4 w-4 items-center justify-center rounded text-[9px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>AI</span>
-                  <span className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Team trend</span>
+                  <span className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Andamento squadra</span>
                 </div>
                 <span className="text-[10px] text-[var(--color-muted)]">
-                  {tracked > 0 ? `${tracked}/${c.athleteCount} synced` : "0 synced"}
+                  {tracked > 0 ? `/ con classifica` : "0 con classifica"}
                 </span>
               </div>
               <div className="text-sm font-medium" style={{ color: headlineColor }}>{headline}</div>
@@ -126,7 +126,7 @@ export default async function CoachesPage() {
             />
 
             <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
-              <Modal label="Edit" title="Edit coach" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
+              <Modal label="Modifica" title="Modifica maestro" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
                 <CoachForm initial={{ id: c.id, name: c.name, email: c.email, phone: c.phone, role: c.role, specialization: c.specialization, notes: c.notes, active: c.active, cost: c.cost }} />
               </Modal>
               <ArchiveCoachButton id={c.id} active={c.active} />

@@ -29,7 +29,7 @@ export default async function GroupsPage() {
         right={isAdmin ? <Modal label="+ Nuovo gruppo" title="Nuovo gruppo" className={newBtn}><GroupForm coaches={opts.coaches} currency={currency} /></Modal> : undefined}
       />
       <div className="grid gap-4 p-8 sm:grid-cols-2 lg:grid-cols-3">
-        {groups.length === 0 && <p className="text-sm text-[var(--color-muted)]">No groups assigned.</p>}
+        {groups.length === 0 && <p className="text-sm text-[var(--color-muted)]">Nessun gruppo assegnato.</p>}
         {groups.map((g) => {
           // Filtered, sorted roster (best FIS first). Athletes without points
           // sort last so the strongest skiers anchor the top of the list.
@@ -54,15 +54,15 @@ export default async function GroupsPage() {
               <div className="min-w-0">
                 <div className="text-base font-semibold truncate">{g.name}</div>
                 <div className="text-xs text-[var(--color-muted)]">
-                  Season {g.season}
+                  Stagione {g.season}
                   {g.level ? ` · ${LEVEL_LABEL[g.level] ?? g.level}` : ""}
                 </div>
               </div>
-              {g.overCapacity && <span className="shrink-0 rounded-md bg-[#f8717120] px-2 py-0.5 text-[10px] font-semibold text-[#f87171]">OVER CAPACITY</span>}
+              {g.overCapacity && <span className="shrink-0 rounded-md bg-[#f8717120] px-2 py-0.5 text-[10px] font-semibold text-[#f87171]">OLTRE CAPIENZA</span>}
             </div>
 
             {/* Coach chip — prominent so admins see at a glance who runs each
-                team. Empty state ("Assign coach") keeps the layout consistent
+                team. Empty state ("Assegna maestro") keeps the layout consistent
                 without making the absence feel like a bug. */}
             <div className="mt-3 flex items-center gap-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2">
               {g.coach ? (
@@ -71,19 +71,19 @@ export default async function GroupsPage() {
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-medium">{g.coach.name}</div>
                     <div className="truncate text-[10px] text-[var(--color-muted)]">
-                      {g.coach.role === "head_coach" ? "Head coach" : g.coach.role === "assistant_coach" ? "Assistant coach" : "Coach"}
+                      {g.coach.role === "head_coach" ? "Maestro responsabile" : g.coach.role === "assistant_coach" ? "Maestro assistente" : "Maestro"}
                       {g.coach.specialization ? ` · ${g.coach.specialization}` : ""}
                     </div>
                   </div>
                 </>
               ) : (
-                <span className="text-xs text-[var(--color-muted)]">No coach assigned</span>
+                <span className="text-xs text-[var(--color-muted)]">Nessun maestro assegnato</span>
               )}
             </div>
 
             <div className="mt-4">
               <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-[var(--color-muted)]">Occupancy</span>
+                <span className="text-[var(--color-muted)]">Occupazione</span>
                 <span className="num">{g.count}/{g.capacity} · {g.occupancyPct}%</span>
               </div>
               <PercentBar value={g.occupancyPct} color={g.overCapacity ? "#f87171" : g.occupancyPct > 85 ? "#f59e0b" : "var(--color-accent)"} />
@@ -95,7 +95,7 @@ export default async function GroupsPage() {
             {roster.length > 0 && (
               <div className="mt-4 border-t border-[var(--color-border)] pt-3">
                 <div className="mb-1.5 flex items-center justify-between">
-                  <span className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Athletes</span>
+                  <span className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Atleti</span>
                   <span className="text-[10px] text-[var(--color-muted)]">{roster.length}</span>
                 </div>
                 <ul className="space-y-1">
@@ -118,7 +118,7 @@ export default async function GroupsPage() {
                   ))}
                 </ul>
                 {roster.length > 8 && (
-                  <div className="mt-1.5 text-center text-[10px] text-[var(--color-muted)]">+{roster.length - 8} more</div>
+                  <div className="mt-1.5 text-center text-[10px] text-[var(--color-muted)]">+{roster.length - 8} altri</div>
                 )}
               </div>
             )}
@@ -126,7 +126,7 @@ export default async function GroupsPage() {
             {/* Discipline split — operational composition (SL / GS / Speed / …) */}
             {g.disciplineSplit.length > 0 && (
               <div className="mt-4 border-t border-[var(--color-border)] pt-3">
-                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Discipline split</div>
+                <div className="mb-1.5 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Composizione</div>
                 <div className="flex flex-wrap gap-1.5">
                   {g.disciplineSplit.map((d) => (
                     <span key={d.discipline} className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-surface-2)] px-2 py-1 text-[11px]">
@@ -142,7 +142,7 @@ export default async function GroupsPage() {
             {/* Group assignment rules (Smart Group Assignment) — read-only summary */}
             {(g.pointsMin != null || g.pointsMax != null || g.ageMin != null || g.ageMax != null || g.discipline) && (
               <div className="mt-3 border-t border-[var(--color-border)] pt-3 text-xs text-[var(--color-muted)]">
-                <div className="mb-1 text-[10px] uppercase tracking-wide">Assignment rules</div>
+                <div className="mb-1 text-[10px] uppercase tracking-wide">Regole di assegnazione</div>
                 <div className="flex flex-wrap gap-x-3 gap-y-1">
                   {(g.pointsMin != null || g.pointsMax != null) && <span>Points <span className="num text-[var(--color-fg)]">{g.pointsMin ?? "–"}–{g.pointsMax ?? "–"}</span></span>}
                   {(g.ageMin != null || g.ageMax != null) && <span>Age <span className="num text-[var(--color-fg)]">{g.ageMin ?? "–"}–{g.ageMax ?? "–"}</span></span>}
@@ -153,7 +153,7 @@ export default async function GroupsPage() {
 
             {isAdmin && (
               <div className="mt-4 flex items-center gap-2 border-t border-[var(--color-border)] pt-3">
-                <Modal label="Edit" title="Edit group" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
+                <Modal label="Modifica" title="Edit group" className="rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--color-surface-2)]">
                   <GroupForm coaches={opts.coaches} currency={currency} initial={{ id: g.id, name: g.name, season: g.season, coachId: g.coachId, capacity: g.capacity, notes: g.notes, active: g.active, budget: g.budget, budgetHardStop: g.budgetHardStop, pointsMin: g.pointsMin, pointsMax: g.pointsMax, ageMin: g.ageMin, ageMax: g.ageMax, level: g.level, discipline: g.discipline }} />
                 </Modal>
                 <DeleteButton kind="group" id={g.id} label="Delete" />

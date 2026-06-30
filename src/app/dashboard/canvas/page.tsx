@@ -39,10 +39,10 @@ export default async function CanvasIndex() {
       <header className="relative z-10 flex flex-wrap items-start justify-between gap-4 px-8 pb-3 pt-6 md:px-14">
         <div>
           <div className="kicker text-[10px]" style={{ color: academy?.logoColor ?? "#7CFF6B" }}>
-            Athlete Canvas · {academy?.name ?? "Roster"}
+            Rosa · {academy?.name ?? "Roster"}
           </div>
           <h1 className="mt-3 font-semibold leading-none tracking-[-0.03em]" style={{ fontSize: "clamp(2rem, 4.2vw, 3.4rem)" }}>
-            Roster {plans[0]?.season ?? ""}
+            Rosa {plans[0]?.season ?? ""}
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-[var(--color-fg)]/75">
             Apri un atleta — entra nella sua stagione come una storia, non una tabella.
@@ -74,7 +74,7 @@ export default async function CanvasIndex() {
                 style={{ background: `radial-gradient(circle at 70% 0%, ${academy?.logoColor ?? "#7CFF6B"}22, transparent 60%)` }}
               />
               <div className="relative">
-                <div className="kicker">Season {p.season}</div>
+                <div className="kicker">Stagione {p.season}</div>
                 <div className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.02em] md:text-3xl">
                   {p.athlete.firstName}
                 </div>
@@ -92,7 +92,7 @@ export default async function CanvasIndex() {
                   ))}
                 </div>
                 <div className="mt-5 text-[10px] uppercase tracking-wider text-[var(--color-muted)] opacity-0 transition-opacity group-hover:opacity-100">
-                  apri canvas →
+                  apri scheda →
                 </div>
               </div>
             </Link>
