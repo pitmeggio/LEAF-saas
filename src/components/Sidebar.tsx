@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, FileText, Layers, UserCog, Wallet,
-  BarChart3, CalendarDays, LayoutPanelLeft, Rows3, Trophy, Mail, Bell,
+  BarChart3, CalendarDays, Rows3, Trophy, Mail, Bell,
   AlignJustify, Grid2x2, Tent, Inbox, LogOut, Timer, Video, FolderOpen, type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/app/auth-actions";
@@ -46,13 +46,16 @@ const ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard", label: "Panoramica", icon: LayoutDashboard },
   ] },
   { label: "Iscrizioni", items: [
-    // Single entry — Pipeline / Openings & form / Settings live as tabs
-    // inside the Applications page so the workspace stays one module.
-    { href: "/dashboard/applications", label: "Iscrizioni", icon: ClipboardList, feature: "featureRecruiting" },
+    // Recruiting pipeline — ski/federation flow. Hidden for tennis clubs.
+    { href: "/dashboard/applications", label: "Iscrizioni", icon: ClipboardList, feature: "featureRecruiting", sports: ["ski"] },
   ] },
   { label: "Atleti", items: [
-    { href: "/dashboard/athletes", label: "Atleti", icon: Users },
-    { href: "/dashboard/documents", label: "Documenti", icon: FileText },
+    // ONE roster per sport. Tennis lands on the Canvas roster (the real
+    // tennis squad lives there via season plans); ski keeps the enrollment
+    // list. No separate "Scheda atleta" entry — clicking an athlete opens it.
+    { href: "/dashboard/canvas", label: "Atleti", icon: Users, sports: ["tennis", "padel"] },
+    { href: "/dashboard/athletes", label: "Atleti", icon: Users, sports: ["ski"] },
+    { href: "/dashboard/documents", label: "Documenti", icon: FileText, sports: ["ski"] },
   ] },
   { label: "Gruppi", items: [
     { href: "/dashboard/groups", label: "Gruppi", icon: Layers },
@@ -82,7 +85,6 @@ const ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard/video", label: "Analisi video", icon: Video, sports: ["ski"] },
     // Tennis Professional surfaces — cinematic athlete view + tournament-driven planner.
     { href: "/dashboard/dossier", label: "Dossier", icon: FolderOpen, sports: ["tennis", "padel"] },
-    { href: "/dashboard/canvas", label: "Scheda atleta", icon: LayoutPanelLeft, sports: ["tennis", "padel"] },
     { href: "/dashboard/season", label: "Vista stagione", icon: Rows3, sports: ["tennis", "padel"] },
     { href: "/dashboard/tournaments", label: "Tornei", icon: Trophy, sports: ["tennis", "padel"] },
   ] },
