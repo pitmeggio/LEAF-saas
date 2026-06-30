@@ -98,14 +98,14 @@ export default async function FinanceHubPage() {
 
           <Tile
             href="/dashboard/budgets"
-            title="Budgets"
+            title="Budget"
             kicker="per-team allocation · spend · P&L"
             summary={`${budgetPctUsed}% used · ${fmtMoney(remainingBudget, finance.currency)} remaining`}
           >
             <PercentBar value={Math.min(100, budgetPctUsed)} color={budgetPctUsed > 100 ? "#f87171" : budgetPctUsed > 85 ? "#f59e0b" : "var(--color-accent)"} />
             <div className="mt-2 grid grid-cols-2 gap-2 text-xs text-[var(--color-muted)]">
               <span>Teams: <span className="num text-[var(--color-fg)]">{groups.length}</span></span>
-              <span>Over budget: <span className="num" style={{ color: groups.filter((g) => g.overBudget).length ? "#f87171" : undefined }}>{groups.filter((g) => g.overBudget).length}</span></span>
+              <span>Oltre budget: <span className="num" style={{ color: groups.filter((g) => g.overBudget).length ? "#f87171" : undefined }}>{groups.filter((g) => g.overBudget).length}</span></span>
             </div>
           </Tile>
 
@@ -139,7 +139,7 @@ export default async function FinanceHubPage() {
               <KV key={p.id} label={p.name} value={fmtMoney(p.revenue, p.currency)} muted />
             ))}
             {finance.packageBreakdown.length === 0 && (
-              <p className="text-xs text-[var(--color-muted)]">No revenue recorded for this season yet.</p>
+              <p className="text-xs text-[var(--color-muted)]">Nessun ricavo registrato per questa stagione.</p>
             )}
           </Tile>
 

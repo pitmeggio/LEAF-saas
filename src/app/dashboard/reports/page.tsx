@@ -51,26 +51,26 @@ export default async function ReportsPage() {
         <SeasonPnLReport data={pnl} />
 
         {/* Year-over-year comparison — the report's headline */}
-        <Section title={`Season comparison · ${active} vs ${prior}`} subtitle="growth across the metrics that move the academy">
+        <Section title={`Confronto stagioni · ${active} vs ${prior}`} subtitle="crescita sulle metriche che contano per l'academy">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <CompareCard label="New athletes" curr={current.newAthletes} prev={previous.newAthletes} />
-            <CompareCard label="Applications" curr={current.newApplications} prev={previous.newApplications} />
-            <CompareCard label="Accepted" curr={current.acceptedApplications} prev={previous.acceptedApplications} />
+            <CompareCard label="Nuovi atleti" curr={current.newAthletes} prev={previous.newAthletes} />
+            <CompareCard label="Iscrizioni" curr={current.newApplications} prev={previous.newApplications} />
+            <CompareCard label="Accettate" curr={current.acceptedApplications} prev={previous.acceptedApplications} />
             <CompareCard
-              label="Revenue collected"
+              label="Ricavi incassati"
               curr={current.revenueCollected}
               prev={previous.revenueCollected}
               fmt={(n) => fmtMoney(n, current.currency)}
             />
             <CompareCard
-              label="Expenses approved"
+              label="Spese approvate"
               curr={current.expensesApproved}
               prev={previous.expensesApproved}
               fmt={(n) => fmtMoney(n, current.currency)}
               lowerIsBetter
             />
             <CompareCard
-              label="Net result"
+              label="Risultato netto"
               curr={current.netResult}
               prev={previous.netResult}
               fmt={(n) => fmtMoney(n, current.currency)}
@@ -79,18 +79,18 @@ export default async function ReportsPage() {
         </Section>
 
         {/* Trend strip — 4-season sparkbar across the headline metrics */}
-        <Section title="4-season trend" subtitle="how this academy has grown over the last four seasons">
+        <Section title="Andamento 4 stagioni" subtitle="come è cresciuta l'academy nelle ultime quattro stagioni">
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <TrendBars title="New athletes" series={trend} pick={(r) => r.newAthletes} />
-            <TrendBars title="Applications" series={trend} pick={(r) => r.newApplications} />
+            <TrendBars title="Nuovi atleti" series={trend} pick={(r) => r.newAthletes} />
+            <TrendBars title="Iscrizioni" series={trend} pick={(r) => r.newApplications} />
             <TrendBars
-              title={`Revenue (${current.currency})`}
+              title={`Ricavi (${current.currency})`}
               series={trend}
               pick={(r) => r.revenueCollected}
               fmt={(n) => fmtMoney(n, current.currency)}
             />
             <TrendBars
-              title={`Net result (${current.currency})`}
+              title={`Risultato netto (${current.currency})`}
               series={trend}
               pick={(r) => r.netResult}
               fmt={(n) => fmtMoney(n, current.currency)}
@@ -101,16 +101,16 @@ export default async function ReportsPage() {
 
         {/* Quality metrics row */}
         <div className="grid gap-6 lg:grid-cols-3">
-          <Section title="Payment completion" subtitle={`collected vs due this season`}>
+          <Section title="Incassi" subtitle={`incassato vs dovuto questa stagione`}>
             <BigStat value={`${current.collectionRate}%`} hint={`${fmtMoney(current.revenueCollected, current.currency)} of ${fmtMoney(current.revenueDue, current.currency)}`} />
             <PercentBar value={current.collectionRate} color={current.collectionRate < 70 ? "#f59e0b" : "var(--color-accent)"} />
-            <div className="mt-2 text-xs text-[var(--color-muted)]">Prior season: {previous.collectionRate}%</div>
+            <div className="mt-2 text-xs text-[var(--color-muted)]">Stagione precedente: {previous.collectionRate}%</div>
           </Section>
 
-          <Section title="Athlete retention" subtitle="kept this season from the prior roster">
-            <BigStat value={`${current.retentionRate}%`} hint={`${current.retainedFromPrior} of ${current.priorSeasonAthletes} athletes returning`} />
+          <Section title="Fidelizzazione atleti" subtitle="confermati quest'anno dalla rosa precedente">
+            <BigStat value={`${current.retentionRate}%`} hint={`${current.retainedFromPrior} of ${current.priorSeasonAthletes} atleti rientrati`} />
             <PercentBar value={current.retentionRate} color={current.retentionRate < 60 ? "#f87171" : current.retentionRate < 80 ? "#f59e0b" : "var(--color-accent)"} />
-            <div className="mt-2 text-xs text-[var(--color-muted)]">No baseline if the prior season has no enrolments.</div>
+            <div className="mt-2 text-xs text-[var(--color-muted)]">Nessun riferimento se la stagione precedente non ha iscritti.</div>
           </Section>
 
           {/* Performance progression card removed by request — Reports is a
@@ -120,7 +120,7 @@ export default async function ReportsPage() {
         </div>
 
         {/* Package popularity year-over-year */}
-        <Section title="Package popularity" subtitle="how athletes chose their plan this season vs last">
+        <Section title="Pacchetti più scelti" subtitle="come gli atleti hanno scelto il piano rispetto all'anno scorso">
           <div className="grid gap-6 md:grid-cols-2">
             <PackageList title={`Stagione ${active}`} packages={current.packageMix} />
             <PackageList title={`Stagione ${prior}`} packages={previous.packageMix} />
@@ -129,28 +129,28 @@ export default async function ReportsPage() {
 
         {/* Current-state operations panel */}
         <div className="grid gap-6 lg:grid-cols-2">
-          <Section title="Capacity & compliance" subtitle="current state — independent of season">
+          <Section title="Capienza & documenti" subtitle="stato attuale — indipendente dalla stagione">
             <div className="mb-3">
-              <div className="mb-1 flex justify-between text-xs"><span className="text-[var(--color-muted)]">Group occupancy</span><span className="num">{inGroups}/{totalCap}</span></div>
+              <div className="mb-1 flex justify-between text-xs"><span className="text-[var(--color-muted)]">Occupazione gruppi</span><span className="num">{inGroups}/{totalCap}</span></div>
               <PercentBar value={totalCap ? (inGroups / totalCap) * 100 : 0} />
             </div>
             <div>
-              <div className="mb-1 flex justify-between text-xs"><span className="text-[var(--color-muted)]">Document compliance</span><span className="num">{compliant}/{docs.docs.length}</span></div>
+              <div className="mb-1 flex justify-between text-xs"><span className="text-[var(--color-muted)]">Documenti in regola</span><span className="num">{compliant}/{docs.docs.length}</span></div>
               <PercentBar value={(compliant / docTotal) * 100} color={docs.missing.length ? "#f59e0b" : "var(--color-accent)"} />
             </div>
-            <div className="mt-3 text-xs text-[var(--color-muted)]">{docs.missing.length} missing · {docs.expired.length} expired</div>
+            <div className="mt-3 text-xs text-[var(--color-muted)]">{docs.missing.length} mancanti · {docs.expired.length} scaduti</div>
           </Section>
 
-          <Section title="Finance snapshot" subtitle="current state · base currency only">
-            <Line label="Total contract value" hint="all active deals" value={fmtMoney(finance.totalContract, finance.currency)} />
-            <Line label="Monthly recurring" hint="avg/mo · last 3 months" value={fmtMoney(finance.monthlyRecurring, finance.currency)} />
+          <Section title="Quadro finanziario" subtitle="stato attuale · solo valuta base">
+            <Line label="Valore contratti" hint="tutti i contratti attivi" value={fmtMoney(finance.totalContract, finance.currency)} />
+            <Line label="Ricorrente mensile" hint="media/mese · ultimi 3 mesi" value={fmtMoney(finance.monthlyRecurring, finance.currency)} />
             <Line label="Overdue" hint="past due date" value={fmtMoney(finance.overdueTotal, finance.currency)} danger />
             <Line label="Active subscriptions" hint="athletes on a package" value={String(finance.activeSubscriptions)} />
           </Section>
         </div>
 
         {/* Operational team detail */}
-        <Section title="Team budget allocation" subtitle="current snapshot · margin = revenue − coach cost, per group">
+        <Section title="Budget per gruppo" subtitle="foto attuale · margine = ricavi − costo maestro, per gruppo">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
