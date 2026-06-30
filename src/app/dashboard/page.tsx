@@ -79,11 +79,11 @@ export default async function OverviewPage() {
   return (
     <>
       <PageHeader
-        title="Overview"
-        subtitle={`${academy?.name ?? ""}${academy?.location ? " · " + academy.location : ""} · Season ${season}`}
+        title="Panoramica"
+        subtitle={`${academy?.name ?? ""}${academy?.location ? " · " + academy.location : ""} · Stagione ${season}`}
         right={
           <Link href="/dashboard/alerts" className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-4 py-2 text-sm font-medium hover:bg-[var(--color-surface)]">
-            {d.alerts.length} alert{d.alerts.length === 1 ? "" : "s"}
+            {d.alerts.length} avvis{d.alerts.length === 1 ? "o" : "i"}
             <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </Link>
         }
@@ -94,8 +94,8 @@ export default async function OverviewPage() {
         <div className="card p-6">
           <div className="mb-5 flex items-center gap-2">
             <Activity className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />
-            <h2 className="text-sm font-semibold">Academy pulse</h2>
-            <span className="text-[11px] text-[var(--color-muted)]">live signals · {season}</span>
+            <h2 className="text-sm font-semibold">Stato academy</h2>
+            <span className="text-[11px] text-[var(--color-muted)]">dati in tempo reale · {season}</span>
           </div>
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <PulseGauge
@@ -103,32 +103,32 @@ export default async function OverviewPage() {
               value={Math.min(100, occupancy)}
               status={rosterStatus}
               center={`${occupancy}%`}
-              label="Roster"
-              sub={`${inGroups}/${totalCap} spots filled`}
+              label="Rosa"
+              sub={`${inGroups}/${totalCap} posti occupati`}
             />
             <PulseGauge
               icon={Wallet}
               value={headroom}
               status={budgetStatus}
               center={`${headroom}%`}
-              label="Budget left"
-              sub={`${d.budgetPctUsed}% used`}
+              label="Budget residuo"
+              sub={`${d.budgetPctUsed}% usato`}
             />
             <PulseGauge
               icon={Banknote}
               value={collectRate}
               status={collectStatus}
               center={`${collectRate}%`}
-              label="Collected"
-              sub={invoiced > 0 ? "of invoiced" : "all settled"}
+              label="Incassato"
+              sub={invoiced > 0 ? "del fatturato" : "tutto saldato"}
             />
             <PulseGauge
               icon={Bell}
               value={calm}
               status={attnStatus}
               center={String(alertCount)}
-              label="Attention"
-              sub={alertCount === 0 ? "all clear" : `item${alertCount === 1 ? "" : "s"} need you`}
+              label="Da gestire"
+              sub={alertCount === 0 ? "tutto ok" : `item${alertCount === 1 ? "" : "s"} need you`}
             />
           </div>
         </div>
@@ -140,10 +140,10 @@ export default async function OverviewPage() {
               <span className="flex h-5 items-center gap-1 rounded px-1.5 text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>
                 <Sparkles className="h-3 w-3" aria-hidden />AI
               </span>
-              <h2 className="text-sm font-semibold">Today</h2>
+              <h2 className="text-sm font-semibold">Oggi</h2>
             </div>
             <p className="text-sm text-[var(--color-muted)]">
-              <span className="font-semibold text-[var(--color-fg)]">{d.alerts.length} thing{d.alerts.length === 1 ? "" : "s"} need you</span> — everything else is handled automatically across {d.activeAthletes} athletes.
+              <span className="font-semibold text-[var(--color-fg)]">{d.alerts.length} cos{d.alerts.length === 1 ? "a" : "e"} da gestire</span> — tutto il resto è gestito in automatico su {d.activeAthletes} atleti.
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               {d.alerts.slice(0, 4).map((a) => (
@@ -158,7 +158,7 @@ export default async function OverviewPage() {
               ))}
             </div>
             {d.alerts.length > 4 && (
-              <Link href="/dashboard/alerts" className="mt-3 inline-flex items-center gap-1 text-xs text-[var(--color-accent)] hover:underline">See all {d.alerts.length}<ArrowRight className="h-3 w-3" aria-hidden /></Link>
+              <Link href="/dashboard/alerts" className="mt-3 inline-flex items-center gap-1 text-xs text-[var(--color-accent)] hover:underline">Vedi tutti i {d.alerts.length}<ArrowRight className="h-3 w-3" aria-hidden /></Link>
             )}
           </div>
         ) : (
@@ -166,7 +166,7 @@ export default async function OverviewPage() {
             <span className="flex h-5 items-center gap-1 rounded px-1.5 text-[10px] font-bold" style={{ background: "var(--color-accent)", color: "#0a0c10" }}>
               <Sparkles className="h-3 w-3" aria-hidden />AI
             </span>
-            <span className="flex items-center gap-1.5 text-[var(--color-fg)]/85"><CheckCircle2 className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />You&apos;re all caught up. LEAF is auto-tracking {d.activeAthletes} athletes.</span>
+            <span className="flex items-center gap-1.5 text-[var(--color-fg)]/85"><CheckCircle2 className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />Sei in pari. LEAF segue in automatico {d.activeAthletes} athletes.</span>
           </div>
         )}
 
@@ -201,11 +201,11 @@ export default async function OverviewPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="card p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Group distribution</h2>
-              <Link href="/dashboard/groups" className="inline-flex items-center gap-1 text-[11px] text-[var(--color-accent)] hover:underline">All groups<ArrowRight className="h-3 w-3" aria-hidden /></Link>
+              <h2 className="text-sm font-semibold">Distribuzione gruppi</h2>
+              <Link href="/dashboard/groups" className="inline-flex items-center gap-1 text-[11px] text-[var(--color-accent)] hover:underline">Tutti i gruppi<ArrowRight className="h-3 w-3" aria-hidden /></Link>
             </div>
             {d.groupDistribution.length === 0 ? (
-              <p className="text-sm text-[var(--color-muted)]">No groups yet.</p>
+              <p className="text-sm text-[var(--color-muted)]">Ancora nessun gruppo.</p>
             ) : (
               <div className="space-y-3">
                 {d.groupDistribution.map((g) => (
@@ -223,11 +223,11 @@ export default async function OverviewPage() {
 
           <div className="card p-5">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-sm font-semibold">Recent activity</h2>
-              <Link href="/dashboard/applications" className="inline-flex items-center gap-1 text-[11px] text-[var(--color-accent)] hover:underline">All applications<ArrowRight className="h-3 w-3" aria-hidden /></Link>
+              <h2 className="text-sm font-semibold">Attività recente</h2>
+              <Link href="/dashboard/applications" className="inline-flex items-center gap-1 text-[11px] text-[var(--color-accent)] hover:underline">Tutte le iscrizioni<ArrowRight className="h-3 w-3" aria-hidden /></Link>
             </div>
             {d.recentActivity.length === 0 ? (
-              <p className="text-sm text-[var(--color-muted)]">No activity yet.</p>
+              <p className="text-sm text-[var(--color-muted)]">Ancora nessuna attività.</p>
             ) : (
               <div className="space-y-2">
                 {d.recentActivity.map((a) => (
@@ -274,21 +274,21 @@ function kpiCardProps(kpi: DashboardKpi, d: KpiData) {
   const base = { label: kpi.label, hint: kpi.hint } as { label: string; value: string; hint?: string; accent?: boolean; danger?: boolean; href?: string };
   switch (kpi.source) {
     case "totalAthletes":
-      return { ...base, value: String(d.activeAthletes), hint: kpi.hint ?? "enrolled members", accent: true, href: "/dashboard/athletes" };
+      return { ...base, value: String(d.activeAthletes), hint: kpi.hint ?? "atleti iscritti", accent: true, href: "/dashboard/athletes" };
     case "activeApplications":
-      return { ...base, value: String(d.pipelineCount), hint: kpi.hint ?? `${d.accepted} accepted this season`, href: "/dashboard/applications" };
+      return { ...base, value: String(d.pipelineCount), hint: kpi.hint ?? `${d.accepted} accettati questa stagione`, href: "/dashboard/applications" };
     case "seasonRevenue":
-      return { ...base, value: fmtMoney(d.collected, d.currency), hint: kpi.hint ?? `paid · ${d.season}`, accent: !kpi.hint, href: "/dashboard/payments" };
+      return { ...base, value: fmtMoney(d.collected, d.currency), hint: kpi.hint ?? `incassato · ${d.season}`, accent: !kpi.hint, href: "/dashboard/payments" };
     case "pendingPayments":
-      return { ...base, value: fmtMoney(d.outstandingTotal, d.currency), hint: kpi.hint ?? `${d.unpaidAthletes} athlete(s) to chase`, danger: d.outstandingTotal > 0, href: "/dashboard/payments" };
+      return { ...base, value: fmtMoney(d.outstandingTotal, d.currency), hint: kpi.hint ?? `${d.unpaidAthletes} atleti da sollecitare`, danger: d.outstandingTotal > 0, href: "/dashboard/payments" };
     case "budgetUsage":
       return { ...base, value: `${d.budgetPctUsed}%`, hint: kpi.hint ?? `${fmtMoney(d.usedBudget, d.currency)} of ${fmtMoney(d.totalBudget, d.currency)}`, danger: d.budgetPctUsed > 100, href: "/dashboard/budgets" };
     case "performanceAlerts":
-      return { ...base, value: String(d.perfAlertCount), hint: kpi.hint ?? "athletes trending down", danger: d.perfAlertCount > 0, href: "/dashboard/alerts" };
+      return { ...base, value: String(d.perfAlertCount), hint: kpi.hint ?? "atleti in calo", danger: d.perfAlertCount > 0, href: "/dashboard/alerts" };
     case "matchesThisSeason":
-      return { ...base, value: String(d.tennisStats?.matchesThisSeason ?? 0), hint: kpi.hint ?? `recorded · ${d.season}`, href: "/dashboard/athletes" };
+      return { ...base, value: String(d.tennisStats?.matchesThisSeason ?? 0), hint: kpi.hint ?? `registrate · ${d.season}`, href: "/dashboard/athletes" };
     case "avgWinRate":
-      return { ...base, value: `${d.tennisStats?.avgWinRate ?? 0}%`, hint: kpi.hint ?? "across all logged matches", accent: (d.tennisStats?.avgWinRate ?? 0) >= 50, href: "/dashboard/athletes" };
+      return { ...base, value: `${d.tennisStats?.avgWinRate ?? 0}%`, hint: kpi.hint ?? "su tutte le partite registrate", accent: (d.tennisStats?.avgWinRate ?? 0) >= 50, href: "/dashboard/athletes" };
     case "avgFisProgression":
       // Reserved for a future ski-specific aggregate; falls back gracefully.
       return { ...base, value: "—", hint: kpi.hint ?? "season progression (coming)" };

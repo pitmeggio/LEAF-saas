@@ -49,8 +49,8 @@ export default async function InboxPage() {
   return (
     <>
       <PageHeader
-        title="Inbox"
-        subtitle="Conversations with applicants, athletes and parents — connected to the operational system."
+        title="Messaggi"
+        subtitle="Conversazioni con candidati, atleti e genitori — collegate al sistema operativo."
         right={<NewMessageButton targets={targets} />}
       />
       <div className="space-y-6 p-8">

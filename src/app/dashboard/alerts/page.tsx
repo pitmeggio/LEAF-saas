@@ -18,7 +18,7 @@ export default async function AlertsPage() {
 
   return (
     <>
-      <PageHeader title="Alerts" subtitle="Automatically generated from live academy data — no manual entry." />
+      <PageHeader title="Avvisi" subtitle="Generati in automatico dai dati dell'academy — nessun inserimento manuale." />
       <div className="space-y-6 p-8">
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <StatCard label="Open alerts" value={String(alerts.length)} />

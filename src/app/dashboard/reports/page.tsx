@@ -43,8 +43,8 @@ export default async function ReportsPage() {
   return (
     <>
       <PageHeader
-        title="Reports"
-        subtitle={`Season ${active} vs ${prior} · auto-generated ${fmtDate(new Date())}`}
+        title="Report"
+        subtitle={`Stagione ${active} vs ${prior} · auto-generated ${fmtDate(new Date())}`}
       />
       <div className="space-y-6 p-8">
         {/* Season P&L — rendiconto economico della stagione */}
@@ -122,8 +122,8 @@ export default async function ReportsPage() {
         {/* Package popularity year-over-year */}
         <Section title="Package popularity" subtitle="how athletes chose their plan this season vs last">
           <div className="grid gap-6 md:grid-cols-2">
-            <PackageList title={`Season ${active}`} packages={current.packageMix} />
-            <PackageList title={`Season ${prior}`} packages={previous.packageMix} />
+            <PackageList title={`Stagione ${active}`} packages={current.packageMix} />
+            <PackageList title={`Stagione ${prior}`} packages={previous.packageMix} />
           </div>
         </Section>
 

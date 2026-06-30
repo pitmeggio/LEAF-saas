@@ -42,53 +42,53 @@ export type LeafTier = "essential" | "professional" | "complete";
 // PROFESSIONAL tab — the performance + finance workspace. Visible when the
 // academy's tier is "professional" or "complete".
 const ADMIN_SECTIONS: NavSection[] = [
-  { label: "Overview", items: [
-    { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { label: "Panoramica", items: [
+    { href: "/dashboard", label: "Panoramica", icon: LayoutDashboard },
   ] },
-  { label: "Applications", items: [
+  { label: "Iscrizioni", items: [
     // Single entry — Pipeline / Openings & form / Settings live as tabs
     // inside the Applications page so the workspace stays one module.
-    { href: "/dashboard/applications", label: "Applications", icon: ClipboardList, feature: "featureRecruiting" },
+    { href: "/dashboard/applications", label: "Iscrizioni", icon: ClipboardList, feature: "featureRecruiting" },
   ] },
-  { label: "Athletes", items: [
-    { href: "/dashboard/athletes", label: "Active Athletes", icon: Users },
-    { href: "/dashboard/documents", label: "Documents", icon: FileText },
+  { label: "Atleti", items: [
+    { href: "/dashboard/athletes", label: "Atleti", icon: Users },
+    { href: "/dashboard/documents", label: "Documenti", icon: FileText },
   ] },
-  { label: "Groups", items: [
-    { href: "/dashboard/groups", label: "Groups", icon: Layers },
-    { href: "/dashboard/coaches", label: "Coaches", icon: UserCog },
+  { label: "Gruppi", items: [
+    { href: "/dashboard/groups", label: "Gruppi", icon: Layers },
+    { href: "/dashboard/coaches", label: "Maestri", icon: UserCog },
   ] },
-  { label: "Finance", items: [
+  { label: "Finanza", items: [
     // Finance hub lands on /dashboard/finance and routes out to Payments /
     // Budgets / Expenses / Packages via a sub-nav. Reports gets its own
     // sub-entry so the season P&L read-out is one click away from anywhere
     // in the sidebar (Pietro: "Reports va sotto voce Finance").
     {
       href: "/dashboard/finance",
-      label: "Finance",
+      label: "Finanza",
       icon: Wallet,
       feature: "featureFinance",
       activePaths: ["/dashboard/finance", "/dashboard/payments", "/dashboard/budgets", "/dashboard/expenses", "/dashboard/packages"],
     },
-    { href: "/dashboard/reports", label: "Reports", icon: BarChart3, feature: "featureFinance" },
+    { href: "/dashboard/reports", label: "Report", icon: BarChart3, feature: "featureFinance" },
   ] },
   { label: "Performance", items: [
     // Note: "Programmi" (training/race programmes) is a COACH-only tool — it
     // lives in COACH_SECTIONS, not here. The academy admin doesn't publish
     // sessions, so it's intentionally absent from the admin workspace.
     // Ski-shaped season planner — calendar of camps + race plan.
-    { href: "/dashboard/calendar", label: "Season Planner", icon: CalendarDays, sports: ["ski"] },
+    { href: "/dashboard/calendar", label: "Calendario stagione", icon: CalendarDays, sports: ["ski"] },
     { href: "/dashboard/results", label: "Tempi", icon: Timer, sports: ["ski"] },
     { href: "/dashboard/video", label: "Analisi video", icon: Video, sports: ["ski"] },
     // Tennis Professional surfaces — cinematic athlete view + tournament-driven planner.
     { href: "/dashboard/dossier", label: "Dossier", icon: FolderOpen, sports: ["tennis", "padel"] },
-    { href: "/dashboard/canvas", label: "Athlete Canvas", icon: LayoutPanelLeft, sports: ["tennis", "padel"] },
-    { href: "/dashboard/season", label: "Season View", icon: Rows3, sports: ["tennis", "padel"] },
-    { href: "/dashboard/tournaments", label: "Tournaments", icon: Trophy, sports: ["tennis", "padel"] },
+    { href: "/dashboard/canvas", label: "Scheda atleta", icon: LayoutPanelLeft, sports: ["tennis", "padel"] },
+    { href: "/dashboard/season", label: "Vista stagione", icon: Rows3, sports: ["tennis", "padel"] },
+    { href: "/dashboard/tournaments", label: "Tornei", icon: Trophy, sports: ["tennis", "padel"] },
   ] },
   { label: "Admin", items: [
-    { href: "/dashboard/inbox", label: "Inbox", icon: Mail, feature: "featureChat" },
-    { href: "/dashboard/alerts", label: "Alerts", icon: Bell },
+    { href: "/dashboard/inbox", label: "Messaggi", icon: Mail, feature: "featureChat" },
+    { href: "/dashboard/alerts", label: "Avvisi", icon: Bell },
   ] },
 ];
 
@@ -98,44 +98,44 @@ const ADMIN_SECTIONS: NavSection[] = [
 //   • tennis → Courts + Pay-and-Train sessions
 //   • all → Bookings inbox (incoming reservations)
 const ESSENTIAL_ADMIN_SECTIONS: NavSection[] = [
-  { label: "Facility", items: [
-    { href: "/dashboard/lines", label: "Line Schedule", icon: AlignJustify, sports: ["ski"] },
-    { href: "/dashboard/courts", label: "Courts", icon: Grid2x2, sports: ["tennis", "padel"] },
+  { label: "Struttura", items: [
+    { href: "/dashboard/lines", label: "Piste", icon: AlignJustify, sports: ["ski"] },
+    { href: "/dashboard/courts", label: "Campi", icon: Grid2x2, sports: ["tennis", "padel"] },
   ] },
   { label: "Pay-and-Train", items: [
     // Ski: Pay-and-Train single sessions. Tennis: summer camps + groups.
-    { href: "/dashboard/camps", label: "Camps & Groups", icon: Tent, sports: ["tennis", "padel"] },
-    { href: "/dashboard/bookings", label: "Bookings", icon: Inbox },
+    { href: "/dashboard/camps", label: "Centri estivi & Gruppi", icon: Tent, sports: ["tennis", "padel"] },
+    { href: "/dashboard/bookings", label: "Prenotazioni", icon: Inbox },
   ] },
-  { label: "Reports", items: [
-    { href: "/dashboard/utilization", label: "Reports", icon: BarChart3 },
+  { label: "Report", items: [
+    { href: "/dashboard/utilization", label: "Report", icon: BarChart3 },
   ] },
 ];
 
 const COACH_SECTIONS: NavSection[] = [
-  { label: "Overview", items: [
-    { href: "/dashboard", label: "My Dashboard", icon: LayoutDashboard },
+  { label: "Panoramica", items: [
+    { href: "/dashboard", label: "La mia panoramica", icon: LayoutDashboard },
   ] },
-  { label: "Athletes", items: [
-    { href: "/dashboard/applications", label: "Applications", icon: ClipboardList, feature: "featureRecruiting" },
-    { href: "/dashboard/athletes", label: "My Athletes", icon: Users },
-    { href: "/dashboard/documents", label: "Documents", icon: FileText },
+  { label: "Atleti", items: [
+    { href: "/dashboard/applications", label: "Iscrizioni", icon: ClipboardList, feature: "featureRecruiting" },
+    { href: "/dashboard/athletes", label: "I miei atleti", icon: Users },
+    { href: "/dashboard/documents", label: "Documenti", icon: FileText },
   ] },
-  { label: "Groups", items: [
-    { href: "/dashboard/groups", label: "My Groups", icon: Layers },
+  { label: "Gruppi", items: [
+    { href: "/dashboard/groups", label: "I miei gruppi", icon: Layers },
   ] },
   { label: "Performance", items: [
     { href: "/dashboard/programs", label: "Programmi", icon: ClipboardList },
-    { href: "/dashboard/calendar", label: "Season Planner", icon: CalendarDays },
-    { href: "/dashboard/results", label: "Tempi", icon: Timer },
+    { href: "/dashboard/calendar", label: "Calendario stagione", icon: CalendarDays, sports: ["ski"] },
+    { href: "/dashboard/results", label: "Tempi", icon: Timer, sports: ["ski"] },
     { href: "/dashboard/video", label: "Analisi video", icon: Video, sports: ["ski"] },
   ] },
-  { label: "Finance", items: [
-    { href: "/dashboard/expenses", label: "My Expenses", icon: Wallet, feature: "featureFinance" },
+  { label: "Finanza", items: [
+    { href: "/dashboard/expenses", label: "Le mie spese", icon: Wallet, feature: "featureFinance" },
   ] },
   { label: "Admin", items: [
-    { href: "/dashboard/inbox", label: "Inbox", icon: Mail, feature: "featureChat" },
-    { href: "/dashboard/alerts", label: "Alerts", icon: Bell },
+    { href: "/dashboard/inbox", label: "Messaggi", icon: Mail, feature: "featureChat" },
+    { href: "/dashboard/alerts", label: "Avvisi", icon: Bell },
   ] },
 ];
 
@@ -143,7 +143,7 @@ const ROLE_LABEL: Record<string, string> = {
   super_admin: "Super Admin",
   academy_admin: "Admin",
   coach: "Coach",
-  athlete: "Athlete",
+  athlete: "Atleta",
   recruiter: "Recruiter",
 };
 

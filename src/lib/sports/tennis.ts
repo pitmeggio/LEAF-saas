@@ -17,17 +17,17 @@ export const tennisModule: SportModule = {
   // Athletes list. Win rate + recent form land in a follow-up (need the
   // match data layer to avoid N+1 in the list query).
   athletesListColumns: [
-    { key: "playingStyle", label: "Style", field: "playingStyle" },
-    { key: "levels", label: "T / T / P / M", field: "tennisLevels", align: "right", hint: "Technical / Tactical / Physical / Mental, 1–10" },
+    { key: "playingStyle", label: "Stile", field: "playingStyle" },
+    { key: "levels", label: "T / T / F / M", field: "tennisLevels", align: "right", hint: "Tecnico / Tattico / Fisico / Mentale, 1–10" },
   ],
 
   dashboardKpis: [
-    { key: "athletes", label: "Total athletes", source: "totalAthletes" },
-    { key: "applications", label: "Active applications", source: "activeApplications" },
-    { key: "matches", label: "Matches this season", source: "matchesThisSeason" },
-    { key: "winRate", label: "Avg win rate", source: "avgWinRate" },
-    { key: "revenue", label: "Season revenue", source: "seasonRevenue" },
-    { key: "pending", label: "Pending payments", source: "pendingPayments" },
+    { key: "athletes", label: "Atleti totali", source: "totalAthletes" },
+    { key: "applications", label: "Iscrizioni attive", source: "activeApplications" },
+    { key: "matches", label: "Partite stagione", source: "matchesThisSeason" },
+    { key: "winRate", label: "% vittorie media", source: "avgWinRate" },
+    { key: "revenue", label: "Ricavi stagione", source: "seasonRevenue" },
+    { key: "pending", label: "Pagamenti in sospeso", source: "pendingPayments" },
   ],
 
   coachNotes: {

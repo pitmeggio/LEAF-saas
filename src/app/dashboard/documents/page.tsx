@@ -34,7 +34,7 @@ export default async function DocumentsPage() {
 
   return (
     <>
-      <PageHeader title="Documents" subtitle="Missing and expired documents are detected automatically per athlete." />
+      <PageHeader title="Documenti" subtitle="Documenti mancanti o scaduti rilevati in automatico per ogni atleta." />
       <div className="space-y-6 p-8">
         {/* How-it-works banner — answers "what does Documents actually do?".
             LEAF tracks compliance (which athlete has which doc, expiry, alerts)

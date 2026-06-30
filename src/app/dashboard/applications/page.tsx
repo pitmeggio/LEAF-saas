@@ -75,8 +75,8 @@ async function PipelinePane() {
   return (
     <>
       <PageHeader
-        title="Applications"
-        subtitle={`Season ${season} · drag candidates across the pipeline. Status changes are saved automatically.`}
+        title="Iscrizioni"
+        subtitle={`Stagione ${season} · trascina i candidati nella pipeline. Lo stato si salva in automatico.`}
         right={
           <div className="flex items-center gap-3">
             <span className="num text-sm text-[var(--color-muted)]">{cards.length} candidates</span>
@@ -203,8 +203,8 @@ async function SettingsPane() {
 function ApplicationsHeader() {
   return (
     <PageHeader
-      title="Applications"
-      subtitle="Applications &amp; recruiting — registration, eligibility, openings, form, approvals."
+      title="Iscrizioni"
+      subtitle="Iscrizioni &amp; reclutamento — registrazione, idoneità, posizioni aperte, form, approvazioni."
     />
   );
 }

@@ -25,7 +25,7 @@ export default async function GroupsPage() {
     <>
       <PageHeader
         title={isAdmin ? "Groups / Teams" : "My Groups"}
-        subtitle="Roster, coaches, capacity and discipline composition."
+        subtitle="Rosa, maestri, capienza e composizione del gruppo."
         right={isAdmin ? <Modal label="+ New group" title="New group" className={newBtn}><GroupForm coaches={opts.coaches} currency={currency} /></Modal> : undefined}
       />
       <div className="grid gap-4 p-8 sm:grid-cols-2 lg:grid-cols-3">

@@ -9,7 +9,7 @@ import { fmtMoney } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
 
-const ROLE_LABEL: Record<string, string> = { head_coach: "Head coach", coach: "Coach", physio: "Physio", s_and_c: "Strength & conditioning", assistant_coach: "Assistant coach" };
+const ROLE_LABEL: Record<string, string> = { head_coach: "Maestro responsabile", coach: "Maestro", physio: "Fisioterapista", s_and_c: "Preparatore atletico", assistant_coach: "Maestro assistente" };
 const newBtn = "rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]";
 
 export default async function CoachesPage() {
@@ -19,9 +19,9 @@ export default async function CoachesPage() {
   return (
     <>
       <PageHeader
-        title="Coaches"
-        subtitle="Each card shows the coach's roster size and the FIS-trend signal of their athletes — updated automatically."
-        right={<Modal label="+ New coach" title="New coach" className={newBtn}><CoachForm /></Modal>}
+        title="Maestri"
+        subtitle="Ogni scheda mostra gli atleti seguiti e l'andamento della loro classifica — aggiornato in automatico."
+        right={<Modal label="+ Nuovo maestro" title="Nuovo maestro" className={newBtn}><CoachForm /></Modal>}
       />
       <div className="grid gap-4 p-8 sm:grid-cols-2 lg:grid-cols-3">
         {coaches.map((c) => {
@@ -33,17 +33,17 @@ export default async function CoachesPage() {
           const avgSign = t.avgDelta < 0 ? "−" : t.avgDelta > 0 ? "+" : "±";
           const avgColor = t.avgDelta < 0 ? "var(--color-accent)" : t.avgDelta > 0 ? "#f87171" : "var(--color-muted)";
           // Headline read: choose the dominant signal.
-          let headline = "No FIS data yet";
+          let headline = "Nessuna classifica ancora";
           let headlineColor: string = "var(--color-muted)";
           if (tracked > 0) {
             if (t.improving > t.declining) {
-              headline = `${t.improving} improving · ${t.declining} declining`;
+              headline = `${t.improving} in crescita · ${t.declining} in calo`;
               headlineColor = "var(--color-accent)";
             } else if (t.declining > t.improving) {
-              headline = `${t.declining} declining · ${t.improving} improving`;
+              headline = `${t.declining} in calo · ${t.improving} in crescita`;
               headlineColor = "#f87171";
             } else {
-              headline = `${t.stable} stable · ${t.improving} improving`;
+              headline = `${t.stable} stabili · ${t.improving} in crescita`;
               headlineColor = "var(--color-muted)";
             }
           }
@@ -101,15 +101,15 @@ export default async function CoachesPage() {
                     <div className="h-full" style={{ width: `${decliningPct}%`, background: "#f87171" }} title={`${t.declining} declining`} />
                   </div>
                   <div className="mt-2 flex items-center justify-between text-[10px]">
-                    <span className="text-[var(--color-muted)]">Avg FIS Δ</span>
+                    <span className="text-[var(--color-muted)]">Δ media classifica</span>
                     <span className="num font-medium" style={{ color: avgColor }}>
-                      {`${avgSign}${Math.abs(t.avgDelta).toFixed(1)}`} pts
+                      {`${avgSign}${Math.abs(t.avgDelta).toFixed(1)}`} pt
                     </span>
                   </div>
                 </>
               ) : (
                 <p className="mt-2 text-[10px] text-[var(--color-muted)]">
-                  Sync athletes from FIS on their profiles to populate this card.
+                  Aggiungi la classifica degli atleti dal loro profilo per popolare questa scheda.
                 </p>
               )}
             </div>

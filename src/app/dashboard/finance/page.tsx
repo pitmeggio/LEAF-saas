@@ -32,8 +32,8 @@ export default async function FinanceHubPage() {
   return (
     <>
       <PageHeader
-        title="Finance"
-        subtitle={`Season ${season} · revenue, invoices, budgets, expenses, approvals and packages — one module.`}
+        title="Finanza"
+        subtitle={`Stagione ${season} · ricavi, fatture, budget, spese, approvazioni e pacchetti — un solo modulo.`}
       />
       <FinanceSubNav active="overview" />
 
@@ -87,7 +87,7 @@ export default async function FinanceHubPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Tile
             href="/dashboard/payments"
-            title="Payments"
+            title="Pagamenti"
             kicker="invoices · revenue · collections"
             summary={`${fmtMoney(finance.collected, finance.currency)} collected · ${fmtMoney(finance.outstandingTotal, finance.currency)} outstanding`}
           >
@@ -111,7 +111,7 @@ export default async function FinanceHubPage() {
 
           <Tile
             href="/dashboard/expenses"
-            title="Expenses & Approvals"
+            title="Spese & Approvazioni"
             kicker="coach receipts · approval queue"
             summary={`${expenses.pendingCount} awaiting · ${fmtMoney(expenses.approvedTotal, finance.currency)} approved`}
           >
@@ -121,7 +121,7 @@ export default async function FinanceHubPage() {
 
           <Tile
             href="/dashboard/packages"
-            title="Packages"
+            title="Pacchetti"
             kicker="product catalogue · subscription pricing"
             summary={`${activePackages} active · ${packages.length} total`}
           >
@@ -131,7 +131,7 @@ export default async function FinanceHubPage() {
 
           <Tile
             href="/dashboard/payments"
-            title="Revenue mix"
+            title="Mix ricavi"
             kicker="which packages drive the money"
             summary={`${finance.packageBreakdown.length} package(s) producing revenue`}
           >
@@ -145,7 +145,7 @@ export default async function FinanceHubPage() {
 
           <Tile
             href="/dashboard/payments"
-            title="Invoice states"
+            title="Stato fatture"
             kicker="lifecycle counts across the season"
             summary={`${finance.invoiceStates.paid ?? 0} paid · ${finance.invoiceStates.overdue ?? 0} overdue`}
           >
@@ -161,7 +161,7 @@ export default async function FinanceHubPage() {
               outstanding) so it reads more honestly as a Finance tab. */}
           <Tile
             href="/dashboard/reports"
-            title="Reports"
+            title="Report"
             kicker="season P&L · roster · finance read-out"
             summary={`${finance.activeSubscriptions} active subscriptions · ${fmtMoney(finance.totalContract, finance.currency)} contract value`}
           >

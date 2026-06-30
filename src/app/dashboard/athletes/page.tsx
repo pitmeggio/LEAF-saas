@@ -38,11 +38,11 @@ export default async function MembersPage() {
   return (
     <>
       <PageHeader
-        title="Active Athletes"
-        subtitle={`${sport.label} workspace · enrolled members, academy and operational status in one place.`}
+        title="Atleti"
+        subtitle={`Spazio ${sport.label} · iscritti, stato e parte operativa dell'academy in un posto solo.`}
         right={
           <div className="flex items-center gap-3">
-            <span className="num text-sm text-[var(--color-muted)]">{members.length} members</span>
+            <span className="num text-sm text-[var(--color-muted)]">{members.length} iscritti</span>
             {/* Import-by-code, sport-aware: ski pulls a verified CV from a FIS
                 code; tennis pulls the ranking trajectory from an ITF/ATP/FIT
                 code (same principle, sport-correct source). */}
@@ -56,7 +56,7 @@ export default async function MembersPage() {
                 Import from FIS
               </Link>
             )}
-            <Modal label="+ New athlete" title="Add athlete" className={newBtn}><AthleteForm groups={opts.groups} coaches={opts.coaches} packages={opts.packages} /></Modal>
+            <Modal label="+ Nuovo atleta" title="Nuovo atleta" className={newBtn}><AthleteForm groups={opts.groups} coaches={opts.coaches} packages={opts.packages} /></Modal>
           </div>
         }
       />
@@ -76,11 +76,11 @@ export default async function MembersPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs uppercase tracking-wide text-[var(--color-muted)]">
-                <th className="px-5 py-3 font-medium">Athlete</th>
-                <th className="px-3 py-3 font-medium">Status</th>
-                <th className="px-3 py-3 font-medium">Level</th>
-                <th className="px-3 py-3 font-medium">Group</th>
-                <th className="px-3 py-3 font-medium">Coach</th>
+                <th className="px-5 py-3 font-medium">Atleta</th>
+                <th className="px-3 py-3 font-medium">Stato</th>
+                <th className="px-3 py-3 font-medium">Livello</th>
+                <th className="px-3 py-3 font-medium">Gruppo</th>
+                <th className="px-3 py-3 font-medium">Maestro</th>
                 {/* Sport-specific columns — declared by the active sport module. */}
                 {sportCols.map((c) => (
                   <th
@@ -91,7 +91,7 @@ export default async function MembersPage() {
                     {c.label}
                   </th>
                 ))}
-                <th className="px-3 py-3 font-medium">Docs</th>
+                <th className="px-3 py-3 font-medium">Doc</th>
               </tr>
             </thead>
             <tbody>
@@ -126,9 +126,9 @@ export default async function MembersPage() {
                   ))}
                   <td className="px-3 py-3">
                     {m.missingDocs.length > 0 ? (
-                      <span className="text-xs font-medium text-[#f59e0b]">{m.missingDocs.length} missing</span>
+                      <span className="text-xs font-medium text-[#f59e0b]">{m.missingDocs.length} mancanti</span>
                     ) : (
-                      <span className="text-xs text-[var(--color-muted)]">complete</span>
+                      <span className="text-xs text-[var(--color-muted)]">completi</span>
                     )}
                   </td>
                 </tr>
