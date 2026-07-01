@@ -112,6 +112,7 @@ model Academy {
   tennisTournaments TennisTournament[]
   tennisSeasonPlans TennisSeasonPlan[]
   athleteFiles      AthleteFile[]
+  essentialCheckouts EssentialCheckout[]
   createdAt     DateTime       @default(now())
 }
 
@@ -734,6 +735,32 @@ model AthleteFile {
   createdAt   DateTime @default(now())
 
   @@index([academyId, athleteId, observedAt])
+}
+
+// LEAF OS Essential — online payment for a payable item (camp registration or
+// court booking). One row per checkout attempt. Stripe hosts the payment page
+// (Apple Pay / Google Pay / cards appear automatically); the webhook flips
+// status to "paid" and stamps the source item's paidAmount. "manual" = the
+// admin marked it collected offline (cash/bank) without a gateway.
+model EssentialCheckout {
+  id              String   @id @default(cuid())
+  academyId       String
+  academy         Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  kind            String   // camp_reg | court_booking
+  refId           String   // TennisCampRegistration.id | CourtBooking.id
+  amount          Int      // major units (EUR)
+  currency        String   @default("EUR")
+  description     String
+  customerEmail   String?
+  customerName    String?
+  status          String   @default("pending") // pending | paid | canceled | manual
+  provider        String   @default("stripe")
+  stripeSessionId String?  @unique
+  url             String?  // Stripe-hosted checkout URL
+  paidAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([academyId, kind, refId])
 }
 
 // Tennis ranking observation — one row per (athlete, source, date). The

@@ -108,6 +108,7 @@ const ESSENTIAL_ADMIN_SECTIONS: NavSection[] = [
     // Ski: Pay-and-Train single sessions. Tennis: summer camps + groups.
     { href: "/dashboard/camps", label: "Centri estivi & Gruppi", icon: Tent, sports: ["tennis", "padel"] },
     { href: "/dashboard/bookings", label: "Prenotazioni", icon: Inbox },
+    { href: "/dashboard/payments-essential", label: "Pagamenti", icon: Wallet, sports: ["tennis", "padel"] },
   ] },
   { label: "Report", items: [
     { href: "/dashboard/utilization", label: "Report", icon: BarChart3 },
@@ -180,6 +181,7 @@ export function Sidebar({ user, features, season, sport, tier }: {
     pathname.startsWith("/dashboard/facilities") ||
     pathname.startsWith("/dashboard/sessions") ||
     pathname.startsWith("/dashboard/bookings") ||
+    pathname.startsWith("/dashboard/payments-essential") ||
     pathname.startsWith("/dashboard/utilization");
   const initialWorkspace: "professional" | "essential" =
     onEssentialPath && hasEssential ? "essential" : hasPro ? "professional" : "essential";
