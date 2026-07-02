@@ -55,6 +55,9 @@ async function uniqueSlug(first: string, last: string, athleteId: string): Promi
 // FIS-published record (points, history, results), build a verified public profile and
 // hand them their shareable link. ATP is not wired to a provider yet.
 export async function createProfileAction(_prev: CreateProfileState, formData: FormData): Promise<CreateProfileState> {
+  // Public self-serve signup — throttle to stop bulk profile creation.
+  const { rateLimit, callerIp } = await import("@/lib/rateLimit");
+  if (!rateLimit(`signup:${await callerIp()}`, 5, 10 * 60_000)) return { error: "Troppe richieste. Riprova tra qualche minuto." };
   // Platform-level gate — self-serve athlete signup creates a public profile.
   // While the discovery / marketplace layer isn't live, the resulting profile
   // would be invisible (404 at /athlete/[slug] thanks to the academy-level

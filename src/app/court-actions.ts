@@ -200,6 +200,9 @@ const regSchema = z.object({
 });
 
 export async function registerForCamp(input: z.input<typeof regSchema>): Promise<Result<{ id: string }>> {
+  // Public (no auth) — throttle to stop spam floods.
+  const { rateLimit, callerIp } = await import("@/lib/rateLimit");
+  if (!rateLimit(`camp-reg:${await callerIp()}`, 8, 10 * 60_000)) return { ok: false, error: "Troppe richieste. Riprova tra qualche minuto." };
   const parsed = regSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const d = parsed.data;

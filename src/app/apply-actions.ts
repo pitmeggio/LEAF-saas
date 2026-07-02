@@ -14,6 +14,8 @@ import { computeSuggestedGroupId } from "@/lib/autoGroup";
 export type ApplyState = { error?: string };
 
 export async function submitApplicationAction(_prev: ApplyState, formData: FormData): Promise<ApplyState> {
+  const { rateLimit, callerIp } = await import("@/lib/rateLimit");
+  if (!rateLimit(`apply:${await callerIp()}`, 8, 10 * 60_000)) return { error: "Troppe richieste. Riprova tra qualche minuto." };
   const parsed = applicationSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: firstError(parsed.error) };
   const d = parsed.data;

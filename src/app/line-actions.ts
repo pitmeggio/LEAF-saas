@@ -267,6 +267,8 @@ const publicBookSchema = z.object({
 // Stripe is wired but optional — for the demo, we mark as "confirmed"
 // with paidAmount=0 and the academy admin confirms reception manually.
 export async function bookSlotPublicly(input: z.input<typeof publicBookSchema>): Promise<Result<{ bookingId: string }>> {
+  const { rateLimit, callerIp } = await import("@/lib/rateLimit");
+  if (!rateLimit(`pub-book:${await callerIp()}`, 10, 10 * 60_000)) return { ok: false, error: "Troppe richieste. Riprova tra qualche minuto." };
   const parsed = publicBookSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const d = parsed.data;
@@ -322,6 +324,8 @@ const externalLineBookSchema = z.object({
 });
 
 export async function bookLineByExternalCoach(input: z.input<typeof externalLineBookSchema>): Promise<Result<{ bookingId: string }>> {
+  const { rateLimit, callerIp } = await import("@/lib/rateLimit");
+  if (!rateLimit(`ext-book:${await callerIp()}`, 10, 10 * 60_000)) return { ok: false, error: "Troppe richieste. Riprova tra qualche minuto." };
   const parsed = externalLineBookSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: firstError(parsed.error) };
   const d = parsed.data;
