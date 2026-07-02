@@ -1443,3 +1443,57 @@ model TrainingProgram {
 
   @@index([academyId, groupId, status])
 }
+
+// LEAF — Bacheca (Squad Board). Staff broadcast an announcement to the whole
+// academy or a single group; athletes read it in the app and (optionally)
+// acknowledge. Read/ack receipts give staff Teamworks' "seen by / confirmed
+// by" visibility — the flagship engagement loop. Scalar ids (no relations to
+// Academy/Athlete/User) to stay additive; names resolved on read.
+model Announcement {
+  id          String   @id @default(cuid())
+  academyId   String
+  authorId    String?
+  authorName  String   // denormalized — survives author deletion
+  authorRole  String?  // "Coach", "Direttore", "Segreteria"
+  title       String
+  body        String
+  audience    String   @default("all") // all | group
+  groupId     String?  // target group when audience = group
+  pinned      Boolean  @default(false)
+  requireAck  Boolean  @default(false) // athlete must tap "Confermo la lettura"
+  createdAt   DateTime @default(now())
+
+  receipts    AnnouncementReceipt[]
+
+  @@index([academyId, createdAt])
+}
+
+// One row per (announcement, athlete) — created when the athlete opens the
+// announcement (readAt) and stamped again if they acknowledge (ackedAt).
+model AnnouncementReceipt {
+  id             String       @id @default(cuid())
+  announcementId String
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  athleteId      String
+  readAt         DateTime     @default(now())
+  ackedAt        DateTime?
+
+  @@unique([announcementId, athleteId])
+  @@index([athleteId])
+}
+
+// LEAF — Event availability (RSVP). Athlete answers "ci sono / non ci sono /
+// forse" for a CalendarEvent; staff sees the attendance forecast before the
+// session. Scalar eventId (CalendarEvent.id, no relation) to stay additive.
+model EventRsvp {
+  id          String   @id @default(cuid())
+  academyId   String
+  eventId     String   // CalendarEvent.id
+  athleteId   String
+  status      String   @default("going") // going | not | maybe
+  note        String?
+  respondedAt DateTime @default(now())
+
+  @@unique([eventId, athleteId])
+  @@index([academyId, eventId])
+}

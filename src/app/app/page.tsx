@@ -13,6 +13,9 @@ import { ProgramPop } from "@/components/app/ProgramPop";
 import { fmtPoints, fmtDate } from "@/lib/domain";
 import { getAthleteWellness } from "@/lib/wellness";
 import { readinessBand, BAND_COLOR, BAND_LABEL } from "@/lib/wellnessCore";
+import { getAthleteBoard, getAthleteRsvps } from "@/lib/board/board";
+import { relativeTime } from "@/lib/board/boardTypes";
+import { EventRsvp } from "@/components/app/EventRsvp";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "LEAF" };
@@ -38,6 +41,14 @@ export default async function AppHome() {
   const lastSession = (await getAthleteSessions(athleteId, 1))[0] ?? null;
   const wellness = await getAthleteWellness(athleteId);
   const wBand = readinessBand(wellness.today?.readiness);
+
+  // Bacheca (Squad Board) — latest announcement + unread count for the home strip.
+  const board = await getAthleteBoard(athleteId);
+  const latestAnnouncement = board[0] ?? null;
+  const unreadBoard = board.filter((a) => !a.read).length;
+  // RSVP state for the upcoming events shown below.
+  const rsvps = await getAthleteRsvps(athleteId, upcoming.map((e) => e.id));
+  const nowMs = Date.now();
 
   const initials = `${w.firstName[0] ?? ""}${w.lastName[0] ?? ""}`.toUpperCase();
 
@@ -74,6 +85,21 @@ export default async function AppHome() {
           <span className="shrink-0 rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-semibold text-[#0a0c10]">Inizia →</span>
         )}
       </Link>
+
+      {/* Bacheca — latest staff announcement, unread count drives the tap */}
+      {latestAnnouncement && (
+        <Link href="/app/board" className="card card-hover mb-4 flex items-center justify-between gap-3 p-4">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-[var(--color-muted)]">
+              <span aria-hidden>🔔</span> Bacheca
+              {unreadBoard > 0 && <span className="rounded-full bg-[var(--color-accent)] px-1.5 text-[9px] font-bold text-[#0a0c10]">{unreadBoard} nuove</span>}
+            </div>
+            <div className="mt-0.5 truncate text-base font-semibold">{latestAnnouncement.title}</div>
+            <div className="truncate text-[11px] text-[var(--color-muted)]">{latestAnnouncement.authorName} · {relativeTime(latestAnnouncement.createdAt, nowMs)}</div>
+          </div>
+          <span className="shrink-0 text-sm text-[var(--color-accent)]">Apri →</span>
+        </Link>
+      )}
 
       {/* Coach published a programme → pop */}
       {latestProgram && (
@@ -137,12 +163,15 @@ export default async function AppHome() {
         ) : (
           <div className="divide-y divide-[var(--color-border)]">
             {upcoming.map((e) => (
-              <div key={e.id} className="flex items-center gap-3 px-4 py-3">
-                <span className="text-lg" aria-hidden>{EVENT_ICON[e.type] ?? "📌"}</span>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">{e.title}</div>
-                  <div className="text-[11px] text-[var(--color-muted)]">{fmtDate(e.startDate)}{e.location ? ` · ${e.location}` : ""}</div>
+              <div key={e.id} className="px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="text-lg" aria-hidden>{EVENT_ICON[e.type] ?? "📌"}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{e.title}</div>
+                    <div className="text-[11px] text-[var(--color-muted)]">{fmtDate(e.startDate)}{e.location ? ` · ${e.location}` : ""}</div>
+                  </div>
                 </div>
+                <EventRsvp eventId={e.id} initial={rsvps[e.id] ?? null} />
               </div>
             ))}
           </div>

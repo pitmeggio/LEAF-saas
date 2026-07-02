@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, FileText, Layers, UserCog, Wallet,
   BarChart3, CalendarDays, Rows3, Trophy, Mail, Bell,
-  AlignJustify, Grid2x2, Tent, Inbox, LogOut, Timer, Video, FolderOpen, HeartPulse, type LucideIcon,
+  AlignJustify, Grid2x2, Tent, Inbox, LogOut, Timer, Video, FolderOpen, HeartPulse, Megaphone, type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/app/auth-actions";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -80,6 +80,8 @@ const ADMIN_SECTIONS: NavSection[] = [
     // lives in COACH_SECTIONS, not here. The academy admin doesn't publish
     // sessions, so it's intentionally absent from the admin workspace.
     // Ski-shaped season planner — calendar of camps + race plan.
+    // Bacheca — squad broadcast with read/ack receipts (all sports).
+    { href: "/dashboard/board", label: "Bacheca", icon: Megaphone },
     // AMS — daily wellness / readiness board (all sports).
     { href: "/dashboard/wellness", label: "Benessere", icon: HeartPulse },
     { href: "/dashboard/calendar", label: "Calendario stagione", icon: CalendarDays, sports: ["ski"] },
@@ -131,6 +133,7 @@ const COACH_SECTIONS: NavSection[] = [
   ] },
   { label: "Performance", items: [
     { href: "/dashboard/programs", label: "Programmi", icon: ClipboardList },
+    { href: "/dashboard/board", label: "Bacheca", icon: Megaphone },
     { href: "/dashboard/wellness", label: "Benessere", icon: HeartPulse },
     { href: "/dashboard/calendar", label: "Calendario stagione", icon: CalendarDays, sports: ["ski"] },
     { href: "/dashboard/results", label: "Tempi", icon: Timer, sports: ["ski"] },
