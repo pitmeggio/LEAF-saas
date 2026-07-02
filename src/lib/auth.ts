@@ -127,9 +127,8 @@ export async function requireAcademyId(): Promise<string> {
     throw new Error("SUPER_ADMIN has no tenant scope — use the /super-admin portal.");
   }
   if (user?.academyId) return user.academyId;
-  // Fallback to first academy keeps the prototype resilient if the cookie is stale
-  // (e.g. after a reseed regenerates user ids). Real auth removes this.
-  const first = await prisma.academy.findFirst({ orderBy: { createdAt: "asc" } });
-  if (!first) throw new Error("No academy found");
-  return first.id;
+  // No session (or a user with no tenant) NEVER falls back to another
+  // academy's data — the old "first academy" prototype fallback was a
+  // cross-tenant leak. Send them to sign in instead.
+  redirect("/login");
 }
