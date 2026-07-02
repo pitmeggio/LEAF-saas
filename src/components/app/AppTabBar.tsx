@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 // phone frame on desktop too. Active tab lights up in the accent colour.
 const TABS = [
   { href: "/app", label: "Home", icon: "▦" },
+  { href: "/app/wellness", label: "Benessere", icon: "❤" },
   { href: "/app/training", label: "Allenamenti", icon: "▣" },
   { href: "/app/profile", label: "Profilo", icon: "⛷" },
 ];
@@ -16,7 +17,7 @@ export function AppTabBar() {
   const pathname = usePathname();
   return (
     <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-[480px] -translate-x-1/2 border-t border-[var(--color-border)] bg-[var(--color-surface)]/95 backdrop-blur">
-      <div className="grid grid-cols-3 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2">
+      <div className="grid grid-cols-4 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2">
         {TABS.map((t) => {
           const active = t.href === "/app" ? pathname === "/app" : pathname.startsWith(t.href);
           return (

@@ -11,6 +11,8 @@ import { prisma } from "@/lib/db";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ProgramPop } from "@/components/app/ProgramPop";
 import { fmtPoints, fmtDate } from "@/lib/domain";
+import { getAthleteWellness } from "@/lib/wellness";
+import { readinessBand, BAND_COLOR, BAND_LABEL } from "@/lib/wellnessCore";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "LEAF" };
@@ -34,6 +36,8 @@ export default async function AppHome() {
     : [];
   const latestProgram = await getLatestPublishedProgram(athleteId);
   const lastSession = (await getAthleteSessions(athleteId, 1))[0] ?? null;
+  const wellness = await getAthleteWellness(athleteId);
+  const wBand = readinessBand(wellness.today?.readiness);
 
   const initials = `${w.firstName[0] ?? ""}${w.lastName[0] ?? ""}`.toUpperCase();
 
@@ -52,6 +56,24 @@ export default async function AppHome() {
         </div>
         <ThemeToggle />
       </div>
+
+      {/* Daily wellness check-in prompt → drives to the Benessere tab */}
+      <Link href="/app/wellness" className="card card-hover mb-4 flex items-center justify-between p-4">
+        <div>
+          <div className="text-[10px] uppercase tracking-wide text-[var(--color-muted)]">Check-in di oggi</div>
+          <div className="mt-0.5 text-base font-semibold">
+            {wellness.today ? `Prontezza ${BAND_LABEL[wBand]}` : "Come stai oggi?"}
+          </div>
+          <div className="text-[11px] text-[var(--color-muted)]">
+            {wellness.today ? "Fatto ✓ — tocca per aggiornare" : "20 secondi · sonno, energia, dolori"}
+          </div>
+        </div>
+        {wellness.today ? (
+          <span className="num flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold" style={{ color: BAND_COLOR[wBand], border: `3px solid ${BAND_COLOR[wBand]}` }}>{wellness.today.readiness}</span>
+        ) : (
+          <span className="shrink-0 rounded-full bg-[var(--color-accent)] px-3 py-1.5 text-xs font-semibold text-[#0a0c10]">Inizia →</span>
+        )}
+      </Link>
 
       {/* Coach published a programme → pop */}
       {latestProgram && (

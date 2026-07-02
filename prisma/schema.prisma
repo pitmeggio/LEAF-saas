@@ -113,6 +113,7 @@ model Academy {
   tennisSeasonPlans TennisSeasonPlan[]
   athleteFiles      AthleteFile[]
   essentialCheckouts EssentialCheckout[]
+  wellnessCheckins  WellnessCheckin[]
   createdAt     DateTime       @default(now())
 }
 
@@ -593,6 +594,7 @@ model Athlete {
   users           User[]
   coachNotes      CoachNote[]
   athleteFiles    AthleteFile[]
+  wellnessCheckins WellnessCheckin[]
 
   // Living athlete profile maintained by the Coach Intelligence engine.
   // Shape is intentionally Json — the structurer evolves per sport, so the
@@ -742,6 +744,32 @@ model AthleteFile {
 // (Apple Pay / Google Pay / cards appear automatically); the webhook flips
 // status to "paid" and stamps the source item's paidAmount. "manual" = the
 // admin marked it collected offline (cash/bank) without a gateway.
+// LEAF — Athlete Management System (AMS). The daily wellness/readiness check-in
+// the athlete does on the app in ~20 seconds. Teamworks/Smartabase's flagship,
+// reduced to one delightful screen. Metrics are 1–5 self-ratings; `readiness`
+// (0–100) is derived so staff can triage the squad at a glance. One row per
+// athlete per day.
+model WellnessCheckin {
+  id           String   @id @default(cuid())
+  academyId    String
+  academy      Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  athleteId    String
+  athlete      Athlete  @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  date         DateTime // UTC midnight of the check-in day
+  sleepHours   Float?   // hours slept last night
+  sleepQuality Int      // 1 (terrible) – 5 (great)
+  soreness     Int      // 1 (fresh) – 5 (very sore)   — higher is worse
+  energy       Int      // 1 (empty) – 5 (full)
+  mood         Int      // 1 (low) – 5 (great)
+  stress       Int      // 1 (calm) – 5 (very stressed) — higher is worse
+  readiness    Int      // 0–100 derived score
+  note         String?
+  createdAt    DateTime @default(now())
+
+  @@unique([athleteId, date])
+  @@index([academyId, date])
+}
+
 model EssentialCheckout {
   id              String   @id @default(cuid())
   academyId       String
