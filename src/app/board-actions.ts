@@ -17,6 +17,16 @@ import type { RsvpStatus } from "@/lib/board/boardTypes";
 
 type Result<T = unknown> = { ok: true; data?: T } | { ok: false; error: string };
 
+// The Bacheca tables are added additively; until the schema is pushed to the
+// shared DB, writes would throw "table does not exist". Turn that transient
+// state into a clear message instead of an unhandled crash.
+function tablesMissing(e: unknown): boolean {
+  const code = (e as { code?: string })?.code;
+  const msg = (e as { message?: string })?.message ?? "";
+  return code === "P2021" || /does not exist/i.test(msg);
+}
+const NOT_ACTIVE = "Bacheca non ancora attivata sul database. Contatta l'amministratore.";
+
 // ── Staff ────────────────────────────────────────────────────────────────
 
 const postSchema = z.object({
@@ -44,22 +54,27 @@ export async function postAnnouncement(input: z.input<typeof postSchema>): Promi
     groupId = g.id;
   }
 
-  const created = await prisma.announcement.create({
-    data: {
-      academyId: s.academyId,
-      authorId: s.userId,
-      authorName: s.name || "Staff",
-      authorRole: s.isAdmin ? "Direzione" : "Coach",
-      title: d.title,
-      body: d.body,
-      audience: d.audience,
-      groupId,
-      pinned: d.pinned,
-      requireAck: d.requireAck,
-    },
-  });
-  revalidatePath("/dashboard/board");
-  return { ok: true, data: { id: created.id } };
+  try {
+    const created = await prisma.announcement.create({
+      data: {
+        academyId: s.academyId,
+        authorId: s.userId,
+        authorName: s.name || "Staff",
+        authorRole: s.isAdmin ? "Direzione" : "Coach",
+        title: d.title,
+        body: d.body,
+        audience: d.audience,
+        groupId,
+        pinned: d.pinned,
+        requireAck: d.requireAck,
+      },
+    });
+    revalidatePath("/dashboard/board");
+    return { ok: true, data: { id: created.id } };
+  } catch (e) {
+    if (tablesMissing(e)) return { ok: false, error: NOT_ACTIVE };
+    throw e;
+  }
 }
 
 export async function togglePinAnnouncement(id: string): Promise<Result> {
@@ -144,11 +159,16 @@ export async function setEventRsvp(input: z.input<typeof rsvpSchema>): Promise<R
   const ev = await prisma.calendarEvent.findFirst({ where: { id: d.eventId, academyId }, select: { id: true } });
   if (!ev) return { ok: false, error: "Evento non trovato." };
 
-  await prisma.eventRsvp.upsert({
-    where: { eventId_athleteId: { eventId: d.eventId, athleteId } },
-    create: { academyId, eventId: d.eventId, athleteId, status: d.status, note: d.note },
-    update: { status: d.status, note: d.note, respondedAt: new Date() },
-  });
+  try {
+    await prisma.eventRsvp.upsert({
+      where: { eventId_athleteId: { eventId: d.eventId, athleteId } },
+      create: { academyId, eventId: d.eventId, athleteId, status: d.status, note: d.note },
+      update: { status: d.status, note: d.note, respondedAt: new Date() },
+    });
+  } catch (e) {
+    if (tablesMissing(e)) return { ok: false, error: NOT_ACTIVE };
+    throw e;
+  }
   revalidatePath("/app");
   revalidatePath("/app/board");
   return { ok: true, data: { status: d.status } };
