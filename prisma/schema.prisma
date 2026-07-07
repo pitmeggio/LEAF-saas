@@ -1505,3 +1505,31 @@ model EventRsvp {
   @@unique([eventId, athleteId])
   @@index([academyId, eventId])
 }
+
+// LEAF — Foglio ore & Stipendi. A coach submits the hours worked in a period
+// (month), optionally attaching the source Excel; amount = hours × hourlyRate
+// (auto, overridable). Admin/office review → approve → mark paid. Scalar ids
+// (coachId, no relation) to stay additive; coachName denormalized on read.
+model Timesheet {
+  id          String   @id @default(cuid())
+  academyId   String
+  coachId     String   // Coach.id
+  coachName   String   // denormalized display name
+  period      String   // "2026-07" (month) or free label
+  hours       Float    // total hours worked in the period
+  hourlyRate  Int?     // €/h (major units) — coach's agreed rate
+  amount      Int?     // computed pay (major units); null → hours × hourlyRate
+  currency    String   @default("EUR")
+  status      String   @default("submitted") // draft | submitted | approved | paid
+  note        String?
+  // Source Excel attachment (bytea in Postgres, like AthleteFile).
+  fileName    String?
+  fileMime    String?
+  fileSize    Int?
+  fileData    Bytes?
+  createdAt   DateTime @default(now())
+  approvedAt  DateTime?
+  paidAt      DateTime?
+
+  @@index([academyId, coachId, period])
+}
