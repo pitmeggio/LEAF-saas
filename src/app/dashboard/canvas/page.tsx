@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireAcademyId } from "@/lib/auth";
 import { AddTennisAthleteButton } from "@/components/AddTennisAthleteButton";
+import { SearchFilter } from "@/components/SearchFilter";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +52,16 @@ export default async function CanvasIndex() {
         <AddTennisAthleteButton accent={academy?.logoColor ?? "#a78bfa"} />
       </header>
 
-      <section className="relative z-10 grid gap-5 px-8 pb-16 md:grid-cols-2 md:px-14 lg:grid-cols-3">
+      {plans.length > 0 && (
+        <div className="relative z-10 px-8 pb-4 md:px-14">
+          <SearchFilter targetId="anagrafica-atleti" placeholder="Cerca atleta per nome…" className="max-w-sm" />
+        </div>
+      )}
+
+      <section id="anagrafica-atleti" className="relative z-10 grid gap-5 px-8 pb-16 md:grid-cols-2 md:px-14 lg:grid-cols-3">
+        <div id="anagrafica-atleti-empty" style={{ display: "none" }} className="rounded-3xl border border-dashed border-[var(--color-border)] p-8 text-center text-sm text-[var(--color-muted)] md:col-span-2 lg:col-span-3">
+          Nessun atleta trovato.
+        </div>
         {plans.length === 0 && (
           <div className="rounded-3xl border border-dashed border-[var(--color-border)] p-10 text-center text-sm text-[var(--color-muted)] md:col-span-2 lg:col-span-3">
             Nessun piano stagionale ancora. Importa il tuo file CALENDARI TORNEI per popolare il canvas dei tuoi atleti.
@@ -66,6 +76,7 @@ export default async function CanvasIndex() {
             <Link
               key={p.id}
               href={`/dashboard/canvas/${p.athleteId}`}
+              data-name={`${p.athlete.firstName} ${p.athlete.lastName}`.toLowerCase()}
               className="group relative overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-6 backdrop-blur-sm transition-all hover:border-[var(--color-accent)] hover:shadow-[0_30px_80px_rgba(124,255,107,0.10)]"
             >
               <div

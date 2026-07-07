@@ -3,6 +3,7 @@ import { Avatar } from "@/components/ui";
 import { Modal, CoachForm, DeleteButton } from "@/components/EntityForms";
 import { ArchiveCoachButton } from "@/components/EntityActions";
 import { CoachLoginButton } from "@/components/CoachLoginButton";
+import { SearchFilter } from "@/components/SearchFilter";
 import { getCoachesWithStats, getAcademyCurrency } from "@/lib/ops";
 import { requireBackOffice } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
@@ -23,7 +24,13 @@ export default async function CoachesPage() {
         subtitle="Ogni scheda mostra gli atleti seguiti e l'andamento della loro classifica — aggiornato in automatico."
         right={<Modal label="+ Nuovo maestro" title="Nuovo maestro" className={newBtn}><CoachForm /></Modal>}
       />
-      <div className="grid gap-4 p-8 sm:grid-cols-2 lg:grid-cols-3">
+      {coaches.length > 0 && (
+        <div className="px-8 pt-6">
+          <SearchFilter targetId="anagrafica-maestri" placeholder="Cerca maestro per nome…" className="max-w-sm" />
+        </div>
+      )}
+      <div id="anagrafica-maestri" className="grid gap-4 p-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div id="anagrafica-maestri-empty" style={{ display: "none" }} className="card p-8 text-center text-sm text-[var(--color-muted)] sm:col-span-2 lg:col-span-3">Nessun maestro trovato.</div>
         {coaches.map((c) => {
           const t = c.teamTrend;
           const tracked = t.improving + t.stable + t.declining;
@@ -49,7 +56,7 @@ export default async function CoachesPage() {
           }
 
           return (
-          <div key={c.id} className="card p-5" style={!c.active ? { opacity: 0.6 } : undefined}>
+          <div key={c.id} data-name={c.name.toLowerCase()} className="card p-5" style={!c.active ? { opacity: 0.6 } : undefined}>
             <div className="flex items-center gap-3">
               <Avatar first={c.name.split(" ")[0] ?? ""} last={c.name.split(" ")[1] ?? ""} color="#38bdf8" size={44} />
               <div className="flex-1">

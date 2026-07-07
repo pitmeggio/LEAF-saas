@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users, FileText, Wallet, Mail, Megaphone, ArrowRight, AlertTriangle, Clock, UserCog } from "lucide-react";
+import { Users, FileText, Wallet, Mail, Megaphone, ArrowRight, AlertTriangle, UserCog, BellRing } from "lucide-react";
 import { PageHeader } from "@/components/PageHeader";
 import { StatCard } from "@/components/StatCard";
 import { getActiveAthletes, getDocumentsData } from "@/lib/ops";
@@ -7,6 +7,8 @@ import { getInboxStats } from "@/lib/chat";
 import { getSession } from "@/lib/auth";
 import { getAcademy } from "@/lib/queries";
 import { getSportModuleForAcademy } from "@/lib/sports/registry";
+import { getExpiryAlerts } from "@/lib/anagrafica/expiry";
+import { DOC_TYPE_META, EXPIRY_COLOR } from "@/lib/anagrafica/anagraficaTypes";
 import { fmtDate } from "@/lib/domain";
 
 // SEGRETERIA / OFFICE dashboard — the back-office landing. No performance or
@@ -20,14 +22,16 @@ export async function OfficeDashboard() {
   const athletesHref = sport.key === "tennis" || sport.key === "padel" ? "/dashboard/canvas" : "/dashboard/athletes";
   const payHref = sport.key === "tennis" || sport.key === "padel" ? "/dashboard/payments-essential" : "/dashboard/finance";
 
-  const [athletes, docData, inbox] = await Promise.all([
+  const [athletes, docData, inbox, expiryAlerts] = await Promise.all([
     getActiveAthletes(null),
     getDocumentsData(null),
     getInboxStats(),
+    s?.academyId ? getExpiryAlerts(s.academyId) : Promise.resolve([]),
   ]);
   const missing = docData.missing.length;
   const expired = docData.expired.length;
   const toFix = [...docData.expired, ...docData.missing].slice(0, 6);
+  const expiringSoon = expiryAlerts.filter((a) => a.status === "expiring").length;
 
   const areas = [
     { href: athletesHref, label: "Anagrafica", desc: "Atleti, maestri, gruppi", icon: Users },
@@ -44,7 +48,7 @@ export async function OfficeDashboard() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard label="Atleti attivi" value={String(athletes.length)} icon={Users} href={athletesHref} />
           <StatCard label="Documenti mancanti" value={String(missing)} icon={FileText} href="/dashboard/documents" danger={missing > 0} />
-          <StatCard label="Documenti scaduti" value={String(expired)} icon={Clock} href="/dashboard/documents" danger={expired > 0} />
+          <StatCard label="Scadenze tessere/doc." value={String(expiryAlerts.length)} hint={expiringSoon > 0 ? `${expiringSoon} in arrivo` : undefined} icon={BellRing} href="/dashboard/documents" danger={expiryAlerts.some((a) => a.status === "expired")} accent={!expiryAlerts.some((a) => a.status === "expired") && expiringSoon > 0} />
           <StatCard label="Messaggi da leggere" value={String(inbox.unreadTotal)} icon={Mail} href="/dashboard/inbox" accent={inbox.unreadTotal > 0} />
         </div>
 
@@ -64,6 +68,34 @@ export async function OfficeDashboard() {
             ))}
           </div>
         </div>
+
+        {/* Scadenze tessere / documenti — the FIT/iPin alert */}
+        {expiryAlerts.length > 0 && (
+          <div className="card p-5">
+            <div className="mb-3 flex items-center gap-2">
+              <BellRing className="h-4 w-4 text-[var(--color-accent)]" />
+              <h2 className="text-sm font-semibold">Scadenze tessere &amp; documenti</h2>
+            </div>
+            <div className="divide-y divide-[var(--color-border)]">
+              {expiryAlerts.slice(0, 8).map((a, i) => {
+                const meta = DOC_TYPE_META[a.kind];
+                const color = EXPIRY_COLOR[a.status];
+                return (
+                  <Link key={`${a.athleteId}-${a.kind}-${i}`} href={athletesHref} className="flex items-center justify-between gap-3 py-2.5 text-sm hover:opacity-80">
+                    <div className="min-w-0">
+                      <span aria-hidden>{meta.emoji}</span>{" "}
+                      <span className="font-medium">{a.athleteName}</span>
+                      <span className="text-[var(--color-muted)]"> · {a.label}</span>
+                    </div>
+                    <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: `${color}22`, color }}>
+                      {a.status === "expired" ? `Scaduta · ${fmtDate(a.expiresAt)}` : `Scade tra ${a.daysLeft}g · ${fmtDate(a.expiresAt)}`}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Documents to fix — the front-desk worklist */}
         <div className="card p-5">

@@ -10,6 +10,8 @@ import { getTennisRankingMode } from "@/lib/tennis/ranking";
 import { getAthleteTennisRankings } from "@/lib/tennis/rankingRead";
 import { StaffDossier } from "@/components/StaffDossier";
 import { getAthleteDossier } from "@/lib/tennis/dossier";
+import { AnagraficaCard, type AnagraficaData } from "@/components/AnagraficaCard";
+import { prisma } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,23 @@ export default async function AthleteCanvasPage({ params }: { params: Promise<{ 
   const rankings = await getAthleteTennisRankings(athleteId);
   const rankingMode = getTennisRankingMode();
   const dossier = await getAthleteDossier(athleteId);
+
+  // Anagrafica fields (CF + tessera/iPin + expiry). Wrapped so the page keeps
+  // working before the additive columns are pushed to the shared DB.
+  let anagrafica: AnagraficaData | null = null;
+  try {
+    const a = await prisma.athlete.findUnique({
+      where: { id: athleteId },
+      select: { codiceFiscale: true, fitTessera: true, fitTesseraExpiry: true, itfJuniorRef: true, ipinExpiry: true },
+    });
+    if (a) anagrafica = {
+      codiceFiscale: a.codiceFiscale,
+      fitTessera: a.fitTessera,
+      fitTesseraExpiry: a.fitTesseraExpiry?.toISOString() ?? null,
+      itfJuniorRef: a.itfJuniorRef,
+      ipinExpiry: a.ipinExpiry?.toISOString() ?? null,
+    };
+  } catch { anagrafica = null; }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#06070a] text-[var(--color-fg)]">
@@ -118,6 +137,13 @@ export default async function AthleteCanvasPage({ params }: { params: Promise<{ 
       <section className="relative z-10 px-8 pb-6 md:px-14">
         <TennisRankingCard athleteId={athlete.id} accent={academy.logoColor} data={rankings} mode={rankingMode} />
       </section>
+
+      {/* ANAGRAFICA — Codice Fiscale + tessera FIT / iPin con scadenze (alert) */}
+      {anagrafica && (
+        <section className="relative z-10 px-8 pb-6 md:px-14">
+          <AnagraficaCard athleteId={athlete.id} accent={academy.logoColor} data={anagrafica} />
+        </section>
+      )}
 
       {/* STAFF DOSSIER — the single portal for all staff files + evaluation trend */}
       <section className="relative z-10 px-8 pb-6 md:px-14">

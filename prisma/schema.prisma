@@ -580,6 +580,10 @@ model Athlete {
   // matter for an Italian junior academy.
   itfJuniorRef              String?  // ITF Junior IPIN / player reference
   fitTessera                String?  // Federazione Italiana Tennis tessera number
+  codiceFiscale             String?  // Italian fiscal code (anagrafica)
+  // Federation membership expiry dates → drive the anagrafica scadenza alerts.
+  fitTesseraExpiry          DateTime? // tessera FIT renewal deadline
+  ipinExpiry                DateTime? // ITF iPin expiry
 
   rankings        RankingPoint[]
   tennisRankings  TennisRankingSnapshot[]
@@ -721,6 +725,10 @@ model AthleteFile {
   authorRole  String?  // free label: "Maestro", "Preparatore atletico", "Mental", "Fisio"
   // What kind of contribution.
   category    String   @default("file") // evaluation | match_report | physical | medical | video | scouting | file
+  // Anagrafica document typing + expiry (tessera FIT, iPin, certificato medico,
+  // passaporto, carta d'identità). expiresAt drives the scadenza alerts.
+  docType     String?  // tessera_fitp | ipin | medical | passport | id_card | insurance | other
+  expiresAt   DateTime?
   title       String
   note        String?  // free comment so staff communicate ("rovescio in palla alta da migliorare")
   // Optional headline score → builds the performance trend. scoreScale = the
