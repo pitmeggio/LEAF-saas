@@ -4,7 +4,7 @@ import { Modal, CoachForm, DeleteButton } from "@/components/EntityForms";
 import { ArchiveCoachButton } from "@/components/EntityActions";
 import { CoachLoginButton } from "@/components/CoachLoginButton";
 import { getCoachesWithStats, getAcademyCurrency } from "@/lib/ops";
-import { requireAdmin } from "@/lib/auth";
+import { requireBackOffice } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ const ROLE_LABEL: Record<string, string> = { head_coach: "Maestro responsabile",
 const newBtn = "rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[#0a0c10] hover:bg-[var(--color-accent-dim)]";
 
 export default async function CoachesPage() {
-  await requireAdmin();
+  await requireBackOffice();
   const [coaches, currency] = await Promise.all([getCoachesWithStats(), getAcademyCurrency()]);
 
   return (

@@ -3,7 +3,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { StatCard, PercentBar } from "@/components/StatCard";
 import { FinanceSubNav } from "@/components/FinanceSubNav";
 import { getFinance, getGroupsWithStats, getExpenses, getPackagesWithStats } from "@/lib/ops";
-import { requireAdmin } from "@/lib/auth";
+import { requireBackOffice } from "@/lib/auth";
 import { fmtMoney } from "@/lib/domain";
 import { getActiveSeason } from "@/lib/season-server";
 
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 // product catalogue. Tiles bridge to the dedicated sub-pages (Payments,
 // Budgets, Expenses, Packages); everything is scoped to the active season.
 export default async function FinanceHubPage() {
-  await requireAdmin();
+  await requireBackOffice();
   const season = await getActiveSeason();
   const [finance, groups, expenses, packages] = await Promise.all([
     getFinance({ season }),

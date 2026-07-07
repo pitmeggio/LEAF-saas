@@ -184,7 +184,7 @@ export const academyPlanUpdateSchema = z.object({
 });
 
 // ── Platform user/account management (super-admin) ───────────────────────────
-export const userRoleSchema = z.enum(["super_admin", "academy_admin", "coach", "recruiter", "athlete"]);
+export const userRoleSchema = z.enum(["super_admin", "academy_admin", "office", "coach", "recruiter", "athlete"]);
 
 // A password is optional on create/reset: blank → the account is "claimed" (the
 // password is set) on first sign-in. When provided it must be at least 8 chars.

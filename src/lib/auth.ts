@@ -10,6 +10,7 @@ export const SESSION_COOKIE = "academy_uid";
 export const ROLE = {
   SUPER_ADMIN: "super_admin", // platform owner — no academyId, bypasses tenant scoping
   ACADEMY_ADMIN: "academy_admin",
+  OFFICE: "office", // segreteria — anagrafica, documenti, pagamenti (no performance/planning)
   COACH: "coach",
   ATHLETE: "athlete",
   RECRUITER: "recruiter",
@@ -41,6 +42,8 @@ export type Session = {
   athleteId: string | null;
   isSuperAdmin: boolean;
   isAdmin: boolean; // academy-level admin (academy_admin)
+  isOffice: boolean; // segreteria — back-office (anagrafica, documenti, pagamenti)
+  isCoach: boolean;
   isAthlete: boolean;
 };
 
@@ -67,6 +70,8 @@ export async function getSession(): Promise<Session | null> {
     athleteId: u.athleteId,
     isSuperAdmin: u.role === ROLE.SUPER_ADMIN,
     isAdmin: u.role === ROLE.ACADEMY_ADMIN,
+    isOffice: u.role === ROLE.OFFICE,
+    isCoach: u.role === ROLE.COACH,
     isAthlete: u.role === ROLE.ATHLETE,
   };
 }
@@ -94,6 +99,16 @@ export async function requireAdmin(): Promise<Session> {
   if (!s) redirect("/login");
   if (s.isSuperAdmin) redirect("/super-admin");
   if (!s.isAdmin) redirect("/dashboard");
+  return s;
+}
+
+// Guard for back-office pages (anagrafica, documenti, pagamenti): academy admin
+// OR office/segreteria may pass. Coaches and athletes are sent to their own home.
+export async function requireBackOffice(): Promise<Session> {
+  const s = await getSession();
+  if (!s) redirect("/login");
+  if (s.isSuperAdmin) redirect("/super-admin");
+  if (!s.isAdmin && !s.isOffice) redirect(homeForRole(s.role));
   return s;
 }
 

@@ -148,9 +148,33 @@ const COACH_SECTIONS: NavSection[] = [
   ] },
 ];
 
+// OFFICE / Segreteria — back-office only: anagrafica, documenti, pagamenti,
+// comunicazioni. No performance/planning tools (those are coach/admin).
+const OFFICE_SECTIONS: NavSection[] = [
+  { label: "Panoramica", items: [
+    { href: "/dashboard", label: "Panoramica", icon: LayoutDashboard },
+  ] },
+  { label: "Anagrafica", items: [
+    { href: "/dashboard/canvas", label: "Atleti", icon: Users, sports: ["tennis", "padel"] },
+    { href: "/dashboard/athletes", label: "Atleti", icon: Users, sports: ["ski"] },
+    { href: "/dashboard/coaches", label: "Maestri", icon: UserCog },
+    { href: "/dashboard/groups", label: "Gruppi", icon: Layers },
+    { href: "/dashboard/documents", label: "Documenti", icon: FileText },
+  ] },
+  { label: "Pagamenti", items: [
+    { href: "/dashboard/payments-essential", label: "Pagamenti", icon: Wallet, sports: ["tennis", "padel"] },
+    { href: "/dashboard/finance", label: "Finanza", icon: Wallet, feature: "featureFinance", sports: ["ski"] },
+  ] },
+  { label: "Comunicazioni", items: [
+    { href: "/dashboard/board", label: "Bacheca", icon: Megaphone },
+    { href: "/dashboard/inbox", label: "Messaggi", icon: Mail, feature: "featureChat" },
+  ] },
+];
+
 const ROLE_LABEL: Record<string, string> = {
   super_admin: "Super Admin",
   academy_admin: "Admin",
+  office: "Segreteria",
   coach: "Coach",
   athlete: "Atleta",
   recruiter: "Recruiter",
@@ -171,6 +195,7 @@ export function Sidebar({ user, features, season, sport, tier }: {
 }) {
   const pathname = usePathname();
   const isAdmin = user.role === "academy_admin";
+  const isOffice = user.role === "office";
 
   // Decide which workspace is the *default* visible one based on tier.
   // The Essential tab is only an option for admins (coach view is always
@@ -195,11 +220,13 @@ export function Sidebar({ user, features, season, sport, tier }: {
 
   // Pick the right section catalogue based on selected workspace.
   const baseSections =
-    !isAdmin
-      ? COACH_SECTIONS
-      : workspace === "essential"
-        ? ESSENTIAL_ADMIN_SECTIONS
-        : ADMIN_SECTIONS;
+    isOffice
+      ? OFFICE_SECTIONS
+      : !isAdmin
+        ? COACH_SECTIONS
+        : workspace === "essential"
+          ? ESSENTIAL_ADMIN_SECTIONS
+          : ADMIN_SECTIONS;
   // Hide modules the platform has switched off for this tenant; drop empty sections.
   // Also filter sport-gated items (e.g. "Line Schedule" only for ski).
   const sections = baseSections

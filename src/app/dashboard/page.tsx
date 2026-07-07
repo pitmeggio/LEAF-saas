@@ -12,6 +12,7 @@ import { getAcademy } from "@/lib/queries";
 import { getDashboard, getTennisDashboardStats } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { CoachDashboard } from "@/components/CoachDashboard";
+import { OfficeDashboard } from "@/components/OfficeDashboard";
 import { fmtMoney } from "@/lib/domain";
 import { getActiveSeason } from "@/lib/season-server";
 import { getSportModuleForAcademy } from "@/lib/sports/registry";
@@ -42,6 +43,7 @@ const KPI_ICON: Record<string, LucideIcon> = {
 // Recent activity. Anything deeper lives in its own module (Finance, Reports…).
 export default async function OverviewPage() {
   const session = await getSession();
+  if (session?.isOffice) return <OfficeDashboard />;
   if (session && !session.isAdmin) return <CoachDashboard />;
 
   const season = await getActiveSeason();
