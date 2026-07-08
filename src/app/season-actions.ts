@@ -4,9 +4,9 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 // Persist the active season globally — long-lived cookie so it survives
-// navigation and reload. Validation matches "YYYY/YY".
+// navigation and reload. Accepts ski "YYYY/YY" and tennis calendar "YYYY".
 export async function setActiveSeason(season: string): Promise<{ ok: boolean }> {
-  if (!/^\d{4}\/\d{2}$/.test(season)) return { ok: false };
+  if (!/^\d{4}(\/\d{2})?$/.test(season)) return { ok: false };
   const c = await cookies();
   c.set("leaf_season", season, {
     path: "/",
