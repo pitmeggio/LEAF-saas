@@ -14,6 +14,9 @@ import { DisciplineBreakdownCard } from "@/components/DisciplineBreakdownCard";
 import { computeDisciplineBreakdown, disciplineHeadline, deriveDevelopmentFocus } from "@/lib/ai/disciplineAnalytics";
 import { FisPointsTrendCard } from "@/components/FisPointsTrendCard";
 import { computePointsTrendByDiscipline } from "@/lib/ai/pointsTrend";
+import { TennisRankingCard } from "@/components/TennisRankingCard";
+import { getAthleteTennisRankings } from "@/lib/tennis/rankingRead";
+import { getTennisRankingMode } from "@/lib/tennis/ranking";
 import { Modal, AthleteEditForm, DeleteButton } from "@/components/EntityForms";
 import { deriveLevelSuggestions, type AthleteAiProfile } from "@/lib/ai/coachProfile";
 import { getActiveAthlete, getAssignmentOptions } from "@/lib/ops";
@@ -66,8 +69,15 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
     ? new Date(Math.max(...fisSnapshots.map((s) => s.publishedAt.getTime())))
     : null;
   const academy = s?.academyId
-    ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { featurePublicProfiles: true } })
+    ? await prisma.academy.findUnique({ where: { id: s.academyId }, select: { featurePublicProfiles: true, sport: true } })
     : null;
+  // The academy's sport is the authority for which performance surface to show —
+  // a tennis academy uses tennis rankings (ITF / ATP / FIT) with a live-feed
+  // sync, mirroring the ski FIS sync, regardless of any stale athlete.sport.
+  const isTennisCtx = academy?.sport === "tennis" || academy?.sport === "padel";
+  const tennisRankings = isTennisCtx ? await getAthleteTennisRankings(a.id) : null;
+  const tennisRankMode = getTennisRankingMode();
+  const isSkiPerf = a.sport === "ski" && !isTennisCtx;
   // Public-profile UI (chips in the hero + the PublicProfilePanel on the
   // right) only renders when the platform has enabled the feature for this
   // academy. With the marketplace not live yet, default is OFF — surface
@@ -115,7 +125,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
                   {a.injuryFlag && <span className="rounded-md bg-[#f8717120] px-2 py-0.5 text-[10px] font-semibold text-[#f87171]">INJURED</span>}
                 </div>
                 <div className="mt-1 text-sm text-[var(--color-muted)]">
-                  {COUNTRY[a.nationality]?.flag} {COUNTRY[a.nationality]?.name} · {age(a.dob)}y · {DISCIPLINE_LABEL[a.discipline]}
+                  {COUNTRY[a.nationality]?.flag} {COUNTRY[a.nationality]?.name} · {age(a.dob)}y · {isTennisCtx ? "Tennis" : DISCIPLINE_LABEL[a.discipline]}
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -162,7 +172,14 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
             </div>
           </div>
 
-          {/* Performance */}
+          {/* Tennis ranking — ITF / ATP / FIT import + live-feed sync. The
+              tennis counterpart of the ski "Sync from FIS". */}
+          {isTennisCtx && tennisRankings && (
+            <TennisRankingCard athleteId={a.id} accent={a.photoColor || "#7cff6b"} data={tennisRankings} mode={tennisRankMode} />
+          )}
+
+          {/* Performance — ski surface (hidden for tennis academies). */}
+          {!isTennisCtx && (
           <div className="card p-6">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-sm font-semibold">Performance</h3>
@@ -229,12 +246,13 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
               <Mini label="Primary" value={a.discipline ? a.discipline.toUpperCase().slice(0, 2) : "—"} />
             </div>
           </div>
+          )}
 
           {/* FIS points trend per discipline — pulled live from fis-ski.com
               via lib/fis/liveProvider.ts. Visible for every ski athlete:
               empty state turns into a "Sync from FIS" CTA so the data
               source is always one click away and never fabricated. */}
-          {a.sport === "ski" && a.fisCode && (
+          {isSkiPerf && a.fisCode && (
             <FisPointsTrendCard
               athleteId={a.id}
               trends={fisTrends}
@@ -247,7 +265,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
           {/* Per-discipline AI analysis — ski athletes only. Breaks the
               race history down into SL / GS / SG / DH with trends + DNF
               ratio + suggested development focus. */}
-          {a.sport === "ski" && a.results.length > 0 && (() => {
+          {isSkiPerf && a.results.length > 0 && (() => {
             const breakdown = computeDisciplineBreakdown(a.results.map((r) => ({
               date: r.date, discipline: r.discipline, rank: r.rank, fisPoints: r.fisPoints, status: r.status,
             })));
@@ -269,9 +287,9 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
             </div>
           )}
 
-          {/* Tennis profile — only when sport === "tennis". Ski athletes keep
-              the FIS-driven Performance card above as their primary profile. */}
-          {a.sport === "tennis" && (
+          {/* Tennis profile — tennis academies. Ski athletes keep the
+              FIS-driven Performance card above as their primary profile. */}
+          {isTennisCtx && (
             <TennisProfileCard
               profile={{
                 dominantHand: a.dominantHand,
@@ -294,7 +312,7 @@ export default async function MemberProfile({ params }: { params: Promise<{ id: 
             />
           )}
 
-          {a.sport === "tennis" && s?.academyId && (
+          {isTennisCtx && s?.academyId && (
             <TennisMatchesPanel athleteId={a.id} academyId={s.academyId} />
           )}
 
