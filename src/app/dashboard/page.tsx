@@ -13,7 +13,9 @@ import { getDashboard, getTennisDashboardStats } from "@/lib/ops";
 import { getSession } from "@/lib/auth";
 import { CoachDashboard } from "@/components/CoachDashboard";
 import { OfficeDashboard } from "@/components/OfficeDashboard";
-import { fmtMoney } from "@/lib/domain";
+import { fmtMoney, fmtDate } from "@/lib/domain";
+import { getExpiryAlerts } from "@/lib/anagrafica/expiry";
+import { DOC_TYPE_META, EXPIRY_COLOR } from "@/lib/anagrafica/anagraficaTypes";
 import { getActiveSeason } from "@/lib/season-server";
 import { getSportModuleForAcademy } from "@/lib/sports/registry";
 import type { DashboardKpi } from "@/lib/sports/types";
@@ -47,7 +49,12 @@ export default async function OverviewPage() {
   if (session && !session.isAdmin) return <CoachDashboard />;
 
   const season = await getActiveSeason();
-  const [academy, d] = await Promise.all([getAcademy(), getDashboard({ season })]);
+  const [academy, d, expiryAlerts] = await Promise.all([
+    getAcademy(),
+    getDashboard({ season }),
+    // Tessera FIT / iPin / typed-document deadlines — expired or within 30 days.
+    session?.academyId ? getExpiryAlerts(session.academyId) : Promise.resolve([]),
+  ]);
   const f = d.finance;
   const perfAlertCount = d.alerts.filter((a) => a.type === "declining_trend").length;
 
@@ -169,6 +176,32 @@ export default async function OverviewPage() {
               <Sparkles className="h-3 w-3" aria-hidden />AI
             </span>
             <span className="flex items-center gap-1.5 text-[var(--color-fg)]/85"><CheckCircle2 className="h-4 w-4 text-[var(--color-accent)]" aria-hidden />Sei in pari. LEAF segue in automatico {d.activeAthletes} athletes.</span>
+          </div>
+        )}
+
+        {/* Scadenze tessere & documenti — tessera FIT / iPin alert (Max spec).
+            Hidden when nothing is expired or expiring within 30 days. */}
+        {expiryAlerts.length > 0 && (
+          <div className="card p-6">
+            <div className="mb-3 flex items-center gap-2">
+              <Bell className="h-4 w-4 text-[#f5a623]" aria-hidden />
+              <h2 className="text-sm font-semibold">Scadenze tessere &amp; documenti</h2>
+              <span className="text-[11px] text-[var(--color-muted)]">{expiryAlerts.length} da rinnovare</span>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {expiryAlerts.slice(0, 6).map((a, i) => {
+                const meta = DOC_TYPE_META[a.kind];
+                const color = EXPIRY_COLOR[a.status];
+                return (
+                  <div key={`${a.athleteId}-${a.kind}-${i}`} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2.5 text-sm">
+                    <span className="min-w-0 truncate"><span aria-hidden>{meta.emoji}</span> <span className="font-medium">{a.athleteName}</span><span className="text-[var(--color-muted)]"> · {a.label}</span></span>
+                    <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ background: `${color}22`, color }}>
+                      {a.status === "expired" ? `Scaduta · ${fmtDate(a.expiresAt)}` : `Scade tra ${a.daysLeft}g`}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
