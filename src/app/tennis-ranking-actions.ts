@@ -146,6 +146,63 @@ export async function addTennisRankingManual(input: z.input<typeof manualSchema>
   return { ok: true, added: 1 };
 }
 
+// ── TennisTalker — search by NAME + import the real FIT classifica ───────────
+// The public Italian source. Search returns candidates (name + current
+// classifica + category); importing stamps a dated FIT snapshot and saves the
+// federation tessera so the trajectory builds up over repeated syncs.
+export type TTSearchResult =
+  | { ok: true; players: { id: number; name: string; classifica: string | null; category: string | null }[] }
+  | { ok: false; error: string };
+
+export async function searchTennisTalkerPlayers(query: string): Promise<TTSearchResult> {
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false, error: "Nessuna academy in sessione." };
+  const q = (query ?? "").trim();
+  if (q.length < 2) return { ok: true, players: [] };
+  try {
+    const { ttSearchPlayers, prettyName } = await import("@/lib/tennis/tennisTalker");
+    const players = (await ttSearchPlayers(q)).map((p) => ({ ...p, name: prettyName(p.name) }));
+    return { ok: true, players };
+  } catch {
+    return { ok: false, error: "TennisTalker non raggiungibile al momento. Riprova tra poco." };
+  }
+}
+
+export async function importFromTennisTalker(athleteId: string, ttPlayerId: number): Promise<Result> {
+  const s = await requireAdmin();
+  if (!s.academyId) return { ok: false, error: "Nessuna academy in sessione." };
+  if (!(await ownAthlete(athleteId, s.academyId))) return { ok: false, error: "Atleta non trovato in questa academy." };
+
+  let player;
+  try {
+    const { ttGetPlayer } = await import("@/lib/tennis/tennisTalker");
+    player = await ttGetPlayer(ttPlayerId);
+  } catch {
+    return { ok: false, error: "TennisTalker non raggiungibile al momento. Riprova tra poco." };
+  }
+  if (!player || !player.classifica) return { ok: false, error: "Classifica non disponibile per questo giocatore su TennisTalker." };
+
+  // Persist the FIT tessera so a future sync can jump straight to the player.
+  if (player.cardNumber) {
+    await prisma.athlete.update({ where: { id: athleteId }, data: { fitTessera: player.cardNumber } }).catch(() => {});
+  }
+
+  // One snapshot per calendar day: replace today's import, keep older ones so
+  // the trajectory accumulates over time.
+  const now = new Date();
+  const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const dayEnd = new Date(dayStart.getTime() + 86_400_000);
+  await prisma.tennisRankingSnapshot.deleteMany({
+    where: { athleteId, source: "FIT", origin: "import:tennistalker", date: { gte: dayStart, lt: dayEnd } },
+  });
+  await prisma.tennisRankingSnapshot.create({
+    data: { athleteId, source: "FIT", date: now, classifica: player.classifica, category: player.category, origin: "import:tennistalker" },
+  });
+
+  rev(athleteId);
+  return { ok: true, added: 1 };
+}
+
 export async function deleteTennisRankingSnapshot(id: string): Promise<{ ok: boolean }> {
   const s = await requireAdmin();
   if (!s.academyId) return { ok: false };

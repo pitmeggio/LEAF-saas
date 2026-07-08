@@ -2,11 +2,13 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Download, Trash2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Plus, Download, Trash2, TrendingUp, TrendingDown, Minus, Search } from "lucide-react";
 import {
   importTennisRanking,
   addTennisRankingManual,
   clearTennisRankings,
+  searchTennisTalkerPlayers,
+  importFromTennisTalker,
 } from "@/app/tennis-ranking-actions";
 import { SOURCE_META, type AthleteTennisRankings, type RankSummary, type TennisRankingSource } from "@/lib/tennis/ranking";
 
@@ -19,12 +21,34 @@ export function TennisRankingCard({
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [panel, setPanel] = useState<null | "import" | "manual">(data.hasAny ? null : "manual");
+  const [panel, setPanel] = useState<null | "search" | "import" | "manual">(data.hasAny ? null : "search");
   const [err, setErr] = useState<string | null>(null);
+
+  // search-by-name (TennisTalker) form
+  const [searchQ, setSearchQ] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<{ id: number; name: string; classifica: string | null; category: string | null }[] | null>(null);
+  const [importingId, setImportingId] = useState<number | null>(null);
 
   // import form
   const [impSource, setImpSource] = useState<TennisRankingSource>("FIT");
   const [impCode, setImpCode] = useState(data.codes.fitTessera ?? "");
+
+  const doSearch = async () => {
+    setErr(null); setSearching(true); setResults(null);
+    const r = await searchTennisTalkerPlayers(searchQ);
+    setSearching(false);
+    if (r.ok) setResults(r.players);
+    else setErr(r.error);
+  };
+  const doImport = (ttId: number) =>
+    start(async () => {
+      setErr(null); setImportingId(ttId);
+      const r = await importFromTennisTalker(athleteId, ttId);
+      setImportingId(null);
+      if (r.ok) { setPanel(null); setResults(null); setSearchQ(""); router.refresh(); }
+      else setErr(r.error ?? "Errore.");
+    });
 
   // manual form
   const [mSource, setMSource] = useState<TennisRankingSource>("FIT");
@@ -47,14 +71,18 @@ export function TennisRankingCard({
             <span className="opacity-60" style={{ color: accent }}>FIT · ITF · ATP</span>
           </h2>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button onClick={() => { setPanel(panel === "search" ? null : "search"); setErr(null); }}
+            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-[#0a0c10]" style={{ background: accent }}>
+            <Search className="h-3.5 w-3.5" /> Cerca per nome
+          </button>
           <button onClick={() => { setPanel(panel === "import" ? null : "import"); setErr(null); }}
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs hover:border-[var(--color-accent)]">
-            <Download className="h-3.5 w-3.5" /> Importa da codice
+            <Download className="h-3.5 w-3.5" /> Codice
           </button>
           <button onClick={() => { setPanel(panel === "manual" ? null : "manual"); setErr(null); }}
-            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-[#0a0c10]" style={{ background: accent }}>
-            <Plus className="h-3.5 w-3.5" /> Aggiungi
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-border)] px-3 py-1.5 text-xs hover:border-[var(--color-accent)]">
+            <Plus className="h-3.5 w-3.5" /> A mano
           </button>
         </div>
       </div>
@@ -66,7 +94,55 @@ export function TennisRankingCard({
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-[var(--color-border)] p-6 text-center text-sm text-[var(--color-muted)]">
-          Nessuna classifica ancora. Importa dal codice federazione o aggiungi la classifica FIT a mano.
+          Nessuna classifica ancora. Cerca l&apos;atleta per nome per recuperare la classifica FIT reale, o aggiungila a mano.
+        </div>
+      )}
+
+      {/* Search-by-name panel — real FIT classifica from TennisTalker */}
+      {panel === "search" && (
+        <div className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-2)]/60 p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-xs font-semibold">Cerca l&apos;atleta per nome</span>
+            <span className="rounded-full bg-[var(--color-accent)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0a0c10]">TennisTalker · FIT</span>
+          </div>
+          <div className="flex flex-wrap items-end gap-2">
+            <input
+              value={searchQ}
+              onChange={(e) => setSearchQ(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") doSearch(); }}
+              placeholder="es. Rossi Marco"
+              className={`${inp} min-w-[220px] flex-1`}
+            />
+            <button disabled={searching || searchQ.trim().length < 2} onClick={doSearch}
+              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold text-[#0a0c10] disabled:opacity-50" style={{ background: accent }}>
+              <Search className="h-3.5 w-3.5" /> {searching ? "Cerco…" : "Cerca"}
+            </button>
+          </div>
+
+          {results && results.length === 0 && (
+            <p className="mt-3 text-[11px] text-[var(--color-muted)]">Nessun giocatore trovato. Prova con cognome e nome.</p>
+          )}
+          {results && results.length > 0 && (
+            <div className="mt-3 max-h-72 space-y-1.5 overflow-y-auto">
+              {results.map((p) => (
+                <div key={p.id} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)]/60 px-3 py-2">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium">{p.name}</div>
+                    <div className="text-[11px] text-[var(--color-muted)]">
+                      Classifica <span className="num font-semibold text-[var(--color-fg)]">{p.classifica ?? "—"}</span>{p.category ? ` · ${p.category}` : ""}
+                    </div>
+                  </div>
+                  <button disabled={pending} onClick={() => doImport(p.id)}
+                    className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-[#0a0c10] disabled:opacity-50" style={{ background: accent }}>
+                    {importingId === p.id ? "Importo…" : "Importa"}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="mt-3 text-[11px] text-[var(--color-muted)]">
+            Recupera la classifica FIT reale dal profilo pubblico e salva la tessera. Lo storico si costruisce a ogni aggiornamento.
+          </p>
         </div>
       )}
 
