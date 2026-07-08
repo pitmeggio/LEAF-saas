@@ -1533,3 +1533,59 @@ model Timesheet {
 
   @@index([academyId, coachId, period])
 }
+
+// LEAF — Trasferte. A named away-trip (Kufstein, Riccione) that groups players
+// for a tournament/block, INCLUDING players from other coaches or clubs not in
+// the academy roster. Its point is splitting the shared costs among the people
+// who went. Scalar academyId (no relation) to stay additive; members/expenses
+// are new-model relations (cascade-deleted with the trip).
+model Trip {
+  id          String   @id @default(cuid())
+  academyId   String
+  name        String   // "Kufstein", "Riccione"
+  location    String?
+  zone        String?  // optional zone label (e.g. "Veneto", "Estero")
+  startDate   DateTime
+  endDate     DateTime?
+  notes       String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  members     TripMember[]
+  expenses    TripExpense[]
+
+  @@index([academyId, startDate])
+}
+
+// A participant on the trip. In-roster athletes carry athleteId; external
+// players (other coach / other club, "non in rosa") have athleteId = null and
+// just a typed name + external flag.
+model TripMember {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  athleteId String?  // in-roster athlete, else null
+  name      String   // display name (denormalized / free-text for externals)
+  role      String   @default("player") // player | coach
+  external  Boolean  @default(false)    // from another club / not in the rosters
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
+}
+
+// A shared cost on the trip, split equally among the trip members. paidBy holds
+// the member id who fronted it (for the settlement / "chi deve a chi").
+model TripExpense {
+  id        String   @id @default(cuid())
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  label     String   // "Furgone", "Hotel", "Cena martedì"
+  category  String   @default("other") // travel | hotel | meals | entry | misc
+  amount    Int      // total cost (major units)
+  currency  String   @default("EUR")
+  date      DateTime?
+  paidById  String?  // TripMember.id who paid it (null = academy/unassigned)
+  createdAt DateTime @default(now())
+
+  @@index([tripId])
+}

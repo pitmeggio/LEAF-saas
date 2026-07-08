@@ -6,7 +6,7 @@ import { useState } from "react";
 import {
   LayoutDashboard, ClipboardList, Users, FileText, Layers, UserCog, Wallet,
   BarChart3, CalendarDays, Rows3, Trophy, Mail, Bell,
-  AlignJustify, Grid2x2, Tent, Inbox, LogOut, Timer, Video, FolderOpen, HeartPulse, Megaphone, Clock, type LucideIcon,
+  AlignJustify, Grid2x2, Tent, Inbox, LogOut, Timer, Video, FolderOpen, HeartPulse, Megaphone, Clock, Plane, type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/app/auth-actions";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -92,6 +92,7 @@ const ADMIN_SECTIONS: NavSection[] = [
     { href: "/dashboard/dossier", label: "Dossier", icon: FolderOpen, sports: ["tennis", "padel"] },
     { href: "/dashboard/season", label: "Vista stagione", icon: Rows3, sports: ["tennis", "padel"] },
     { href: "/dashboard/tournaments", label: "Tornei", icon: Trophy, sports: ["tennis", "padel"] },
+    { href: "/dashboard/trips", label: "Trasferte", icon: Plane },
   ] },
   { label: "Admin", items: [
     { href: "/dashboard/inbox", label: "Messaggi", icon: Mail, feature: "featureChat" },
@@ -134,6 +135,7 @@ const COACH_SECTIONS: NavSection[] = [
   ] },
   { label: "Performance", items: [
     { href: "/dashboard/programs", label: "Programmi", icon: ClipboardList },
+    { href: "/dashboard/trips", label: "Trasferte", icon: Plane },
     { href: "/dashboard/board", label: "Bacheca", icon: Megaphone },
     { href: "/dashboard/wellness", label: "Benessere", icon: HeartPulse },
     { href: "/dashboard/calendar", label: "Calendario stagione", icon: CalendarDays, sports: ["ski"] },
@@ -167,6 +169,7 @@ const OFFICE_SECTIONS: NavSection[] = [
     { href: "/dashboard/payments-essential", label: "Pagamenti", icon: Wallet, sports: ["tennis", "padel"] },
     { href: "/dashboard/finance", label: "Finanza", icon: Wallet, feature: "featureFinance", sports: ["ski"] },
     { href: "/dashboard/timesheets", label: "Foglio ore & Stipendi", icon: Clock },
+    { href: "/dashboard/trips", label: "Trasferte", icon: Plane },
   ] },
   { label: "Comunicazioni", items: [
     { href: "/dashboard/board", label: "Bacheca", icon: Megaphone },
